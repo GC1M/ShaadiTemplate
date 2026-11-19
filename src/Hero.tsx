@@ -209,7 +209,7 @@ export function Hero({ draftName, elapsed = 0, demo, quick, onCta }: { draftName
             Indian wedding invitations in your family's language
           </h1>
           <p className="intro mt-6 max-w-[46ch] text-[18px] leading-relaxed text-rose/80" style={{ animationDelay: 'calc(350ms + var(--t0, 0ms))' }}>
-            Make the card for WhatsApp and the printing press, and a wedding website with every function, the venue map and RSVPs. Free, with no login.
+            Make the card for WhatsApp and the printing press, and a wedding website with every function, the venue map and RSVPs, plus a link of its own for each function, for guests invited to only some. Free, with no login.
           </p>
           <div className="intro mt-9 flex flex-wrap items-center gap-x-6 gap-y-4" style={{ animationDelay: 'calc(500ms + var(--t0, 0ms))' }}>
             <a href="#templates" onClick={() => onCta?.('card')} className="zari-button shine relative inline-flex min-h-13 items-center overflow-hidden rounded-full px-8 text-[16px] font-medium text-wine-deep">

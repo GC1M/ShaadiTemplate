@@ -10,6 +10,7 @@
 //   DELETE /api/sites/:slug/blessings/:id (Bearer key)
 //   GET    /api/sites/:slug/rsvps        (Bearer key)           -> [{id, at, name, side, events, party, note}]
 //   POST   /api/sites/:slug/rsvps        {name, side, events, party, note}
+//   POST   /api/sites/:slug/rsvps        (Bearer key) {name, side, events, party, note}  a reply the couple got by phone
 //   POST   /api/sites/:slug/report       {reason}
 //   GET    /api/sites/:slug/contact      (Bearer key)           -> {email, phone, marketing}
 //   PUT    /api/sites/:slug/contact      (Bearer key) {email, phone, marketing} -> {ok, tried, sent}; a new email gets the edit link
@@ -350,6 +351,8 @@ function clean(raw: any, ownPhoto: (src: string) => boolean, saved = new Set<str
       note: str(e?.note, 300),
       // Blank is kept (no directions); a site saved before this field has none and links its venue instead.
       map: typeof e?.map === 'string' ? str(e.map, 500) : undefined,
+      // A livestream for guests who can't come: an https link only, so no script or other scheme reaches a guest's tap.
+      live: /^https:\/\/\S+$/i.test(str(e?.live, 500)) ? str(e.live, 500) : undefined,
       photo: photo(e?.photo),
     })),
     mainEvent: Number.isInteger(c.mainEvent) && c.mainEvent >= 0 && c.mainEvent < 8 ? c.mainEvent : undefined,
@@ -481,21 +484,26 @@ async function bless(req: Request, env: Env, slug: string) {
   return json({ id: r.meta.last_row_id, name, text, at }, 201)
 }
 
+// A guest's reply from the site, or (with the edit key) one the couple got by phone or WhatsApp and noted themselves:
+// marked `by: 'couple'`, not rate limited, and allowed a bigger family than a guest may claim online.
 async function rsvp(req: Request, env: Env, slug: string) {
-  await site(env, slug)
+  const couple = req.headers.has('Authorization')
+  if (couple) await owner(req, env, slug)
+  else await site(env, slug)
   const b = await body(req)
   const r = {
     name: str(b?.name, 60),
     side: ['a', 'b', 'both'].includes(b?.side) ? b.side : 'both',
     events: arr(b?.events, 8, (x) => str(x, 8)),
-    party: Math.min(8, Math.max(1, Math.round(Number(b?.party)) || 1)),
+    party: Math.min(couple ? 50 : 8, Math.max(1, Math.round(Number(b?.party)) || 1)),
     note: str(b?.note, 200),
     // The guest's browser id, so the couple sees a changed reply replace the old one.
-    guest: typeof b?.guest === 'string' && /^[a-z0-9-]{8,40}$/i.test(b.guest) ? b.guest : '',
+    guest: !couple && typeof b?.guest === 'string' && /^[a-z0-9-]{8,40}$/i.test(b.guest) ? b.guest : '',
+    ...(couple && { by: 'couple' }),
   }
-  if (!r.name) fail(400, 'Add your name so the families know who is coming.')
+  if (!r.name) fail(400, couple ? "Add the guest's name." : 'Add your name so the families know who is coming.')
   const ip = await ipOf(req, env)
-  if ((await count(env, 'SELECT COUNT(*) AS n FROM rsvps WHERE slug = ? AND ip = ? AND at > ?', slug, ip, Date.now() - HOUR)) >= 20)
+  if (!couple && (await count(env, 'SELECT COUNT(*) AS n FROM rsvps WHERE slug = ? AND ip = ? AND at > ?', slug, ip, Date.now() - HOUR)) >= 20)
     fail(429, 'Too many replies from here. Please try again later.')
   await env.DB.prepare('INSERT INTO rsvps (slug, data, ip, at) VALUES (?, ?, ?, ?)').bind(slug, JSON.stringify(r), ip, Date.now()).run()
   return json(r, 201)

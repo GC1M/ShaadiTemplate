@@ -60,6 +60,9 @@ export interface Invite {
   // A small "shaaditemplate.com" line at the foot of each page, in the editor and every download. On
   // unless the family unticks it (false).
   credit?: boolean
+  // A QR code on the last page pointing at this link (the couple's wedding website or one function's link). Off when
+  // undefined; '' while the family has ticked it but not typed the link yet.
+  qr?: string
 }
 
 // x, y: object-position in % (which part of the photo the frame shows); zoom: 1 fills the frame, up to 3.

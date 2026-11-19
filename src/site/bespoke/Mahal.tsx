@@ -285,6 +285,11 @@ function Events({ d }: { d: Design }) {
                   Directions
                 </a>
               )}
+              {e.live && (
+                <a href={e.live} target="_blank" rel="noreferrer">
+                  Watch live
+                </a>
+              )}
             </p>
           </li>
         ))}

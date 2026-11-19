@@ -19,7 +19,8 @@ import type { Lang } from '../types'
 // A new site's draft is kept in localStorage until it is published, and after, so this browser can keep editing.
 
 type Draft = SiteData & { slug: string; slugTouched?: boolean; key?: string }
-type Rsvp = { id: number; at: number; name: string; side: string; events: string[]; party: number; note: string; guest?: string }
+// by: 'couple' for a reply the couple noted themselves (it came by phone or WhatsApp).
+type Rsvp = { id: number; at: number; name: string; side: string; events: string[]; party: number; note: string; guest?: string; by?: string }
 type Blessing = { id: number; name: string; text: string; at: number }
 
 const DRAFT = 'sitedraft'
@@ -653,6 +654,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                       At the main venue (Directions take guests there)
                     </label>
                     {e.map !== undefined && <Text label="Directions (optional): a Google Maps link or the address" value={e.map} onChange={(map) => item('events', i, { map })} placeholder="https://maps.app.goo.gl/…" maxLength={500} />}
+                    <Text label="Livestream link (optional): for guests who can't come" value={e.live ?? ''} onChange={(live) => item('events', i, { live: live.trim() || undefined })} placeholder="https://youtube.com/live/…" maxLength={500} />
+                    {e.live && !/^https:\/\/\S+$/i.test(e.live) && <p className="text-[13px] text-maroon">Paste the full link, starting with https://</p>}
                     {photoField('Photo', e.photo, (photo) => item('events', i, { photo }), e.name)}
                     <div className="flex flex-wrap gap-2">
                       {i > 0 && (
@@ -1539,6 +1542,7 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: C
       <p className="text-[15px] text-ink/75">
         {latest.length ? `${latest.length} ${latest.length === 1 ? 'reply' : 'replies'}: ${plural(coming.reduce((n, r) => n + r.party, 0), 'guest')} coming, ${latest.length - coming.length} can't make it.` : 'No replies yet. Share your link with guests.'}
       </p>
+      <PhoneReply slug={slug} edit={edit} events={events} onAdd={(r) => setRsvps((x) => [r, ...(x ?? [])])} />
       {latest.length > 0 && (
         <button type="button" onClick={() => download(slug, latest, eventName)} className={small}>
           <Download className="size-4" aria-hidden /> Download replies
@@ -1550,6 +1554,7 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: C
             {latest.map((r) => (
               <li key={r.id} className="py-3 text-[15px]">
                 <span className="font-medium">{r.name}</span> · {r.events.length ? `${r.party} for ${r.events.map(eventName).join(', ')}` : "can't come"}
+                {r.by === 'couple' && <span className="text-ink/55"> · by phone</span>}
                 {r.note && <span className="block text-ink/65">{r.note}</span>}
               </li>
             ))}
@@ -1573,6 +1578,73 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: C
         </Details>
       )}
     </section>
+  )
+}
+
+// A reply a guest gave by phone or WhatsApp, noted by the couple so the list and the download count everyone. The same
+// name again replaces the earlier reply (the list keeps each guest's latest), so a mistake is fixed by adding it again.
+function PhoneReply({ slug, edit, events, onAdd }: { slug: string; edit: string; events: Content['events']; onAdd: (r: Rsvp) => void }) {
+  const ids = events.map((e, i) => e.id ?? `e${i}`)
+  const blank = { name: '', coming: true, party: 1, picks: ids, note: '' }
+  const [f, setF] = useState(blank)
+  const [state, setState] = useState<'' | 'saving' | string>('')
+  const save = async () => {
+    if (!f.name.trim()) return setState("Add the guest's name.")
+    setState('saving')
+    try {
+      const r = await api<Omit<Rsvp, 'id' | 'at'>>(`sites/${slug}/rsvps`, { method: 'POST', key: edit, body: { name: f.name, side: 'both', events: f.coming ? f.picks : [], party: f.party, note: f.note } })
+      onAdd({ ...r, id: -Date.now(), at: Date.now() })
+      setF(blank)
+      setState(`Added ${r.name}.`)
+      track('rsvp_by_couple', { coming: f.coming })
+    } catch (x) {
+      setState(x instanceof Error ? x.message : 'Could not save. Please try again.')
+    }
+  }
+  return (
+    <Details summary="Add a reply you got by phone or WhatsApp">
+      {/* Not a <form>: this sits inside the editor's own form, and a nested submit would send that one. */}
+      <div className="space-y-4 py-3">
+        <Text label="Guest's name" value={f.name} onChange={(name) => setF((x) => ({ ...x, name }))} maxLength={60} />
+        <Segmented<'yes' | 'no'>
+          label="Coming?"
+          value={f.coming ? 'yes' : 'no'}
+          onChange={(v) => setF((x) => ({ ...x, coming: v === 'yes' }))}
+          options={[
+            { id: 'yes', label: 'Coming' },
+            { id: 'no', label: "Can't come" },
+          ]}
+        />
+        {f.coming && (
+          <>
+            <label className="block">
+              <span className="text-[13px] text-ink/65">How many people</span>
+              <input type="number" inputMode="numeric" min={1} max={50} value={f.party} onChange={(e) => setF((x) => ({ ...x, party: Math.min(50, Math.max(1, Number(e.target.value) || 1)) }))} className={`${inputCls} w-28`} />
+            </label>
+            {events.length > 1 && (
+              <fieldset className="space-y-1">
+                <legend className="text-[13px] text-ink/65">Coming to</legend>
+                {events.map((ev, i) => (
+                  <label key={ids[i]} className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px]">
+                    <input type="checkbox" checked={f.picks.includes(ids[i])} onChange={(e) => setF((x) => ({ ...x, picks: e.target.checked ? ids.filter((id) => id === ids[i] || x.picks.includes(id)) : x.picks.filter((id) => id !== ids[i]) }))} className="size-4 accent-wine" />
+                    {ev.name || `Event ${i + 1}`}
+                  </label>
+                ))}
+              </fieldset>
+            )}
+          </>
+        )}
+        <Text label="Note (optional)" value={f.note} onChange={(note) => setF((x) => ({ ...x, note }))} maxLength={200} />
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" onClick={save} disabled={state === 'saving' || (f.coming && !f.picks.length)} className={small}>
+            {state === 'saving' ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <Plus className="size-4" aria-hidden />} Add reply
+          </button>
+          <span className="text-[13px] text-wine" aria-live="polite">
+            {state !== 'saving' && state}
+          </span>
+        </div>
+      </div>
+    </Details>
   )
 }
 
@@ -1602,7 +1674,10 @@ function Ask({ question, yes, onYes, className, children }: { question: string; 
 function download(slug: string, rows: Rsvp[], eventName: (id: string) => string) {
   // A guest's text starting like a formula (=, +, -, @) gets a leading apostrophe, so a spreadsheet never runs it.
   const cell = (v: string | number) => `"${String(v).replace(/^[=+\-@]/, "'$&").replace(/"/g, '""')}"`
-  const lines = [['Name', 'Side', 'Coming to', 'Guests', 'Note', 'Replied on'], ...rows.map((r) => [r.name, r.side, r.events.map(eventName).join(', ') || "Can't come", r.events.length ? r.party : 0, r.note, new Date(r.at).toLocaleDateString('en-IN')])]
+  const lines = [
+    ['Name', 'Side', 'Coming to', 'Guests', 'Note', 'Replied on', 'Replied by'],
+    ...rows.map((r) => [r.name, r.side, r.events.map(eventName).join(', ') || "Can't come", r.events.length ? r.party : 0, r.note, new Date(r.at).toLocaleDateString('en-IN'), r.by === 'couple' ? 'Phone or WhatsApp' : 'Website']),
+  ]
   const a = document.createElement('a')
   a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.map((l) => l.map(cell).join(',')).join('\r\n')], { type: 'text/csv' }))
   a.download = `${slug}-guest-replies.csv`

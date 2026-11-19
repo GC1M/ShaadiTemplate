@@ -627,6 +627,11 @@ function Timeline({ d }: { d: Design }) {
                         ⌖ Directions
                       </a>
                     )}
+                    {e.live && (
+                      <a href={e.live} target="_blank" rel="noreferrer" className="ov-link">
+                        ▶ Watch live
+                      </a>
+                    )}
                     <button type="button" onClick={() => downloadIcs(e, d)} className="ov-link">
                       Add to calendar
                     </button>
@@ -704,10 +709,15 @@ function Ceremonies({ d }: { d: Design }) {
                   <p className="ov-meta mt-3 text-[0.68rem] uppercase text-(--ov-zari)">{e.date}</p>
                   <p className="mt-2 opacity-80">{e.time}</p>
                   <p className="mt-3 text-[0.95rem] leading-relaxed opacity-70">{e.note}</p>
-                  <div className="mt-5 flex items-center justify-center gap-5">
+                  <div className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 [&>*]:whitespace-nowrap">
                     {e.map && (
                       <a href={e.map} target="_blank" rel="noreferrer" className="ov-link">
                         Directions
+                      </a>
+                    )}
+                    {e.live && (
+                      <a href={e.live} target="_blank" rel="noreferrer" className="ov-link">
+                        Watch live
                       </a>
                     )}
                     <button type="button" onClick={() => downloadIcs(e, d)} className="ov-link">

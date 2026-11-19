@@ -286,6 +286,11 @@ function Events({ d }: { d: Design }) {
                         Directions
                       </a>
                     )}
+                    {e.live && (
+                      <a href={e.live} target="_blank" rel="noreferrer" className="ag-chip" aria-label={`Watch ${e.name} live`}>
+                        Watch live
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>

@@ -9,7 +9,9 @@ const PAGE_MM: Record<Format, [number, number]> = { story: [90, 160], print: [12
 const webkit = /AppleWebKit/.test(navigator.userAgent) && !/Chrome|Android/.test(navigator.userAgent)
 
 // Each direct child of `container` is one full-size card page.
-async function capture(container: HTMLElement, format: Format, kind: 'png' | 'jpeg') {
+// progress(i, n): page i of n is being drawn, so the editor can say how far along a long kankotri is.
+type Progress = (i: number, n: number) => void
+async function capture(container: HTMLElement, format: Format, kind: 'png' | 'jpeg', progress?: Progress) {
   await document.fonts.ready
   // Embed fonts once and reuse for every page instead of re-fetching per capture.
   const fontEmbedCSS = await getFontEmbedCSS(container)
@@ -17,7 +19,8 @@ async function capture(container: HTMLElement, format: Format, kind: 'png' | 'jp
   // Low-memory phones get a lighter print export.
   const pixelRatio = format === 'print' && matchMedia('(pointer: coarse)').matches ? 3 : RATIO[format]
   const out: string[] = []
-  for (const el of pages) {
+  for (const [i, el] of pages.entries()) {
+    progress?.(i + 1, pages.length)
     // Safari (every iOS browser) draws a page's first capture before its fonts and painted artwork
     // are decoded at that size, so the page came out black. A throwaway pass at the same size fixes it.
     if (webkit) await toJpeg(el, { pixelRatio, fontEmbedCSS })
@@ -50,21 +53,21 @@ async function markPng(file: File) {
   return new File([png.subarray(0, 33), chunk, png.subarray(33)], file.name, { type: file.type })
 }
 
-export async function buildPngs(container: HTMLElement, format: Format, baseName: string) {
-  const urls = await capture(container, format, 'png')
+export async function buildPngs(container: HTMLElement, format: Format, baseName: string, progress?: Progress) {
+  const urls = await capture(container, format, 'png', progress)
   return Promise.all(urls.map(async (u, i) => markPng(await toFile(u, urls.length > 1 ? `${baseName}-${i + 1}.png` : `${baseName}.png`, 'image/png'))))
 }
 
 // link: where the card's "shaaditemplate.com" credit points (tagged, so analytics can tell who came from a card). Each
 // page gets a clickable area over the credit, measured from the page itself.
-export async function buildPdf(container: HTMLElement, format: Format, baseName: string, link?: string) {
+export async function buildPdf(container: HTMLElement, format: Format, baseName: string, link?: string, progress?: Progress) {
   const spots = (Array.from(container.children) as HTMLElement[]).map((page) => {
     const credit = page.querySelector('[data-credit] span')
     if (!credit) return null
     const p = page.getBoundingClientRect(), c = credit.getBoundingClientRect()
     return [(c.left - p.left) / p.width, (c.top - p.top) / p.height, c.width / p.width, c.height / p.height]
   })
-  const urls = await capture(container, format, 'jpeg')
+  const urls = await capture(container, format, 'jpeg', progress)
   const [w, h] = PAGE_MM[format]
   const pdf = new jsPDF({ unit: 'mm', format: [w, h], compress: true })
   pdf.setProperties({ title: baseName, subject: NOTICE, author: 'ShaadiTemplate', creator: 'shaaditemplate.com', keywords: 'ShaadiTemplate, shaaditemplate.com' })
