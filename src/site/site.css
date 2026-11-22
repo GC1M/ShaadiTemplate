@@ -925,6 +925,10 @@
 }
 
 /* ---------- Designs page: a design's opening screen inside its phone frame ---------- */
+/* `.st` brings the site's own colours; its full-screen height is not wanted in the frame. */
+.st-cover {
+  min-height: 0;
+}
 /* The tri-fold's centre and words are sized from the window on a real site; in the frame, from the phone. */
 .st-cover .st-tri {
   grid-template-columns: 1fr 64% 1fr;

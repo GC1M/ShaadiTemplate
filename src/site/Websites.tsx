@@ -17,7 +17,7 @@ const FEATURES = ['Countdown to the day', 'Your story', 'Every function, with ad
 const GATE_W = 300
 function Cover({ d, open }: { d: Design; open: boolean }) {
   return (
-    <div className="st-cover absolute left-0 top-0 origin-top-left" style={{ width: GATE_W, height: (GATE_W * 488) / 238, transform: `scale(${238 / GATE_W})` }} inert aria-hidden>
+    <div className="st st-cover absolute left-0 top-0 origin-top-left" style={{ width: GATE_W, height: (GATE_W * 488) / 238, transform: `scale(${238 / GATE_W})` }} inert aria-hidden>
       <Gate d={d} open={open} onOpen={() => {}} />
     </div>
   )
