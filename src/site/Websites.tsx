@@ -1,4 +1,4 @@
-import { Wordmark } from '../Hero'
+import { SiteHeader } from '../Hero'
 import { DESIGNS, designPath, type Design } from './designs'
 import { useTitle } from './shared'
 import { themeVars } from './WeddingSite'
@@ -54,14 +54,7 @@ export default function Websites() {
   useTitle('Wedding website designs | ShaadiTemplate')
   return (
     <div className="velvet min-h-svh text-rose">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
-        <a href="#" aria-label="ShaadiTemplate home">
-          <Wordmark />
-        </a>
-        <a href="#templates" className="text-[15px] text-rose/80 underline-offset-[6px] hover:text-rose hover:underline">
-          Invitation cards
-        </a>
-      </header>
+      <SiteHeader swap={['Invitation cards', '#templates']} />
       <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         <h1 className="mt-10 max-w-[18ch] font-display text-[clamp(2.4rem,6vw,4rem)] leading-[1.05]">Wedding website designs</h1>
         <p className="mt-5 max-w-[58ch] text-lg text-rose/80">One link for every guest: your story, every function, the venue, RSVPs and blessings, on any phone. Open a design to try the live sample.</p>
