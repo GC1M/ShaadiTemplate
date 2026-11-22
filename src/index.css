@@ -292,7 +292,12 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
   @keyframes progress { from { transform: scaleX(0); } }
 }
 
+/* Review cards slide in from the right each time the set rotates. */
+.review-in { animation: review-in .6s ease-out both; }
+@keyframes review-in { from { opacity: 0; translate: 24px 0; } }
+
 @media (prefers-reduced-motion: reduce) {
+  .review-in,
   .intro, .mandap :is(path, circle), .mandap .flame, .shine::after, .ribbon, .scroll-progress { animation: none; }
   .scroll-progress, .mandap .petals { display: none; }
 }

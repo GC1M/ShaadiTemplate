@@ -7,6 +7,7 @@ import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang
 import { Hero, preview } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
 import { track } from './analytics'
+import Reviews from './Reviews'
 
 // Hash routes: #edit (editor), the sample couple website in each version (site/pages.ts: a film, and walks through
 // real 3D scans), else the gallery. Sites load on demand to keep the main bundle small.
@@ -264,6 +265,8 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
           </div>
         )}
       </section>
+
+      <Reviews />
 
       <ZariBorder />
     </div>
