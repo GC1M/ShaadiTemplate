@@ -339,7 +339,7 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
   const crop = art?.print && invite.format === 'print' ? 0 : (960 * k - h) / 2
   const safe = art ? { top: art.top * k - crop, bottom: art.bottom * k - crop, x: d.safe.story.x * k } : d.safe[invite.format]
   const side = art?.x ? { left: (art.x[0] * w) / 100, right: (art.x[1] * w) / 100 } : { left: safe.x, right: safe.x }
-  const fit = art?.photo && { ...PHOTO_FIT, ...invite.photos?.[base0.pages!.indexOf(art)] }
+  const fit = art?.photo && { ...PHOTO_FIT, ...invite.photos?.[base0.pages!.indexOf(own!)] }
   const photo = art?.photo && { src: fit!.src ?? art.photo.src, b: art.photo.box.map((v) => v * k), fade: art.photo.fade }
   const x = look(d, invite.lang)
   const base = w / 30
@@ -348,7 +348,9 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
   // lead: the first section gets its own band (a title typed into a painted frame), fitted on its own.
   const leadBox = useRef<HTMLDivElement>(null)
   const leadInner = useRef<HTMLDivElement>(null)
-  const lead = art?.lead && page.kind !== 'cover' && page.sections.length > 1 ? art.lead : undefined
+  // In print, only the print art's own lead box applies: the story box is placed for the cropped 9:16 page.
+  const leadDef = art !== lang ? lang?.print?.lead : art?.lead
+  const lead = leadDef && page.kind !== 'cover' && page.sections.length > 1 ? leadDef : undefined
   const body = lead && page.kind !== 'cover' ? { ...page, sections: page.sections.slice(1) } : page
 
   // Shrink text until it fits the safe area, so long family lists never spill onto the artwork.
@@ -379,7 +381,7 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
       el?.removeEventListener('load', fit, true)
     }
     // Only pages whose content or look changed re-fit; untouched pages keep their object identity.
-  }, [page, base, invite.scale, invite.lang, invite.templateId, art])
+  }, [page, base, invite.scale, invite.lang, invite.templateId, invite.format, own])
 
   return (
     <div className="relative overflow-hidden" style={{ width: w, height: h, background: d.sky, color: d.colors.text, fontFamily: x.f.body, letterSpacing: d.tracking, textShadow: d.press, '--names': x.f.names } as CSSProperties}>

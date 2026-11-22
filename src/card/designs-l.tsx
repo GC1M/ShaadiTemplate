@@ -52,16 +52,16 @@ export const designs: Design[] = [
   },
   {
     ...look('eucalyptus-ring', '#f7f7f6', '#5e5631', '#5e5631', { title: cormorant, heading: cinzel, body: cormorant, names: '"Pinyon Script", cursive' }),
-    pages: [{ ...page('eucalyptus-ring', 352, 245, [16, 16], [322, 231]), lead: { box: [174, 160, 212, 76] }, print: { src: `${BASE}templates/eucalyptus-ring/1-print.jpg`, top: 322, bottom: 231, lead: { box: [174, 149, 212, 76] } } }],
+    pages: [{ ...page('eucalyptus-ring', 352, 245, [16, 16], [300, 231]), lead: { box: [174, 160, 212, 76] }, print: { src: `${BASE}templates/eucalyptus-ring/1-print.jpg`, top: 300, bottom: 231, lead: { box: [174, 149, 212, 76] } } }],
   },
   {
     ...look('sage-script', '#fbfcf8', '#5f7258', '#5f7258', { title: '"Jost", sans-serif', heading: '"Jost", sans-serif', body: '"Jost", sans-serif', names: '"Great Vibes", cursive' }),
     ornaments: { heart: { src: `${BASE}templates/sage-script/heart.png`, w: 0.62 } },
-    pages: [page('sage-script', 200, 205, [10, 10], [192, 181])],
+    pages: [page('sage-script', 200, 205, [10, 10], [192, 200])],
   },
   {
     ...look('lantern-canopy', '#f1f3f1', '#3b3a18', '#3b3a18', { title: '"Marcellus", serif', heading: '"Marcellus", serif', body: cormorant, names: '"Marcellus", serif' }),
-    pages: [{ ...page('lantern-canopy', 108, 470, [14, 14], [104, 346]), print: { src: `${BASE}templates/lantern-canopy/1-print.jpg`, top: 104, bottom: 346, x: [21, 21] } }],
+    pages: [{ ...page('lantern-canopy', 108, 500, [14, 14], [100, 366]), print: { src: `${BASE}templates/lantern-canopy/1-print.jpg`, top: 100, bottom: 366, x: [21, 21] } }],
   },
 ]
 
@@ -82,7 +82,7 @@ export const templates: Template[] = [
         title: 'Engagement',
         sections: [
           b('***CELEBRATE WITH US AS***\n***WE EXCHANGE RINGS***', 0.68),
-          b('~Aryan &~\n~Rushita~', 2.8),
+          b('~Aryan &~\n~Rushita~', 3.4),
           b('***YOUR COMPANY IS REQUESTED***\n***AT OUR ENGAGEMENT***', 0.68),
           b('**20 | DECEMBER | 2026**', 1.05),
           b('At 4 o’clock in the afternoon\n***Sayaji Garden Lawns***\n14 Lake View Road, Vadodara', 0.85),
@@ -103,9 +103,9 @@ export const templates: Template[] = [
         title: 'Engagement',
         sections: [
           b('Together with our\nfamilies', 0.85),
-          b('~Aryan~', 3.4),
+          b('~Aryan~', 4),
           b('and', 0.8),
-          b('~Rushita~', 3.4),
+          b('~Rushita~', 4),
           b('We cordially invite you to\njoin our engagement on', 0.85),
           b('JANUARY | **17TH** | 2027', 0.85),
           b('6 o’clock in the evening\nThe Rose Pavilion, Pune', 0.8),
@@ -125,7 +125,7 @@ export const templates: Template[] = [
         title: 'Engagement',
         sections: [
           b('~Engagement Ceremony~', 1.6),
-          b('~Aryan~\n~& Rushita~', 3.6),
+          b('~Aryan~\n~& Rushita~', 3.2),
           b('**14 | FEBRUARY | 2027**', 1.3),
           b('At 11 o’clock in the morning\n***Shubh Banquets***\nMG Road, Ahmedabad', 1.15),
         ],
@@ -143,7 +143,7 @@ export const templates: Template[] = [
       {
         title: 'Engaged',
         sections: [
-          b('~Engaged~ [[heart]]', 6.4),
+          b('~Engaged~ [[heart]]', 5.2),
           b('JOIN US TO CELEBRATE THE\nENGAGEMENT OF', 0.95),
           b('~Aryan + Rushita~', 3.1),
           b('SATURDAY, MARCH 13, 2027 | 7 - 11 PM\nTHE GREEN HOUSE, 21 PARK STREET,\nKOLKATA 700016', 0.85),
