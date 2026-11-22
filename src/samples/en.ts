@@ -18,6 +18,8 @@ export const en: SampleText = {
     umiya: '|| Jai Umiya Mataji ||',
     shrinathji: '|| Jai Shrinathji ||',
     ranchhodrai: '|| Jai Ranchhodrai ||',
+    ashapura: '|| Jai Ashapura Mataji ||',
+    'ram-sita': '|| Jai Siya Ram ||',
     'ek-onkar': 'Ik Onkar Satnam',
     bismillah: 'Bismillah-ir-Rahman-ir-Rahim',
     jain: '|| Namo Arihantanam ||',

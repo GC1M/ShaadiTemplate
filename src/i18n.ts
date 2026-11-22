@@ -35,6 +35,8 @@ export const SYMBOLS: Record<SymbolId, string> = {
   umiya: 'Umiya Mataji',
   shrinathji: 'Shrinathji',
   ranchhodrai: 'Ranchhodraiji (Dakor)',
+  ashapura: 'Ashapura Mataji',
+  'ram-sita': 'Shri Ram-Sita',
   'ek-onkar': 'Ek Onkar',
   bismillah: 'Bismillah',
   jain: 'Jain (Ahimsa hand)',

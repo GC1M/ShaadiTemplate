@@ -4,6 +4,7 @@ import { designs as batchD } from './designs-d'
 import { designs as batchE } from './designs-e'
 import { designs as batchF } from './designs-f'
 import { designs as batchG } from './designs-g'
+import { designs as batchK } from './designs-k'
 import { designs as batchH } from './designs-h'
 import { designs as batchI } from './designs-i'
 import { designs as batchJ } from './designs-j'
@@ -64,6 +65,6 @@ export type Ornament = { src: string; w: number; lang?: Lang; plain?: string; at
 export type Ornaments = Record<string, Ornament>
 
 export const DESIGNS: Record<string, Design> = Object.fromEntries(
-  [...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ].map((d) => [d.id, d]),
+  [...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK].map((d) => [d.id, d]),
 )
 

@@ -18,6 +18,8 @@ export const pa: SampleText = {
     umiya: '॥ ਜੈ ਉਮੀਆ ਮਾਤਾਜੀ ॥',
     shrinathji: '॥ ਜੈ ਸ਼੍ਰੀਨਾਥਜੀ ॥',
     ranchhodrai: '॥ ਜੈ ਰਣਛੋੜਰਾਇ ॥',
+    ashapura: '॥ ਜੈ ਆਸ਼ਾਪੁਰਾ ਮਾਤਾ ਜੀ ॥',
+    'ram-sita': '॥ ਜੈ ਸੀਆ ਰਾਮ ॥',
     'ek-onkar': 'ੴ ਸਤਿ ਨਾਮੁ',
     bismillah: 'بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
     jain: '॥ ਣਮੋ ਅਰਿਹੰਤਾਣੰ ॥',
