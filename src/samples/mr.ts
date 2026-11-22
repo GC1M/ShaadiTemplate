@@ -18,6 +18,8 @@ export const mr: SampleText = {
     umiya: '॥ जय उमिया माताजी ॥',
     shrinathji: '॥ जय श्रीनाथजी ॥',
     ranchhodrai: '॥ जय रणछोडराय ॥',
+    ashapura: '॥ जय आशापुरा माताजी ॥',
+    'ram-sita': '॥ जय सिया राम ॥',
     'ek-onkar': 'ੴ ਸਤਿ ਨਾਮੁ',
     bismillah: 'بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
     jain: '॥ णमो अरिहंताणं ॥',

@@ -18,6 +18,8 @@ export const ta: SampleText = {
     umiya: 'ஜெய் உமியா மாதாஜி',
     shrinathji: 'ஜெய் ஸ்ரீநாத்ஜி',
     ranchhodrai: 'ஜெய் ரண்சோட்ராய்',
+    ashapura: 'ஜெய் ஆஷாபுரா மாதாஜி',
+    'ram-sita': 'ஜெய் சியா ராம்',
     'ek-onkar': 'ੴ ਸਤਿ ਨਾਮੁ',
     bismillah: 'بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
     jain: 'ணமோ அரிஹந்தாணம்',
