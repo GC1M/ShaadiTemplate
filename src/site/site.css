@@ -54,6 +54,12 @@
   text-shadow: 0 0 34px color-mix(in srgb, var(--ov-zari) 45%, transparent);
 }
 
+/* Words in the couple's own script (names, the invocation). Each face covers one script, so the browser picks
+   the right one letter by letter: Devanagari, Gujarati, Gurmukhi, Tamil, Urdu. */
+.st-script {
+  font-family: 'Tiro Devanagari Hindi', 'Noto Serif Gujarati', 'Tiro Gurmukhi', 'Tiro Tamil', 'Amiri', serif;
+}
+
 /* ---------- Gate ---------- */
 .st-gate {
   position: fixed;
@@ -936,7 +942,7 @@
 .st-cover .st-tri-center {
   padding-inline: 0.75rem;
 }
-.st-cover .st-tri-center .font-deva {
+.st-cover .st-tri-center .st-script {
   font-size: 1.3rem;
 }
 .st-cover .st-tri-center .ov-display {

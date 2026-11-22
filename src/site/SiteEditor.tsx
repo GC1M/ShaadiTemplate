@@ -18,14 +18,16 @@ type Rsvp = { id: number; at: number; name: string; side: string; events: string
 type Blessing = { id: number; name: string; text: string; at: number }
 
 const DRAFT = 'sitedraft'
-const MAX_PHOTOS = 12
+const MAX_PHOTOS = 16
 const inputCls = 'mt-1.5 w-full rounded-md border border-wine/20 bg-paper px-3.5 py-2.5 text-base outline-none transition-colors hover:border-wine/40 focus:border-wine focus:ring-2 focus:ring-zari/40'
 const btn = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium disabled:opacity-60 pointer-coarse:min-h-11'
 const small = 'inline-flex items-center gap-1.5 rounded-full border border-wine/25 px-3 py-1.5 text-sm text-wine hover:bg-wine/5 pointer-coarse:min-h-11'
 
-// A look's demo words, without its photos: anything left out shows the design's own photo.
+// A look's demo words, without its photos (anything left out shows the design's own photo) and without the demo
+// couple's names in their script, which nobody should publish by leaving the box alone.
 const fresh = (l: Look): Content => ({
   ...l.demo,
+  nativeNames: undefined,
   story: l.demo.story.map(({ photo: _, ...s }) => s),
   meet: l.demo.meet?.map(({ photo: _, ...m }) => m),
   events: l.demo.events.map(({ photo: _, ...e }, i) => ({ ...e, id: `e${i}` })),
@@ -53,17 +55,18 @@ const prep = (c: Content): Content => ({
   notes: c.notes.map((n) => n.trim()).filter(Boolean),
   compliments: c.compliments?.map((n) => n.trim()).filter(Boolean).length ? c.compliments.map((n) => n.trim()).filter(Boolean) : undefined,
   meet: c.meet?.some((m) => m.bio.trim()) ? c.meet : undefined,
+  nativeNames: c.nativeNames?.trim() || undefined,
   invocation: c.invocation?.trim() || undefined,
   note: c.note?.trim() || undefined,
 })
 
 // After a save: the server's copy (uploaded photos now have addresses), keeping the lines and bios as typed.
-const stored = (mine: Content, server: Content): Content => ({ ...server, notes: mine.notes, compliments: mine.compliments, meet: mine.meet, invocation: mine.invocation, note: mine.note })
+const stored = (mine: Content, server: Content): Content => ({ ...server, notes: mine.notes, compliments: mine.compliments, meet: mine.meet, nativeNames: mine.nativeNames, invocation: mine.invocation, note: mine.note })
 
 const photosIn = (c: Content) =>
-  new Set([c.photos.hero, c.photos.venue, ...c.photos.gallery, ...c.story.map((s) => s.photo), ...(c.meet ?? []).map((m) => m.photo)].filter((p): p is Photo => !!p).map((p) => p.src))
+  new Set([c.photos.hero, c.photos.venue, ...c.photos.gallery, ...c.story.map((s) => s.photo), ...c.events.map((e) => e.photo), ...(c.meet ?? []).map((m) => m.photo)].filter((p): p is Photo => !!p).map((p) => p.src))
 
-// Phone photos are large; shrink each to 1600px JPEG under ~1.4 MB before it goes anywhere.
+// Phone photos are large; shrink each to 1600px JPEG under ~1 MB before it goes anywhere (16 of them fit one save).
 async function shrink(file: File, alt: string): Promise<Photo> {
   const bmp = await createImageBitmap(file)
   const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height))
@@ -73,7 +76,7 @@ async function shrink(file: File, alt: string): Promise<Photo> {
   c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height)
   let q = 0.82
   let src = c.toDataURL('image/jpeg', q)
-  while (src.length * 0.75 > 1_400_000 && q > 0.4) src = c.toDataURL('image/jpeg', (q -= 0.15))
+  while (src.length * 0.75 > 1_000_000 && q > 0.4) src = c.toDataURL('image/jpeg', (q -= 0.15))
   return { src, small: src, alt, pos: 'center' }
 }
 
@@ -315,6 +318,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                 ))}
               </div>
               <Text label="Invitation line" value={c.invite} onChange={(invite) => up(() => ({ invite }))} multiline maxLength={400} />
+              <Text label="Your names in your own language (optional)" value={c.nativeNames ?? ''} onChange={(nativeNames) => up(() => ({ nativeNames }))} placeholder="अदिति संग विहान" maxLength={80} />
               <Text label="Invocation on the opening screen (optional)" value={c.invocation ?? ''} onChange={(invocation) => up(() => ({ invocation }))} placeholder="श्री गणेशाय नमः" maxLength={80} />
             </section>
 
@@ -342,6 +346,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                     </div>
                     <Text label="Time and place, in words (optional)" value={e.where} onChange={(where) => item('events', i, { where })} placeholder="7 pm, in the palace lawns" maxLength={120} />
                     <Text label="Note for guests" value={e.note} onChange={(note) => item('events', i, { note })} maxLength={300} />
+                    {photoField('Photo', e.photo, (photo) => item('events', i, { photo }), e.name)}
                     {c.events.length > 1 && (
                       <button type="button" onClick={() => drop('events', i)} className={small}>
                         <Trash2 className="size-4" aria-hidden /> Remove {e.name || 'event'}
@@ -372,7 +377,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
             <section className="space-y-5">
               <Step n={4} title="Photos" />
               <p className="text-[15px] text-ink/70">
-                Up to {MAX_PHOTOS} photos ({count} used). Any you leave out show the design's own photo.
+                Up to {MAX_PHOTOS} photos across the site ({count} used), counting the ones on your events and story. Any you leave out show the design's own photo.
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {photoField('Cover photo', c.photos.hero, photo('hero'), names)}
@@ -585,12 +590,33 @@ function Text({ label, value, onChange, multiline, rows = 3, ...rest }: { label:
   )
 }
 
+// The photo whole, with a mark on the part that stays in view wherever the site crops it. A tap moves the mark.
+function Focus({ photo, onChange }: { photo: Photo; onChange: (p: Photo) => void }) {
+  const [x, y] = /^\d+% \d+%$/.test(photo.pos) ? photo.pos.split(' ').map(parseFloat) : [50, 50]
+  return (
+    <button
+      type="button"
+      aria-label="Tap the part of the photo to keep in view"
+      className="relative block cursor-crosshair overflow-hidden rounded-md"
+      onClick={(e) => {
+        if (!e.detail) return // a key press has no place on the photo
+        const r = e.currentTarget.getBoundingClientRect()
+        const pct = (v: number) => Math.round(Math.min(1, Math.max(0, v)) * 100)
+        onChange({ ...photo, pos: `${pct((e.clientX - r.left) / r.width)}% ${pct((e.clientY - r.top) / r.height)}%` })
+      }}
+    >
+      <img src={photo.small} alt="" className="block max-h-40 w-auto max-w-full" />
+      <span className="pointer-events-none absolute size-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgb(0_0_0/0.5),0_0_8px_rgb(0_0_0/0.6)]" style={{ left: `${x}%`, top: `${y}%` }} aria-hidden />
+    </button>
+  )
+}
+
 function PhotoPick({ label, photo, onChange, alt, full, onError }: { label: string; photo?: Photo; onChange: (p: Photo | undefined) => void; alt: string; full: boolean; onError: (e: string) => void }) {
   return (
     <div>
       <span className="text-[13px] text-ink/65">{label}</span>
-      <div className="mt-1.5 flex items-center gap-3">
-        {photo ? <img src={photo.src} alt="" className="size-16 rounded-md object-cover" /> : <span className="grid size-16 place-items-center rounded-md bg-wine/5 text-center text-[11px] leading-tight text-ink/50">Design photo</span>}
+      <div className="mt-1.5 flex flex-wrap items-center gap-3">
+        {photo ? <Focus photo={photo} onChange={onChange} /> : <span className="grid size-16 place-items-center rounded-md bg-wine/5 text-center text-[11px] leading-tight text-ink/50">Design photo</span>}
         <label className={`${small} ${full && !photo ? 'pointer-events-none opacity-50' : 'cursor-pointer'}`}>
           {photo ? 'Change' : 'Choose photo'}
           <input
@@ -611,6 +637,7 @@ function PhotoPick({ label, photo, onChange, alt, full, onError }: { label: stri
           </button>
         )}
       </div>
+      {photo && <p className="mt-1.5 text-[13px] text-ink/55">Tap the part of the photo that should stay in view.</p>}
     </div>
   )
 }
