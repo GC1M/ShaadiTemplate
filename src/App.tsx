@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react'
 import { CardPage, SIZES } from './card/Card'
 import Editor from './Editor'
 import { EVENTS, LANGS, SYMBOLS } from './i18n'
@@ -7,39 +7,13 @@ import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang
 import { Hero, preview } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
 import { track } from './analytics'
-import { keepKey } from './site/api'
+import { land, sitePath, siteView } from './siteRoutes'
 import Reviews from './Reviews'
 
-// Routes: #edit (the card editor) on the home page; the wedding website designs (/websites), each design's sample
-// site (/websites/<id>, site/designs.ts), the website editor (/websites/<id>/edit, /w/<slug>/edit) and couples'
-// published sites (/w/<slug>); else the gallery. Sites load on demand to keep the main bundle small.
+// Routes: #edit (the card editor) on the home page, the wedding website pages (siteRoutes.ts, loaded on demand to
+// keep this bundle small), else the gallery.
 const isEditor = () => location.hash === '#edit'
-const Websites = lazy(() => import('./site/Websites'))
-const WeddingSite = lazy(() => import('./site/WeddingSite'))
-const HostedSite = lazy(() => import('./site/HostedSite'))
-const SiteEditor = lazy(() => import('./site/SiteEditor'))
-// A website page's path without its trailing slash, or '' for any other page.
-const sitePath = (path: string) => {
-  const p = path.replace(/\/$/, '')
-  return p === '/websites' || p.startsWith('/websites/') || p.startsWith('/w/') ? p : ''
-}
-function land() {
-  // These pages were hash routes once, so links already shared (/#/websites/<id>, /#/w/<slug>,
-  // /#/w/<slug>/edit?k=<key>) land on the path. GitHub Pages has no file at /w/<slug>, so public/404.html sends
-  // it here the same way on every load.
-  const old = location.hash.match(/^#(\/[^?]*)(?:\?k=(.*))?$/)
-  if (old && (sitePath(old[1]) || old[1].startsWith('/ananya-arjun')))
-    history.replaceState(null, '', (sitePath(old[1]).startsWith('/w/') ? old[1] : `${sitePath(old[1]) || '/websites'}/`) + (old[2] ? `#${old[2]}` : ''))
-  // The edit key (/w/<slug>/edit#<key>) leaves the address here, before analytics starts and reports it (see keepKey).
-  const keyed = (location.pathname + location.hash).match(/^\/w\/([a-z0-9-]+)\/edit\/?#([a-f0-9]+)$/)
-  if (!keyed) return
-  keepKey(keyed[1], keyed[2])
-  history.replaceState(null, '', location.pathname)
-}
-land()
 const isSite = () => sitePath(location.pathname)
-const siteView = (path: string) =>
-  path === '/websites' ? Websites : path.endsWith('/edit') ? SiteEditor : path.startsWith('/w/') || path === '/websites/preview' ? HostedSite : WeddingSite
 // Static template pages link to #template/<id> to open that design. Consumed once, so StrictMode's re-run is a no-op.
 let linked = location.hash.startsWith('#template/') ? TEMPLATES.find((t) => t.id === liveId(location.hash.slice(10))) : undefined
 

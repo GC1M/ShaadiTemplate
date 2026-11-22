@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Emblem } from '../card/motifs'
-import { designByPath, designPath, DESIGNS, mainOf, type Design } from './designs'
+import { designByPath, designPath, designTitle, DESIGNS, mainOf, type Design } from './designs'
 import { api, API } from './api'
 import { Backdrop, Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion, useLenis, useTitle } from './shared'
 import './organza.css'
@@ -710,7 +710,7 @@ function Ceremonies({ d }: { d: Design }) {
 
 export default function WeddingSite() {
   const d = designByPath(location.pathname) ?? DESIGNS[0]
-  useTitle(`${d.couple.join(' and ')}: ${d.name} wedding website`)
+  useTitle(designTitle(d))
   return <Site d={d} mode="demo" />
 }
 

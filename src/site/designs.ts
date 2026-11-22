@@ -472,6 +472,23 @@ export const lookById = (id: string) => LOOKS.find((l) => l.id === id)
 export const DESIGNS = LOOKS.map((l) => toDesign(l))
 // Trailing slashes, as GitHub Pages serves each page from <path>/index.html (vite.config.ts writes them).
 export const designPath = (d: { id: string }) => `/websites/${d.id}/`
+// Page titles, shared by the app and the static copies the build writes (vite.config.ts), so search sees one title.
+export const WEBSITES_TITLE = 'Free Wedding Website Designs with RSVP | ShaadiTemplate'
+export const designKind = (d: { tradition: string }) => {
+  const t = d.tradition.split(' · ')[0]
+  return /wedding/i.test(t) ? t : `${t} wedding`
+}
+// The words a search engine reads on a sample design's page: the site itself is the fictional couple's, and its
+// own heading only appears once a guest opens the gate (WeddingSite.tsx).
+export function designIntro(d: Pick<Design, 'name' | 'tradition' | 'blurb' | 'couple' | 'city' | 'events'>) {
+  const names = d.events.map((e) => e.name)
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]
+  return {
+    heading: `${d.name}: a free ${designKind(d)} website`,
+    body: `${d.blurb} The live sample is ${d.couple[0]} and ${d.couple[1]}'s site: their story, ${list} with times and add to calendar, the venue in ${d.city} on a map, RSVP and guest blessings. Make it yours with your own names, functions and photos, then send one link to every guest on WhatsApp. It is free, and stays online until 30 days after your last function.`,
+  }
+}
+export const designTitle = (d: { name: string; tradition: string }) => `${d.name}: Free ${designKind(d).replace('wedding', 'Wedding')} Website`
 export const designByPath = (path: string) => DESIGNS.find((d) => d.id === path.split('/')[2])
 // Go to another page of the app without loading it again (App.tsx listens for popstate).
 export const go = (path: string) => {
