@@ -55,7 +55,7 @@ export interface Design {
     photo?: { box: [number, number, number, number]; src: string; fade?: boolean }
     plain?: { src: string; top: number }
     // print: the page's own 5:7 artwork (540x756 px) and text band, used whole in the print shape instead of cropping the 9:16 one.
-    print?: { src: string; top: number; bottom: number; x?: [number, number]; lead?: { box: [number, number, number, number] } }
+    print?: { src: string; top: number; bottom: number; x?: [number, number]; spread?: boolean; lead?: { box: [number, number, number, number] } }
     // lead: the first section in its own box [x, y, w, h] in story px (a title inside a painted frame), centred and fitted alone.
     lead?: { box: [number, number, number, number] }
   }[]

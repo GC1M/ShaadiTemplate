@@ -61,7 +61,7 @@ export const designs: Design[] = [
   },
   {
     ...look('lantern-canopy', '#f1f3f1', '#3b3a18', '#3b3a18', { title: '"Marcellus", serif', heading: '"Marcellus", serif', body: cormorant, names: '"Marcellus", serif' }),
-    pages: [{ ...page('lantern-canopy', 108, 500, [14, 14], [100, 366]), print: { src: `${BASE}templates/lantern-canopy/1-print.jpg`, top: 100, bottom: 366, x: [21, 21] } }],
+    pages: [{ ...page('lantern-canopy', 108, 500, [14, 14], [100, 366]), print: { src: `${BASE}templates/lantern-canopy/1-print.jpg`, top: 100, bottom: 366, x: [21, 21], spread: true } }],
   },
 ]
 
