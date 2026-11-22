@@ -236,6 +236,11 @@ def main():
         path.write_text(page)
         if url:
             entries.append((url, last_changed(path), images))
+    # The wedding website pages come from the app, not from a file here: the build writes them (vite.config.ts) and
+    # fails if a design in src/site/designs.ts is missing from the sitemap.
+    designs = ROOT / 'src/site/designs.ts'
+    looks = re.findall(r"^    id: '([\w-]+)',$", designs.read_text(), re.M)
+    entries += [(f'{SITE}/websites/{look}', last_changed(designs), []) for look in ['', *(f'{i}/' for i in looks)]]
     entries.sort(key=lambda x: (x[0].count('/'), x[0]))
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">']

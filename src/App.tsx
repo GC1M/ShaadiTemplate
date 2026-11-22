@@ -10,29 +10,36 @@ import { track } from './analytics'
 import { keepKey } from './site/api'
 import Reviews from './Reviews'
 
-// Hash routes: #edit (editor), the wedding website designs (#/websites), each design's sample site
-// (site/designs.ts), the website editor (#/websites/<id>/edit, #/w/<slug>/edit) and couples' published sites
-// (#/w/<slug>), else the gallery. Sites load on demand to keep the main bundle small.
+// Routes: #edit (the card editor) on the home page; the wedding website designs (/websites), each design's sample
+// site (/websites/<id>, site/designs.ts), the website editor (/websites/<id>/edit, /w/<slug>/edit) and couples'
+// published sites (/w/<slug>); else the gallery. Sites load on demand to keep the main bundle small.
 const isEditor = () => location.hash === '#edit'
 const Websites = lazy(() => import('./site/Websites'))
 const WeddingSite = lazy(() => import('./site/WeddingSite'))
 const HostedSite = lazy(() => import('./site/HostedSite'))
 const SiteEditor = lazy(() => import('./site/SiteEditor'))
-// A couple's published site, /w/<slug> (public/404.html sends it here as #/w/<slug>; the dev server serves it as is).
-if (/^\/w\/[a-z0-9-]+(\/edit)?\/?$/.test(location.pathname))
-  history.replaceState(null, '', `/#${location.pathname.replace(/\/$/, '')}${location.hash ? `?k=${location.hash.slice(1)}` : ''}`)
-// The edit key leaves the address here, before analytics starts and reports it (see keepKey).
-function takeKey() {
-  const keyed = location.hash.match(/^#\/w\/([a-z0-9-]+)\/edit\?k=([a-f0-9]+)$/)
+// A website page's path without its trailing slash, or '' for any other page.
+const sitePath = (path: string) => {
+  const p = path.replace(/\/$/, '')
+  return p === '/websites' || p.startsWith('/websites/') || p.startsWith('/w/') ? p : ''
+}
+function land() {
+  // These pages were hash routes once, so links already shared (/#/websites/<id>, /#/w/<slug>,
+  // /#/w/<slug>/edit?k=<key>) land on the path. GitHub Pages has no file at /w/<slug>, so public/404.html sends
+  // it here the same way on every load.
+  const old = location.hash.match(/^#(\/[^?]*)(?:\?k=(.*))?$/)
+  if (old && (sitePath(old[1]) || old[1].startsWith('/ananya-arjun')))
+    history.replaceState(null, '', (sitePath(old[1]).startsWith('/w/') ? old[1] : `${sitePath(old[1]) || '/websites'}/`) + (old[2] ? `#${old[2]}` : ''))
+  // The edit key (/w/<slug>/edit#<key>) leaves the address here, before analytics starts and reports it (see keepKey).
+  const keyed = (location.pathname + location.hash).match(/^\/w\/([a-z0-9-]+)\/edit\/?#([a-f0-9]+)$/)
   if (!keyed) return
   keepKey(keyed[1], keyed[2])
-  history.replaceState(null, '', `#/w/${keyed[1]}/edit`)
+  history.replaceState(null, '', location.pathname)
 }
-takeKey()
-const isSite = () =>
-  location.hash === '#/websites' || location.hash.startsWith('#/ananya-arjun') ? '#/websites' : location.hash.startsWith('#/websites/') || location.hash.startsWith('#/w/') ? location.hash : ''
-const siteView = (hash: string) =>
-  hash === '#/websites' ? Websites : hash.endsWith('/edit') || hash.includes('/edit?') ? SiteEditor : hash.startsWith('#/w/') || hash === '#/websites/preview' ? HostedSite : WeddingSite
+land()
+const isSite = () => sitePath(location.pathname)
+const siteView = (path: string) =>
+  path === '/websites' ? Websites : path.endsWith('/edit') ? SiteEditor : path.startsWith('/w/') || path === '/websites/preview' ? HostedSite : WeddingSite
 // Static template pages link to #template/<id> to open that design. Consumed once, so StrictMode's re-run is a no-op.
 let linked = location.hash.startsWith('#template/') ? TEMPLATES.find((t) => t.id === liveId(location.hash.slice(10))) : undefined
 
@@ -52,13 +59,28 @@ export default function App() {
     saveDrafts(drafts)
   }, [drafts])
   useEffect(() => {
-    const onHash = () => {
-      takeKey()
+    const sync = () => {
+      land()
       setInEditor(isEditor())
       setInSite(isSite())
     }
-    addEventListener('hashchange', onHash)
-    return () => removeEventListener('hashchange', onHash)
+    // A link to the home page or a website page changes the page in place; a link within the page is the browser's.
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as Element).closest('a')
+      if (!(a instanceof HTMLAnchorElement) || e.defaultPrevented || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.target || a.origin !== location.origin) return
+      if ((a.pathname !== '/' && !sitePath(a.pathname)) || (a.pathname === location.pathname && a.hash)) return
+      e.preventDefault()
+      history.pushState(null, '', a.href)
+      sync()
+    }
+    addEventListener('hashchange', sync)
+    addEventListener('popstate', sync)
+    document.addEventListener('click', onClick)
+    return () => {
+      removeEventListener('hashchange', sync)
+      removeEventListener('popstate', sync)
+      document.removeEventListener('click', onClick)
+    }
   }, [])
   useEffect(() => {
     // A link to #templates from the sample site lands on the designs; anything else starts at the top.
