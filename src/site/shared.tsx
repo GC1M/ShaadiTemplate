@@ -2,7 +2,7 @@ import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
 import './organza.css'
-import { DESIGNS, designPath, go, type Design, type WeddingEvent } from './designs'
+import { DESIGNS, designIntro, designPath, go, type Design, type WeddingEvent } from './designs'
 import type { Photo } from './photos'
 import { api, API } from './api'
 
@@ -112,30 +112,34 @@ export function PageSwitch({ d, className = '' }: { d: Design; className?: strin
 export function SeeAlso({ d }: { d: Design }) {
   const others = DESIGNS.filter((x) => x !== d)
   return (
-    <p className="mt-8">
-      {d.name}, a sample wedding website design from ShaadiTemplate. The couple and their story are fictional. Other designs:{' '}
-      {others.map((x, i) => (
-        <span key={x.id}>
-          <a href={designPath(x)} className="underline underline-offset-4 hover:text-(--ov-zari)">
-            {x.name}
-          </a>
-          {i < others.length - 1 ? ', ' : '. '}
-        </span>
-      ))}
-      <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
-        See all designs
-      </a>
-      .
-      {API && (
-        <>
-          {' '}
-          <a href={`${designPath(d)}edit/`} className="underline underline-offset-4 hover:text-(--ov-zari)">
-            Make your own wedding website with {d.name}
-          </a>
-          , free.
-        </>
-      )}
-    </p>
+    <>
+      <h1 className="ov-display mt-4 text-3xl leading-tight">{designIntro(d).heading}</h1>
+      <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed">{designIntro(d).body}</p>
+      <p className="mt-8">
+        The couple and their story are fictional. Other designs:{' '}
+        {others.map((x, i) => (
+          <span key={x.id}>
+            <a href={designPath(x)} className="underline underline-offset-4 hover:text-(--ov-zari)">
+              {x.name}
+            </a>
+            {i < others.length - 1 ? ', ' : '. '}
+          </span>
+        ))}
+        <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
+          See all designs
+        </a>
+        .
+        {API && (
+          <>
+            {' '}
+            <a href={`${designPath(d)}edit/`} className="underline underline-offset-4 hover:text-(--ov-zari)">
+              Make your own wedding website with {d.name}
+            </a>
+            , free.
+          </>
+        )}
+      </p>
+    </>
   )
 }
 

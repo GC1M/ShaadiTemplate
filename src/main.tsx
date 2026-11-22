@@ -38,11 +38,15 @@ import '@fontsource/noto-serif-tamil/400.css'
 import '@fontsource/noto-serif-tamil/700.css'
 import '@fontsource/gloock/400.css'
 import './index.css'
-import App from './App'
 import { initAnalytics } from './analytics'
+import { land, sitePath } from './siteRoutes'
 
+land()
 initAnalytics()
 
+// A wedding website page loads only the website code, not the card gallery and editor. The page's static content
+// stays in #root until the app is ready, so nothing shifts while the chunk loads.
+const { default: App } = await (sitePath(location.pathname) ? import('./SiteApp') : import('./App'))
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

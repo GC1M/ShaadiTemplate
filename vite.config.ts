@@ -33,29 +33,66 @@ function sitePages(): Plugin {
     enforce: 'post', // after Vite has written index.html into the bundle
     async generateBundle(_, bundle) {
       const load = <T,>(file: string) => runnerImport<T>(file, { configFile: false, logLevel: 'error' }).then((r) => r.module)
-      const { DESIGNS, designPath } = await load<typeof import('./src/site/designs')>('/src/site/designs.ts')
+      const { DESIGNS, WEBSITES_TITLE, designKind, designPath, designTitle } = await load<typeof import('./src/site/designs')>('/src/site/designs.ts')
       const { default: sitemap } = await load<{ default: string }>('/public/sitemap.xml?raw')
       const index = bundle['index.html']
       if (index?.type !== 'asset') throw new Error('index.html is not in the bundle')
       const home = String(index.source)
         .replace(/[ \t]*<!-- home -->.*?<!-- \/home -->\n?/gs, '')
         .replace(/[ \t]*<script type="application\/ld\+json">.*?<\/script>\n?/s, '')
-      const write = (path: string, title: string, desc?: string) => {
-        const url = `https://shaaditemplate.com${path}`
+      const SITE = 'https://shaaditemplate.com'
+      const org = { '@type': 'Organization', '@id': `${SITE}/#org`, name: 'ShaadiTemplate', url: `${SITE}/` }
+      const hub = { name: 'Wedding websites', url: `${SITE}/websites/` }
+      // 1200x630 share images drawn by scripts/seo.py from each design's hero photo.
+      const og = (d?: { id: string }) => `${SITE}/og/websites${d ? `-${d.id}` : ''}.jpg`
+      const crumbs = (...items: { name: string; url: string }[]) => ({
+        '@type': 'BreadcrumbList',
+        itemListElement: [{ name: 'Home', url: `${SITE}/` }, ...items].map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.url })),
+      })
+      // desc and seo only for pages meant to be found: they get a canonical, a share image and structured data.
+      const write = (path: string, title: string, desc?: string, seo?: { image: string; alt: string; graph: object[] }) => {
+        const url = `${SITE}${path}`
         if (desc && !sitemap.includes(`<loc>${url}</loc>`)) throw new Error(`${url} is not in public/sitemap.xml: run python3 scripts/seo.py`)
+        if (title.length > 60 || (desc?.length ?? 0) > 160) throw new Error(`${path}: title over 60 or description over 160 characters`)
         let page = home.replace(/<title>.*?<\/title>/, () => `<title>${esc(title)}</title>`).replace(/(property="og:title" content=")[^"]*/, (_: string, a: string) => a + esc(title))
         page = desc
           ? page
               .replace(/((?:name="description"|property="og:description") content=")[^"]*/g, (_: string, a: string) => a + esc(desc))
               .replace(/((?:rel="canonical" href|property="og:url" content)=")[^"]*/g, (_: string, a: string) => a + url)
           : page.replace(/<link rel="canonical"[^>]*>/, '<meta name="robots" content="noindex" />')
+        if (seo) {
+          const ld = JSON.stringify({ '@context': 'https://schema.org', '@graph': seo.graph }).replace(/<\//g, '<\\/')
+          page = page
+            .replace(/(property="og:image" content=")[^"]*/, (_: string, a: string) => a + esc(seo.image))
+            .replace(/(property="og:image:alt" content=")[^"]*/, (_: string, a: string) => a + esc(seo.alt))
+            .replace('<!-- /seo -->', `<script type="application/ld+json">${ld}</script>\n    <!-- /seo -->`)
+        }
         this.emitFile({ type: 'asset', fileName: `${path.slice(1)}index.html`, source: page })
       }
       const edit = 'Make your wedding website | ShaadiTemplate'
-      write('/websites/', 'Wedding website designs | ShaadiTemplate', 'Free Indian wedding website designs. One link for every guest: your story, every function, the venue, RSVPs and blessings, on any phone. Open a design to try the live sample.')
+      const hubDesc = 'Free Indian wedding website templates with RSVP: your story, every function, the venue map and guest blessings on one link for WhatsApp.'
+      write('/websites/', WEBSITES_TITLE, hubDesc, {
+        image: og(),
+        alt: 'Free wedding website designs from ShaadiTemplate',
+        graph: [
+          { '@type': 'CollectionPage', name: 'Wedding website designs', url: hub.url, description: hubDesc, inLanguage: 'en', isPartOf: { '@id': `${SITE}/#website` },
+            mainEntity: { '@type': 'ItemList', numberOfItems: DESIGNS.length,
+              itemListElement: DESIGNS.map((d, i) => ({ '@type': 'ListItem', position: i + 1, item: { '@type': 'CreativeWork', name: `${d.name} wedding website`, url: `${SITE}${designPath(d)}`, image: og(d) } })) } },
+          crumbs(hub),
+        ],
+      })
       write('/websites/preview/', edit)
       for (const d of DESIGNS) {
-        write(designPath(d), `${d.couple.join(' and ')}: ${d.name} wedding website`, `${d.name}, a sample wedding website design from ShaadiTemplate. ${d.blurb}`)
+        const url = `${SITE}${designPath(d)}`
+        const desc = `Free ${designKind(d)} website: ${d.blurb} Story, events, map and RSVP on one link.`
+        write(designPath(d), designTitle(d), desc, {
+          image: og(d),
+          alt: `${d.name}, a free ${designKind(d)} website design`,
+          graph: [
+            { '@type': 'CreativeWork', name: `${d.name} wedding website`, url, description: desc, image: og(d), inLanguage: 'en', isAccessibleForFree: true, publisher: org, isPartOf: { '@type': 'CollectionPage', url: hub.url } },
+            crumbs(hub, { name: d.name, url }),
+          ],
+        })
         write(`${designPath(d)}edit/`, edit)
       }
     },

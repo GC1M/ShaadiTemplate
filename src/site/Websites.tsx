@@ -1,5 +1,5 @@
 import { SiteHeader } from '../Hero'
-import { DESIGNS, designPath, type Design } from './designs'
+import { DESIGNS, WEBSITES_TITLE, designPath, type Design } from './designs'
 import { API } from './api'
 import { useTitle } from './shared'
 import { useState } from 'react'
@@ -67,7 +67,7 @@ function Phone({ d }: { d: Design }) {
 }
 
 export default function Websites() {
-  useTitle('Wedding website designs | ShaadiTemplate')
+  useTitle(WEBSITES_TITLE)
   return (
     <div className="velvet min-h-svh text-rose">
       <SiteHeader swap={['Invitation cards', '/#templates']} />
