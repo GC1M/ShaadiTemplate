@@ -2,7 +2,7 @@ import Lenis from 'lenis'
 import 'lenis/dist/lenis.css'
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type MouseEvent } from 'react'
 import './organza.css'
-import { DESIGNS, designPath, type Design, type WeddingEvent } from './designs'
+import { DESIGNS, designPath, go, type Design, type WeddingEvent } from './designs'
 import type { Photo } from './photos'
 import { api, API } from './api'
 
@@ -94,7 +94,7 @@ export function Backdrop({ photo, className = '', style, eager }: { photo: Photo
 // Jump to another design.
 export function PageSwitch({ d, className = '' }: { d: Design; className?: string }) {
   return (
-    <select aria-label="Other designs" className={`ov-switch ${className}`} value={d.id} onChange={(e) => (location.hash = `#/websites/${e.target.value}`)}>
+    <select aria-label="Other designs" className={`ov-switch ${className}`} value={d.id} onChange={(e) => go(designPath({ id: e.target.value }))}>
       {DESIGNS.map((x) => (
         <option key={x.id} value={x.id}>
           {x.name}
@@ -118,14 +118,14 @@ export function SeeAlso({ d }: { d: Design }) {
           {i < others.length - 1 ? ', ' : '. '}
         </span>
       ))}
-      <a href="#/websites" className="underline underline-offset-4 hover:text-(--ov-zari)">
+      <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
         See all designs
       </a>
       .
       {API && (
         <>
           {' '}
-          <a href={`${designPath(d)}/edit`} className="underline underline-offset-4 hover:text-(--ov-zari)">
+          <a href={`${designPath(d)}edit/`} className="underline underline-offset-4 hover:text-(--ov-zari)">
             Make your own wedding website with {d.name}
           </a>
           , free.
@@ -387,11 +387,12 @@ export function Blessings({ d, slug }: { d: Design; slug?: string }) {
   )
 }
 
+// A website page's title. Leaving for the home page puts the home title back (as in index.html): the visit may have
+// started on a website page, so the title found on arrival is not always the home page's.
 export function useTitle(title: string) {
   useEffect(() => {
-    const prev = document.title
     document.title = title
-    return () => void (document.title = prev)
+    return () => void (document.title = 'ShaadiTemplate · Free Indian Wedding Invitation Maker')
   }, [title])
 }
 

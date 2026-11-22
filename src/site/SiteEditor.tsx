@@ -2,14 +2,14 @@ import { ArrowLeft, Copy, ExternalLink, Loader2, Mail, Plus, Trash2 } from 'luci
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Wordmark } from '../Hero'
 import { api, editKey, editLink, lean, liveLink } from './api'
-import { LOOKS, lookById, type Content, type Look } from './designs'
+import { go, LOOKS, lookById, type Content, type Look } from './designs'
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
 
-// The wedding website editor: #/websites/<design>/edit starts a new site from a design, #/w/<slug>/edit?k=<key>
+// The wedding website editor: /websites/<design>/edit starts a new site from a design, /w/<slug>/edit#<key>
 // edits a published one (the secret link from publishing; App.tsx keeps the key and takes it off the address). The form is on the left, and the live site on the
-// right in an iframe (#/websites/preview, HostedSite.tsx), so its full-screen sections behave as on a phone.
+// right in an iframe (/websites/preview, HostedSite.tsx), so its full-screen sections behave as on a phone.
 // A new site's draft is kept in localStorage until it is published, and after, so this browser can keep editing.
 
 type Draft = SiteData & { slug: string; slugTouched?: boolean; key?: string }
@@ -80,9 +80,9 @@ async function shrink(file: File, alt: string): Promise<Photo> {
 const unsent = (k: string, v: any) => (k === 'gallery' ? v.filter((p: Photo) => !p.src.startsWith('data:')) : typeof v?.src === 'string' && v.src.startsWith('data:') ? undefined : v)
 
 export default function SiteEditor() {
-  const linked = location.hash.match(/^#\/w\/([a-z0-9-]+)\/edit/)?.[1] // opened from an edit link
+  const linked = location.pathname.match(/^\/w\/([a-z0-9-]+)\/edit/)?.[1] // opened from an edit link
   const key = linked ? editKey(linked) : ''
-  const [local] = useState(() => (linked ? null : startDraft(location.hash.split('/')[2])))
+  const [local] = useState(() => (linked ? null : startDraft(location.pathname.split('/')[2])))
   // A published site is read from the server first: this browser's copy may be older than the live one (edited
   // since from the emailed link), and saving it would undo those edits.
   const [draft, setDraft] = useState<Draft | null>(local?.key ? null : local)
@@ -92,7 +92,7 @@ export default function SiteEditor() {
     if (!slug || (linked && !key)) return
     api<SiteData>(`sites/${slug}`).then(
       (s) => {
-        if (!linked) history.replaceState(null, '', `#/websites/${s.look}/edit`)
+        if (!linked) history.replaceState(null, '', `/websites/${s.look}/edit/`)
         setDraft({ ...s, slug, key: key || local!.key })
       },
       (e: Error & { status?: number }) => {
@@ -145,7 +145,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
   const photo = (k: 'hero' | 'venue') => (p: Photo | undefined) => up((c) => ({ photos: { ...c.photos, [k]: p } }))
   // A new site's address bar names its design, so a reload keeps the one picked here.
   const pickLook = (look: string) => {
-    if (location.hash.startsWith('#/websites/')) history.replaceState(null, '', `#/websites/${look}/edit`)
+    if (location.pathname.startsWith('/websites/')) history.replaceState(null, '', `/websites/${look}/edit/`)
     setDraft((d) => ({ ...d, look }))
   }
   // Back to a blank site: after deleting one, or to make another. From an edit link this leaves for the new-site page.
@@ -155,9 +155,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     } catch {
       /* nothing saved */
     }
-    const hash = `#/websites/${draft.look}/edit`
-    if (location.hash === hash) setDraft(() => startNew(draft.look))
-    else location.hash = hash
+    if (location.pathname.startsWith('/websites/')) setDraft(() => startNew(draft.look))
+    else go(`/websites/${draft.look}/edit/`)
   }
   const count = photosIn(c).size
   const names = c.couple.filter(Boolean).join(' and ') || 'Your names'
@@ -225,7 +224,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     <div className="min-h-screen bg-rose text-ink" data-clarity-mask="true">
       <header className="velvet sticky top-0 z-20 text-rose shadow-[0_8px_24px_-12px_rgba(10,0,4,0.6)]">
         <div className="flex items-center gap-x-4 px-4 py-3 sm:px-6">
-          <a href="#/websites" className="inline-flex shrink-0 items-center gap-1.5 py-2 text-[15px] text-rose/80 hover:text-rose pointer-coarse:min-h-11">
+          <a href="/websites/" className="inline-flex shrink-0 items-center gap-1.5 py-2 text-[15px] text-rose/80 hover:text-rose pointer-coarse:min-h-11">
             <ArrowLeft className="size-4" aria-hidden /> <span className="hidden sm:inline">All designs</span>
             <span className="sm:hidden">Back</span>
           </a>
@@ -516,7 +515,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
               Back to editing
             </button>
           </div>
-          <iframe ref={frame} src={`${location.pathname}#/websites/preview`} title="Preview of your wedding website" className="min-h-0 w-full flex-1 border-0 bg-[#0e0a0c] lg:mx-auto lg:max-w-[402px] lg:rounded-[1.6rem] lg:border-[6px] lg:border-[#120b0e] lg:shadow-2xl" />
+          <iframe ref={frame} src="/websites/preview/" title="Preview of your wedding website" className="min-h-0 w-full flex-1 border-0 bg-[#0e0a0c] lg:mx-auto lg:max-w-[402px] lg:rounded-[1.6rem] lg:border-[6px] lg:border-[#120b0e] lg:shadow-2xl" />
           <button type="button" onClick={() => frame.current?.contentWindow?.postMessage('preview-replay', location.origin)} className={`${btn} mx-auto my-2 border border-zari/70 text-rose hover:bg-white/10 lg:mb-0 lg:mt-4`}>
             Replay the opening
           </button>

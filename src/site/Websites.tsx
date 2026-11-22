@@ -70,7 +70,7 @@ export default function Websites() {
   useTitle('Wedding website designs | ShaadiTemplate')
   return (
     <div className="velvet min-h-svh text-rose">
-      <SiteHeader swap={['Invitation cards', '#templates']} />
+      <SiteHeader swap={['Invitation cards', '/#templates']} />
       <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         <h1 className="mt-10 max-w-[18ch] font-display text-[clamp(2.4rem,6vw,4rem)] leading-[1.05]">Wedding website designs</h1>
         <p className="mt-5 max-w-[58ch] text-lg text-rose/80">One link for every guest: your story, every function, the venue, RSVPs and blessings, on any phone. Open a design to try the live sample{API && ', then make it yours for free'}.</p>
@@ -94,7 +94,7 @@ export default function Websites() {
               </a>
               <div className="mt-4 flex flex-wrap gap-3">
                 {API && (
-                  <a href={`${designPath(d)}/edit`} className="zari-button inline-flex min-h-11 items-center rounded-full px-5 text-sm font-medium text-wine-deep">
+                  <a href={`${designPath(d)}edit/`} className="zari-button inline-flex min-h-11 items-center rounded-full px-5 text-sm font-medium text-wine-deep">
                     Make yours free
                   </a>
                 )}
@@ -111,7 +111,7 @@ export default function Websites() {
           ) : (
             <>
               Free wedding websites are opening soon. For now,{' '}
-              <a href="#templates" className="text-zari underline underline-offset-4">
+              <a href="/#templates" className="text-zari underline underline-offset-4">
                 make your invitation card
               </a>
               .
