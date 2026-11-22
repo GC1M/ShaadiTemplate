@@ -10,7 +10,7 @@ import './site.css'
 const FEATURES = ['Countdown to the day', 'Your story', 'Every function, with add to calendar', 'Venue and map', 'Photo gallery', 'RSVP', 'Guest blessings']
 
 function Phone({ d }: { d: Design }) {
-  const photo = <img src={d.hero.small} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: d.hero.pos }} />
+  const photo = <img src={d.hero.small} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-105" style={{ objectPosition: d.hero.pos }} />
   const names = (
     <div className="text-center">
       <p className="ov-meta text-[0.5rem] uppercase text-(--ov-gulab)">We are getting married</p>
@@ -28,8 +28,8 @@ function Phone({ d }: { d: Design }) {
       {d.layout === 'veil' && (
         <>
           {photo}
-          <div className="absolute inset-0 bg-linear-to-b from-(--ov-kohl)/40 to-(--ov-kohl)/90" />
-          <div className="absolute inset-0 grid place-items-center px-3">{names}</div>
+          <div className="absolute inset-0 bg-linear-to-b from-black/0 from-35% via-black/35 to-black/85" />
+          <div className="absolute inset-x-0 bottom-0 px-3 pb-12 text-white [--ov-gulab:#f3d9a8]">{names}</div>
         </>
       )}
       {d.layout === 'split' && (
