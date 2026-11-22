@@ -174,6 +174,8 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
     parents: [str(c.parents?.[0], 300), str(c.parents?.[1], 300)],
     meet: Array.isArray(c.meet) ? arr(c.meet, 2, (m) => ({ bio: str(m?.bio, 500), photo: photo(m?.photo) })) : undefined,
     compliments: Array.isArray(c.compliments) ? arr(c.compliments, 10, (x) => str(x, 160)).filter(Boolean) : undefined,
+    invocation: str(c.invocation, 80) || undefined,
+    note: str(c.note, 400) || undefined,
     notes: arr(c.notes, 10, (x) => str(x, 300)).filter(Boolean),
     city: str(c.city, 60),
     venue: str(c.venue, 160),
@@ -187,10 +189,12 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
       where: str(e?.where, 120),
       note: str(e?.note, 300),
     })),
+    mainEvent: Number.isInteger(c.mainEvent) && c.mainEvent >= 0 && c.mainEvent < 8 ? c.mainEvent : undefined,
     photos: { hero: photo(c.photos?.hero), venue: photo(c.photos?.venue), gallery: arr(c.photos?.gallery, 8, photo).filter(Boolean) },
   }
   if (!content.couple[0] || !content.couple[1]) fail(400, 'Add both of your names.')
   if (!content.events.some((e) => e.date)) fail(400, 'Add the date of at least one event.')
+  if (content.mainEvent !== undefined && content.mainEvent >= content.events.length) content.mainEvent = undefined
   if (new Set(photos.map((p) => p.src)).size > MAX_PHOTOS) fail(400, `A site can have up to ${MAX_PHOTOS} photos.`)
   return { content, photos }
 }

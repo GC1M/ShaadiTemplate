@@ -52,10 +52,12 @@ const prep = (c: Content): Content => ({
   notes: c.notes.map((n) => n.trim()).filter(Boolean),
   compliments: c.compliments?.map((n) => n.trim()).filter(Boolean).length ? c.compliments.map((n) => n.trim()).filter(Boolean) : undefined,
   meet: c.meet?.some((m) => m.bio.trim()) ? c.meet : undefined,
+  invocation: c.invocation?.trim() || undefined,
+  note: c.note?.trim() || undefined,
 })
 
 // After a save: the server's copy (uploaded photos now have addresses), keeping the lines and bios as typed.
-const stored = (mine: Content, server: Content): Content => ({ ...server, notes: mine.notes, compliments: mine.compliments, meet: mine.meet })
+const stored = (mine: Content, server: Content): Content => ({ ...server, notes: mine.notes, compliments: mine.compliments, meet: mine.meet, invocation: mine.invocation, note: mine.note })
 
 const photosIn = (c: Content) =>
   new Set([c.photos.hero, c.photos.venue, ...c.photos.gallery, ...c.story.map((s) => s.photo), ...(c.meet ?? []).map((m) => m.photo)].filter((p): p is Photo => !!p).map((p) => p.src))
@@ -110,7 +112,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     })
   const pair = (k: 'couple' | 'families' | 'parents', i: number, v: string) => up((c) => ({ [k]: (i ? [c[k][0], v] : [v, c[k][1]]) as [string, string] }))
   const item = <K extends 'events' | 'story'>(k: K, i: number, patch: Partial<Content[K][number]>) => up((c) => ({ [k]: c[k].map((x, j) => (j === i ? { ...x, ...patch } : x)) }))
-  const drop = (k: 'events' | 'story', i: number) => up((c) => ({ [k]: c[k].filter((_, j) => j !== i) }))
+  const drop = (k: 'events' | 'story', i: number) =>
+    up((c) => ({ [k]: c[k].filter((_, j) => j !== i), ...(k === 'events' && c.mainEvent !== undefined && { mainEvent: c.mainEvent === i ? undefined : c.mainEvent > i ? c.mainEvent - 1 : c.mainEvent }) }))
   const photo = (k: 'hero' | 'venue') => (p: Photo | undefined) => up((c) => ({ photos: { ...c.photos, [k]: p } }))
   const count = photosIn(c).size
   const names = c.couple.filter(Boolean).join(' and ') || 'Your names'
@@ -255,6 +258,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                 ))}
               </div>
               <Text label="Invitation line" value={c.invite} onChange={(invite) => up(() => ({ invite }))} multiline maxLength={400} />
+              <Text label="Invocation on the opening screen (optional)" value={c.invocation ?? ''} onChange={(invocation) => up(() => ({ invocation }))} placeholder="श्री गणेशाय नमः" maxLength={80} />
             </section>
 
             <section className="space-y-5">
@@ -288,6 +292,18 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                     )}
                   </fieldset>
                 ))}
+                {c.events.length > 1 && (
+                  <label className="block">
+                    <span className="text-[13px] text-ink/65">The wedding day (for the countdown and save-the-date)</span>
+                    <select value={c.mainEvent ?? Math.min(1, c.events.length - 1)} onChange={(e) => up(() => ({ mainEvent: Number(e.target.value) }))} className={`${inputCls} select-chevron pr-10`}>
+                      {c.events.map((e, i) => (
+                        <option key={i} value={i}>
+                          {e.name || `Event ${i + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 {c.events.length < 8 && (
                   <button type="button" onClick={() => up((c) => ({ events: [...c.events, { name: '', date: '', time: '19:00', where: '', note: '' }] }))} className={small}>
                     <Plus className="size-4" aria-hidden /> Add an event
@@ -383,6 +399,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
 
             <section className="space-y-5">
               <Step n={6} title="Notes for guests" />
+              <Text label="A note from the two of you (optional)" value={c.note ?? ''} onChange={(note) => up(() => ({ note }))} multiline maxLength={400} />
               <Text label="Things to note, one per line" value={c.notes.join('\n')} onChange={(v) => up(() => ({ notes: v.split('\n') }))} multiline rows={4} />
               <Text label="With best compliments from, one per line (optional)" value={(c.compliments ?? []).join('\n')} onChange={(v) => up(() => ({ compliments: v.split('\n') }))} multiline rows={3} />
             </section>
