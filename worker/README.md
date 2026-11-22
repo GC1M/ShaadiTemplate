@@ -17,14 +17,16 @@ Local data lives in `worker/.wrangler/state`. Delete that folder to start clean 
 
 ## Put it live (one time)
 
+Done on 22 November 2026: the Worker is at `https://shaaditemplate-sites.shaaditemplate-sites.workers.dev`, with its database in the Asia-Pacific region. The steps are kept for a fresh account.
+
 Run these from the `worker/` folder.
 
 1. Create a free Cloudflare account and log in: `npx wrangler login`.
-2. Create the database: `npx wrangler d1 create shaaditemplate-sites`, and paste the `database_id` it prints into `worker/wrangler.toml`.
+2. Create the database: `npx wrangler d1 create shaaditemplate-sites --location apac` (close to guests in India), and paste the `database_id` it prints into `worker/wrangler.toml`.
 3. Turn on R2 in the dashboard (R2 Object Storage, then Enable; Cloudflare asks for a card even on the free plan), then create the bucket: `npx wrangler r2 bucket create shaaditemplate-photos`.
 4. Set a secret salt for the IP hashes used in rate limits: `npx wrangler secret put IP_SALT` (any long random string).
 5. Deploy: `npm run deploy` (applies migrations to the live D1, then deploys). It prints the address, like `https://shaaditemplate-sites.<your-subdomain>.workers.dev`.
-6. Put that address in `.env.production` as `VITE_SITES_API=...` and push, so the next GitHub Pages build points the app at it. Until then the Publish button says websites are not switched on yet.
+6. Put that address in `.env.production` as `VITE_SITES_API=...` and push, so the next GitHub Pages build points the app at it. Until then the "Make yours free" buttons stay hidden.
 
 Run step 5 again after changing anything in `worker/`.
 

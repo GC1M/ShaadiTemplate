@@ -8,8 +8,8 @@ compatibility_date = "2026-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "shaaditemplate-sites"
-# Replace with the id that `npx wrangler d1 create shaaditemplate-sites` prints. Local dev works with this placeholder.
-database_id = "00000000-0000-0000-0000-000000000000"
+# The id `npx wrangler d1 create shaaditemplate-sites --location apac` printed (an identifier, not a secret).
+database_id = "2a381b7b-e0a0-417c-b4f6-0b47fe469010"
 
 [[r2_buckets]]
 binding = "PHOTOS"
