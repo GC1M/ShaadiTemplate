@@ -44,6 +44,9 @@ export const SHOTS = {
   peacock: commons('f/f0/Indian_Peafowl_on_Display.jpg', 2048, 'A peacock with its tail fanned', 'Trey Perry', 'CC BY 3.0'),
   chhatriLake: commons('a/ac/Gadi_Sagar%2C_Jaisalmer.JPG', 3872, 'Carved chhatris on the water of Gadisar lake, Jaisalmer', 'Jmacleantaylor', 'CC BY-SA 3.0'),
   lotus: commons('b/bb/A_lotus_in_thekkady_rose_park.jpg', 3000, 'A pink lotus in bloom', 'Kaartic', 'CC BY-SA 4.0'),
+  aarti: commons('1/10/Evening_Ganga_Aarti_Assi_Ghat%2C_Varanasi_1.jpg', 4717, 'Evening Ganga aarti at Assi Ghat, Varanasi', 'Rangan Datta Wiki', 'CC BY-SA 4.0'),
+  ghatBoats: commons('0/0b/Assembly_of_boats_in_Dasashwamedh_Ghat_in_the_evening_before_Arati%2C_Varanasi.jpg', 3872, 'Boats gathered at Dashashwamedh Ghat before the evening aarti', 'Sujay25', 'CC BY-SA 4.0'),
+  bougainvillea: commons('a/a3/Pink_bougainvillea_in_Assam.jpg', 4000, 'Pink bougainvillea in bloom', 'Chiring chandan', 'CC BY-SA 4.0'),
   imambara: commons('0/04/Bara_Imambara%2C_Lucknow_2.jpg', 2365, 'The arches of the Bara Imambara, Lucknow', 'Slyronit', 'CC BY-SA 4.0'),
 }
 

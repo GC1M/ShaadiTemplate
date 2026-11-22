@@ -714,3 +714,198 @@
   background: color-mix(in srgb, var(--ov-smoke) 70%, transparent);
   backdrop-filter: blur(3px);
 }
+
+/* ---------- Reveal-the-date button breathes until tapped ---------- */
+.st-beckon {
+  animation: st-breathe 2.4s ease-in-out infinite;
+}
+@keyframes st-breathe {
+  50% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--ov-zari) 22%, transparent);
+  }
+}
+
+/* ---------- Story carousel ---------- */
+.st-carousel {
+  display: flex;
+  gap: 2rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 0 max(1.5rem, calc(50vw - 170px));
+}
+.st-carousel::-webkit-scrollbar {
+  display: none;
+}
+.st-chapter {
+  flex: 0 0 min(78vw, 340px);
+  scroll-snap-align: center;
+  text-align: center;
+  opacity: 0.45;
+  transform: scale(0.92);
+  transition:
+    opacity 500ms ease,
+    transform 600ms cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+.st-chapter[aria-current] {
+  opacity: 1;
+  transform: none;
+}
+.st-dot {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 44px;
+}
+.st-dot span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ov-zari) 35%, transparent);
+  transition:
+    width 300ms ease,
+    background-color 300ms ease;
+}
+.st-dot[aria-pressed='true'] span {
+  width: 24px;
+  background: var(--ov-zari);
+}
+
+/* ---------- Ceremony timeline ---------- */
+.st-timeline {
+  position: relative;
+  display: grid;
+  gap: 3rem;
+}
+.st-timeline::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  bottom: 40px;
+  left: 47px;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--ov-zari) 8%, var(--ov-zari) 92%, transparent);
+}
+.st-tl-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+.st-tl-photo {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 2px solid var(--ov-zari);
+  box-shadow:
+    0 0 0 5px var(--st-panel),
+    0 0 0 6px color-mix(in srgb, var(--ov-zari) 45%, transparent);
+}
+@media (min-width: 640px) {
+  .st-timeline::before {
+    left: 63px;
+  }
+  .st-tl-row {
+    grid-template-columns: 128px 1fr;
+    gap: 2rem;
+  }
+  .st-tl-photo {
+    width: 128px;
+    height: 128px;
+  }
+}
+
+/* ---------- Tri-fold opening card ---------- */
+.st-tri {
+  display: grid;
+  grid-template-columns: 1fr min(calc(100vw - 72px), 600px) 1fr;
+  background: var(--st-flap);
+}
+.st-flap {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--ov-zari) 30%, transparent) 1.2px, transparent 1.8px) 0 0 / 22px 22px,
+    var(--st-flap);
+  transition: transform 1.5s cubic-bezier(0.65, 0, 0.25, 1);
+  overflow: hidden;
+}
+.st-flap-l {
+  transform-origin: left center;
+  box-shadow: inset -24px 0 30px -18px rgb(0 0 0 / 0.25);
+}
+.st-flap-r {
+  transform-origin: right center;
+  box-shadow: inset 24px 0 30px -18px rgb(0 0 0 / 0.25);
+}
+.st-flap-half {
+  display: grid;
+  place-items: center;
+  padding: 8%;
+  border: 1px dashed color-mix(in srgb, #5d6b3e 40%, transparent);
+  border-width: 0 0 1px;
+}
+.st-sprig {
+  width: min(70%, 220px);
+  max-height: 80%;
+}
+.st-flap .st-elephant {
+  display: block;
+  width: min(80%, 300px);
+}
+.st-tri-center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--ov-zari) 7%, transparent) 0 1px, transparent 1px 30px),
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--ov-zari) 7%, transparent) 0 1px, transparent 1px 30px),
+    var(--ov-kohl);
+  border-inline: 6px double color-mix(in srgb, #5d6b3e 70%, transparent);
+  box-shadow: 0 0 40px rgb(0 0 0 / 0.18);
+  transition:
+    transform 1.2s 300ms cubic-bezier(0.65, 0, 0.25, 1),
+    opacity 900ms 500ms ease;
+}
+.st-tri[data-open] {
+  background: transparent;
+}
+.st-tri[data-open] .st-flap-l {
+  transform: perspective(1600px) rotateY(-100deg);
+}
+.st-tri[data-open] .st-flap-r {
+  transform: perspective(1600px) rotateY(100deg);
+}
+.st-tri[data-open] .st-tri-center {
+  transform: translateY(-104%);
+  opacity: 0;
+}
+/* A tab with pointed ends, like a ribbon label. */
+.st-tab {
+  min-height: 52px;
+  padding: 0 3rem;
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  color: var(--st-deep);
+  background: color-mix(in srgb, var(--ov-zari) 40%, #fff);
+  clip-path: polygon(14% 0, 86% 0, 100% 50%, 86% 100%, 14% 100%, 0 50%);
+  cursor: pointer;
+  animation: st-breathe 2.4s ease-in-out infinite;
+}
+.st-tab:hover {
+  background: color-mix(in srgb, var(--ov-zari) 55%, #fff);
+}
+@media (max-width: 640px) {
+  .st-flap .st-elephant,
+  .st-sprig {
+    width: 150%;
+    max-width: none;
+  }
+}

@@ -1,3 +1,4 @@
+import type { SymbolId } from '../types'
 import { SHOTS, type Photo } from './photos'
 
 // The sample wedding website designs, in the order the gallery shows them. Every couple, family and story here is
@@ -21,10 +22,20 @@ export type Design = {
   // Optional "meet the bride and groom" letters, a story told as scattered polaroids instead of hanging frames,
   // scalloped (cusped) arch cards for the ceremonies, and a countdown over a photo to close instead of the sign.
   meet?: { name: string; bio: string; photo: Photo }[]
-  storyStyle?: 'rail' | 'polaroids'
-  cards?: 'arch' | 'cusp'
-  closing?: 'sign' | 'countdown'
+  storyStyle?: 'rail' | 'polaroids' | 'carousel'
+  cards?: 'arch' | 'cusp' | 'timeline'
+  closing?: 'sign' | 'countdown' | 'garden'
   finale?: Photo
+  // A line of invocation on the opening screen, a save-the-date the guest reveals with a tap, and a short
+  // personal note from the couple before the closing.
+  invocation?: string
+  // Opening screen: carved doors (default) or a tri-fold card whose side flaps (in `flap`, with a lotus sprig and
+  // an elephant each) fold away; `emblem` puts a sacred emblem at the top of the card.
+  gate?: 'doors' | 'trifold'
+  flap?: string
+  emblem?: SymbolId
+  dateReveal?: boolean
+  note?: string
   couple: [string, string]
   families: [string, string]
   // Who each of the couple is the child of, for the unrolling family scrolls.
@@ -36,6 +47,8 @@ export type Design = {
   rsvpBy: string
   story: { year: string; title: string; body: string; photo: Photo }[]
   events: WeddingEvent[]
+  // The wedding itself, for the hero date, save-the-date and countdown (default: the second event).
+  mainEvent?: string
   hero: Photo
   venuePhoto: Photo
   gallery: Photo[]
@@ -110,6 +123,7 @@ export const DESIGNS: Design[] = [
       { year: '2023', title: 'Two families, one table', body: 'Dinner at her Ba’s house, where his mother asked for the dhokla recipe before dessert.', photo: SHOTS.marigold },
       { year: '2026', title: 'At the stepwell', body: 'He asked on the steps of the Modhera kund at sunrise. She said yes before the sun cleared the shrine.', photo: SHOTS.ring },
     ],
+    mainEvent: 'vivah',
     events: [
       { id: 'garba', name: 'Garba Night', date: 'Friday, 7 January 2028', start: '20280107T200000', end: '20280108T010000', time: '8 pm, on the lawns', note: 'Dhol, dandiya and three generations in one circle.', photo: SHOTS.diyaLedge },
       { id: 'haldi', name: 'Pithi', date: 'Saturday, 8 January 2028', start: '20280108T100000', end: '20280108T123000', time: '10 am, in the courtyard', note: 'Turmeric, songs and a lot of laughter. Wear yellow.', photo: SHOTS.marigold },
@@ -121,6 +135,95 @@ export const DESIGNS: Design[] = [
     gallery: [SHOTS.peacock, SHOTS.lotus, SHOTS.twirl],
     rsvpPhoto: SHOTS.peacock,
     blessPhoto: SHOTS.lotus,
+  },
+  {
+    id: 'gulabi-bagh',
+    name: 'Gulabi Bagh',
+    blurb: 'Blush pink and sage, with a date the guest reveals and a timeline of every function.',
+    tradition: 'Hindu wedding · New Delhi',
+    layout: 'arch',
+    theme: { bg: '#fbf4f1', raised: '#f4e6e1', accent: '#b0566b', text: '#3d2a2e', soft: '#6f8a6a', display: CORMORANT, script: GREAT_VIBES },
+    invocation: 'श्री गणेशाय नमः',
+    gate: 'trifold',
+    flap: '#e4f1e2',
+    emblem: 'ganesha',
+    elephants: true,
+    storyStyle: 'carousel',
+    cards: 'timeline',
+    dateReveal: true,
+    closing: 'garden',
+    finale: SHOTS.lodhi,
+    couple: ['Ishita', 'Aarav'],
+    families: ['The bride’s family', 'The groom’s family'],
+    parents: ['Daughter of Smt. Neelam and Shri Anil Malhotra, granddaughter of Smt. Kusum and Late Shri Prem Nath Malhotra', 'Son of Smt. Ritu and Shri Sanjeev Khanna, grandson of Smt. Savitri and Shri Ramesh Khanna'],
+    compliments: ['Shri Rajiv Malhotra and family', 'Smt. Pooja Kapoor and family', 'Shri Deepak Khanna and family', 'Smt. Anju Sethi and family'],
+    note: 'We have waited a long time to stand in a garden full of the people we love. Come hungry, come early, and stay until the last song.',
+    notes: ['The ceremonies are on the lawns; flat shoes are kinder to the grass.', 'Parking is at the hotel porch with valet from 6 pm.', 'Children are very welcome. There is a play corner by the pool.'],
+    city: 'New Delhi',
+    venue: 'The Lodhi, Lodhi Road, New Delhi',
+    invite: 'With the blessings of our elders, the Malhotra and Khanna families invite you to celebrate with us.',
+    rsvpBy: '1 January',
+    story: [
+      { year: '2017', title: 'Saturday Debate Club', body: 'She won the argument; he asked for a rematch over coffee. Neither remembers the topic.', photo: SHOTS.silhouette },
+      { year: '2020', title: 'Long Distance Lockdown', body: 'Delhi to Pune on video every night at ten, with the same cup of chai on both screens.', photo: SHOTS.sunsetTree },
+      { year: '2024', title: 'Meet The Parents', body: 'His mother made rajma; her father asked for seconds. That settled it.', photo: SHOTS.embrace },
+      { year: '2026', title: 'Under The Bougainvillea', body: 'He asked in her grandmother’s garden, with every aunt watching from the window.', photo: SHOTS.ring },
+    ],
+    mainEvent: 'vivaah',
+    events: [
+      { id: 'roka', name: 'Ring Ceremony', date: 'Thursday, 10 February 2028', start: '20280210T190000', end: '20280210T230000', time: '7 pm, in the Ballroom', note: 'Rings, toasts and a family dinner.', photo: SHOTS.ring },
+      { id: 'mehendi', name: 'Mehendi', date: 'Friday, 11 February 2028', start: '20280211T120000', end: '20280211T170000', time: '12 noon, by the pool', note: 'Henna, chaat and a dhol.', photo: SHOTS.henna },
+      { id: 'haldi', name: 'Haldi', date: 'Saturday, 12 February 2028', start: '20280212T100000', end: '20280212T123000', time: '10 am, on the terrace', note: 'Wear yellow you can lose.', photo: SHOTS.marigold },
+      { id: 'sangeet', name: 'Sangeet', date: 'Saturday, 12 February 2028', start: '20280212T193000', end: '20280212T235900', time: '7:30 pm, on the lawns', note: 'Both families have been rehearsing for months.', photo: SHOTS.diyaLedge },
+      { id: 'vivaah', name: 'Vivaah', date: 'Sunday, 13 February 2028', start: '20280213T180000', end: '20280213T235900', time: '6 pm baraat, pheras at 9', note: 'The baraat, the varmala and the pheras under the stars.', photo: SHOTS.diyas },
+    ],
+    hero: SHOTS.bougainvillea,
+    venuePhoto: SHOTS.lodhi,
+    gallery: [SHOTS.twirl, SHOTS.bougainvillea],
+    rsvpPhoto: SHOTS.bougainvillea,
+    blessPhoto: SHOTS.lodhi,
+  },
+  {
+    id: 'neel-kamal',
+    name: 'Neel Kamal',
+    blurb: 'Indigo night and lamp gold by the Ganga, with a tap-to-reveal date and a timeline.',
+    tradition: 'Hindu wedding · Varanasi',
+    layout: 'veil',
+    theme: { bg: '#141a33', raised: '#1d2546', accent: '#e2b04a', text: '#f2ecdf', soft: '#a9b6e0', display: '"Marcellus", Georgia, serif', script: GREAT_VIBES },
+    invocation: '॥ ॐ नमः शिवाय ॥',
+    storyStyle: 'carousel',
+    cards: 'timeline',
+    dateReveal: true,
+    closing: 'garden',
+    finale: SHOTS.ghatBoats,
+    couple: ['Tara', 'Shaurya'],
+    families: ['Tara’s family', 'Shaurya’s family'],
+    parents: ['Daughter of Smt. Archana and Shri Alok Tripathi, granddaughter of Smt. Shanti and Late Shri Kailash Tripathi', 'Son of Smt. Meenu and Shri Vineet Mishra, grandson of Smt. Kamla and Shri Gopal Mishra'],
+    compliments: ['Shri Ashok Tripathi and family', 'Smt. Rekha Pandey and family', 'Shri Manoj Mishra and family'],
+    note: 'Varanasi is where both our families began. We cannot think of a better place to begin ours, with all of you on the ghats.',
+    notes: ['Boats to the evening aarti leave the hotel jetty at 6 pm.', 'The lanes are narrow; e-rickshaws wait at the main gate.', 'Please dress modestly for the aarti on the ghats.'],
+    city: 'Varanasi',
+    venue: 'BrijRama Palace, Darbhanga Ghat, Varanasi',
+    invite: 'By the grace of Mahadev and with the blessings of our elders, we invite you to our wedding on the ghats of Kashi.',
+    rsvpBy: '15 October',
+    story: [
+      { year: '2016', title: 'Same Train Every Diwali', body: 'Delhi to Varanasi, the same coach, four Diwalis in a row before either of them said hello.', photo: SHOTS.silhouette },
+      { year: '2019', title: 'Kachori At Dawn', body: 'Their first date was breakfast at five in the morning in a lane only he knew.', photo: SHOTS.sunsetTree },
+      { year: '2023', title: 'Two Cities One Plan', body: 'Mumbai and Bengaluru, a shared calendar and a countdown to every long weekend.', photo: SHOTS.embrace },
+      { year: '2026', title: 'On The Ganga', body: 'He asked on a boat at sunrise. The boatman clapped first.', photo: SHOTS.ring },
+    ],
+    mainEvent: 'vivaah',
+    events: [
+      { id: 'tilak', name: 'Tilak', date: 'Friday, 19 November 2027', start: '20271119T110000', end: '20271119T140000', time: '11 am, in the courtyard', note: 'The bride’s family welcomes the groom.', photo: SHOTS.marigold },
+      { id: 'haldi', name: 'Haldi', date: 'Saturday, 20 November 2027', start: '20271120T100000', end: '20271120T123000', time: '10 am, on the terrace', note: 'Turmeric and laughter above the river.', photo: SHOTS.rangoli },
+      { id: 'aarti', name: 'Ganga Aarti', date: 'Saturday, 20 November 2027', start: '20271120T180000', end: '20271120T200000', time: '6 pm, by boat', note: 'We watch the evening aarti together from the water.', photo: SHOTS.aarti },
+      { id: 'vivaah', name: 'Vivaah', date: 'Sunday, 21 November 2027', start: '20271121T190000', end: '20271121T235900', time: '7 pm, on the ghat', note: 'Pheras by the river, then dinner on the terrace.', photo: SHOTS.diyas },
+    ],
+    hero: SHOTS.aarti,
+    venuePhoto: SHOTS.ghatBoats,
+    gallery: [SHOTS.diyaLedge, SHOTS.rangoli],
+    rsvpPhoto: SHOTS.ghatBoats,
+    blessPhoto: SHOTS.diyaLedge,
   },
   {
     id: 'pichola',
@@ -310,5 +413,6 @@ export const DESIGNS: Design[] = [
   },
 ]
 
+export const mainOf = (d: Design) => d.events.find((e) => e.id === d.mainEvent) ?? d.events[1] ?? d.events[0]
 export const designPath = (d: Design) => `#/websites/${d.id}`
 export const designByHash = (hash: string) => DESIGNS.find((d) => designPath(d) === hash)

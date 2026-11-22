@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { designByHash, DESIGNS, type Design } from './designs'
+import { Emblem } from '../card/motifs'
+import { designByHash, DESIGNS, mainOf, type Design } from './designs'
 import { Backdrop, Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion, useLenis, useTitle } from './shared'
 import './organza.css'
 import './site.css'
@@ -48,6 +49,7 @@ function Gate({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => voi
     return () => clearTimeout(t)
   }, [open])
   if (gone) return null
+  if (d.gate === 'trifold') return <Trifold d={d} open={open} onOpen={onOpen} />
   return (
     <div className="st-gate" data-open={open || undefined}>
       <div className="st-door st-door-l" aria-hidden>
@@ -57,6 +59,7 @@ function Gate({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => voi
         <span className="st-door-panel" />
       </div>
       <div className="st-gate-center">
+        {d.invocation && <p className="font-deva text-lg text-(--ov-zari)">{d.invocation}</p>}
         <p className="ov-meta uppercase text-(--ov-zari)">You are invited</p>
         <button type="button" onClick={onOpen} className="st-seal ov-press" aria-label={`Open the invitation from ${d.couple.join(' and ')}`}>
           <span className="ov-display text-3xl">
@@ -68,6 +71,61 @@ function Gate({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => voi
         <p className="ov-display mt-2 text-2xl italic">{d.couple.join(' & ')}</p>
         <p className="ov-meta mt-1 text-[0.68rem] uppercase opacity-70">Tap the seal to open</p>
       </div>
+    </div>
+  )
+}
+
+// A lotus on a curling stem with two buds and three leaves. Drawn for these sites.
+function Sprig({ flip }: { flip?: boolean }) {
+  const pink = 'var(--ov-zari)'
+  return (
+    <svg viewBox="0 0 120 200" className={`st-sprig ${flip ? '-scale-x-100' : ''}`} aria-hidden>
+      <path d="M58 196 C50 160 70 140 62 112 C56 90 40 80 46 52 C50 36 62 28 70 20" fill="none" stroke="#5d6b3e" strokeWidth="3" strokeLinecap="round" />
+      <path d="M60 150 C40 146 26 132 22 116 C40 116 56 128 60 150 Z" fill="#6f8a5a" />
+      <path d="M62 120 C82 112 96 96 98 80 C80 84 66 98 62 120 Z" fill="#7d9a64" />
+      <path d="M48 70 C32 64 22 50 22 36 C38 42 48 54 48 70 Z" fill="#6f8a5a" />
+      <g transform="translate(60 108)">
+        {[-60, -30, 0, 30, 60].map((r) => (
+          <ellipse key={r} rx="7" ry="20" cy="-14" transform={`rotate(${r})`} fill={pink} opacity={r === 0 ? 1 : 0.82} stroke="#fff" strokeWidth="0.8" />
+        ))}
+        <ellipse rx="10" ry="5" cy="2" fill="#e9c46a" />
+      </g>
+      <g transform="translate(70 20)">
+        <ellipse rx="7" ry="12" fill={pink} />
+        <path d="M-7 4 C-4 10 4 10 7 4" fill="#6f8a5a" />
+      </g>
+      <g transform="translate(22 110) rotate(-30)">
+        <ellipse rx="5" ry="9" fill={pink} opacity="0.85" />
+      </g>
+    </svg>
+  )
+}
+
+// The tri-fold opening card: a centre panel with the emblem, invocation and a "Tap to open" tab, between two
+// flaps that swing outward when it is tapped.
+function Trifold({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => void }) {
+  const flap = (side: 'l' | 'r') => (
+    <div className={`st-flap st-flap-${side}`} aria-hidden>
+      <div className="st-flap-half">
+        <Sprig flip={side === 'r'} />
+      </div>
+      <div className="st-flap-half">
+        <Elephant flip={side === 'r'} />
+      </div>
+    </div>
+  )
+  return (
+    <div className="st-gate st-tri" data-open={open || undefined} style={{ '--st-flap': d.flap ?? 'var(--ov-smoke)' } as CSSProperties}>
+      {flap('l')}
+      <div className="st-tri-center">
+        {d.emblem && <Emblem symbol={d.emblem} color="var(--st-deep)" accent="var(--ov-zari)" size={96} />}
+        {d.invocation && <p className="font-deva mt-6 text-[clamp(1.6rem,3vw,2.2rem)] text-(--st-deep)">{d.invocation}</p>}
+        <p className="ov-display mt-6 max-w-[18ch] text-[clamp(1.3rem,2.4vw,1.7rem)] leading-snug text-(--st-deep)">We joyfully invite you to celebrate the wedding of…</p>
+        <button type="button" onClick={onOpen} className="st-tab ov-press mt-10">
+          Tap to open
+        </button>
+      </div>
+      {flap('r')}
     </div>
   )
 }
@@ -113,7 +171,7 @@ function Letters({ text, start }: { text: string; start: number }) {
 }
 
 function Names({ d, open }: { d: Design; open: boolean }) {
-  const main = d.events[1] ?? d.events[0]
+  const main = mainOf(d)
   if (!open) return <div className="h-[50svh]" />
   return (
     <div>
@@ -241,7 +299,7 @@ function Elephant({ flip }: { flip?: boolean }) {
       <path d="M40 14 H80 L77 22 H43 Z" fill="var(--st-panel)" />
       <path d="M46 22 V34 M74 22 V34 M60 22 V34" stroke="var(--ov-zari)" strokeWidth="2" />
       <path d="M38 34 H82 V40 H38 Z" fill="var(--ov-zari)" />
-      <path d="M14 104 V76 C14 52 30 38 56 38 C74 38 88 44 96 54 C104 63 108 74 108 88 C108 95 105 100 100 100 C100 92 99 84 95 80 L94 104 H82 V88 H40 V104 H28 V88 C22 90 16 96 14 104 Z" fill="var(--st-ivory)" stroke="var(--st-deep)" strokeWidth="1.5" />
+      <path d="M14 104 V76 C14 52 30 38 56 38 C74 38 88 44 96 54 C104 63 108 74 108 88 C108 95 105 100 100 100 C100 92 99 84 95 80 L94 104 H82 V88 H40 V104 H28 V88 C22 90 16 96 14 104 Z" fill="color-mix(in srgb, var(--ov-zari) 22%, var(--st-ivory))" stroke="var(--st-deep)" strokeWidth="1.5" />
       <path d="M30 42 H84 V74 C84 80 78 84 72 84 H42 C36 84 30 80 30 74 Z" fill="var(--st-panel)" />
       <path d="M30 74 C30 80 36 84 42 84 H72 C78 84 84 80 84 74" fill="none" stroke="var(--ov-zari)" strokeWidth="3" />
       {[38, 48, 58, 68, 78].map((x) => (
@@ -250,6 +308,9 @@ function Elephant({ flip }: { flip?: boolean }) {
       <path d="M42 52 L57 62 L42 72 M72 52 L57 62 L72 72" fill="none" stroke="var(--ov-zari)" strokeWidth="1.6" />
       <circle cx="57" cy="62" r="4" fill="var(--ov-zari)" />
       <path d="M90 56 C96 54 102 58 103 64 L98 66 Z" fill="var(--st-panel)" stroke="var(--ov-zari)" strokeWidth="1.4" />
+      <ellipse cx="84" cy="64" rx="8" ry="13" fill="color-mix(in srgb, var(--ov-zari) 40%, var(--st-ivory))" stroke="var(--st-deep)" strokeWidth="1.2" />
+      <path d="M97 80 C102 86 108 86 112 82" fill="none" stroke="#fffaf0" strokeWidth="3.4" strokeLinecap="round" />
+      <path d="M99 56 L102 62 L99 68 L96 62 Z" fill="var(--ov-zari)" />
       <circle cx="96" cy="66" r="1.6" fill="var(--st-ink)" />
     </svg>
   )
@@ -258,13 +319,15 @@ function Elephant({ flip }: { flip?: boolean }) {
 /* ---------- Save the date: three tiles roll through numbers and land on the day ---------- */
 
 function SaveTheDate({ d }: { d: Design }) {
-  const main = d.events[1] ?? d.events[0]
+  const main = mainOf(d)
   const s = main.start // IST, YYYYMMDDTHHMMSS
   const final = [String(+s.slice(6, 8)), MONTHS[+s.slice(4, 6) - 1], s.slice(0, 4)]
   const [ref, seen] = useInView<HTMLDivElement>('-25% 0px')
-  const [shown, setShown] = useState(['00', '---', '0000'])
+  const [shown, setShown] = useState(d.dateReveal ? ['?', '?', '?'] : ['00', '---', '0000'])
+  const [revealed, setRevealed] = useState(!d.dateReveal)
+  const go = d.dateReveal ? revealed : seen // a tap reveals at once; otherwise roll when scrolled into view
   useEffect(() => {
-    if (!seen) return
+    if (!go) return
     if (reducedMotion()) return setShown(final)
     let n = 0
     const t = setInterval(() => {
@@ -275,7 +338,7 @@ function SaveTheDate({ d }: { d: Design }) {
       if (n > 24) clearInterval(t)
     }, 70)
     return () => clearInterval(t)
-  }, [seen]) // `final` is derived from the design, which never changes while mounted
+  }, [go]) // `final` is derived from the design, which never changes while mounted
   const landed = shown.every((v, i) => v === final[i])
   return (
     <section className="px-6 py-[14svh] text-center">
@@ -291,9 +354,15 @@ function SaveTheDate({ d }: { d: Design }) {
         ))}
         {d.elephants && <Elephant flip />}
       </div>
-      <button type="button" onClick={() => downloadIcs(main, d)} className="ov-press ov-btn-gold mt-12" data-ready={landed || undefined}>
-        ADD TO MY CALENDAR
-      </button>
+      {revealed ? (
+        <button type="button" onClick={() => downloadIcs(main, d)} className="ov-press ov-btn-gold mt-12" data-ready={landed || undefined}>
+          ADD TO MY CALENDAR
+        </button>
+      ) : (
+        <button type="button" onClick={() => setRevealed(true)} className="ov-press ov-btn-gold st-beckon mt-12">
+          REVEAL THE DATE
+        </button>
+      )}
     </section>
   )
 }
@@ -440,7 +509,7 @@ function Polaroids({ d }: { d: Design }) {
 /* ---------- Closing countdown over a photo ---------- */
 
 function Finale({ d }: { d: Design }) {
-  const main = d.events.find((e) => e.photo === d.venuePhoto) ?? d.events[1] ?? d.events[0]
+  const main = mainOf(d)
   return (
     <section className="relative grid min-h-svh place-items-center overflow-hidden px-6 text-center">
       <Backdrop photo={d.finale ?? d.hero} />
@@ -454,6 +523,137 @@ function Finale({ d }: { d: Design }) {
           <span className="st-amp">&amp;</span>
           {d.couple[1]}
         </p>
+      </Reveal>
+    </section>
+  )
+}
+
+/* ---------- Story as swipeable chapter cards with hashtags ---------- */
+
+const hashtag = (t: string) => `#${t.replace(/[^\p{L}\p{N} ]/gu, '').replace(/ (\p{L})/gu, (_, c: string) => c.toUpperCase()).replace(/ /g, '')}`
+
+function Carousel({ d }: { d: Design }) {
+  const row = useRef<HTMLUListElement>(null)
+  const [at, setAt] = useState(0)
+  const onScroll = () => {
+    const el = row.current
+    if (el) setAt(Math.round(el.scrollLeft / (el.scrollWidth / d.story.length)))
+  }
+  const go = (i: number) => {
+    const el = row.current
+    if (el) el.scrollTo({ left: (el.scrollWidth / d.story.length) * i, behavior: 'smooth' })
+  }
+  return (
+    <section id="story" className="bg-(--ov-smoke) py-[14svh]">
+      <div className="px-6 text-center">
+        <p className="ov-meta uppercase text-(--ov-gulab)">How we got here</p>
+        <h2 className="ov-display mt-4 text-[clamp(2.6rem,6vw,4.5rem)] leading-none">Our story</h2>
+        <p className="mt-4 text-sm opacity-60">Swipe through the chapters</p>
+      </div>
+      <ul ref={row} onScroll={onScroll} className="st-carousel mt-12" aria-label="Our story">
+        {d.story.map((s, i) => (
+          <li key={s.year} className="st-chapter" aria-current={i === at || undefined}>
+            <div className="st-cusp relative aspect-[4/5]">
+              <img src={s.photo.small} alt={s.photo.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: s.photo.pos }} />
+            </div>
+            <p className="ov-meta mt-6 text-[0.7rem] uppercase text-(--ov-zari)">
+              Chapter {i + 1} · {s.year}
+            </p>
+            <h3 className="ov-display mt-2 text-3xl">{hashtag(s.title)}</h3>
+            <p className="mx-auto mt-3 max-w-[34ch] leading-relaxed opacity-80">{s.body}</p>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-8 flex justify-center gap-1" role="group" aria-label="Chapters">
+        {d.story.map((s, i) => (
+          <button key={s.year} type="button" onClick={() => go(i)} aria-label={`Chapter ${i + 1}`} aria-pressed={i === at} className="st-dot">
+            <span />
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/* ---------- Ceremonies as a timeline: round photos strung on a gold thread ---------- */
+
+function Timeline({ d }: { d: Design }) {
+  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.venue)}`
+  return (
+    <section id="celebrations" className="bg-(--st-panel) px-6 pb-[14svh] pt-[10svh] text-(--st-panel-text)">
+      <div className="mx-auto max-w-3xl">
+        <div className="text-center">
+          <p className="ov-meta uppercase opacity-75">At {d.venue.split(',')[0]}</p>
+          <h2 className="ov-display st-foil mt-4 text-[clamp(2.6rem,6vw,4.5rem)] leading-none">Ceremonies</h2>
+          <Rule />
+        </div>
+        <ol className="st-timeline">
+          {d.events.map((e, i) => (
+            <li key={e.id}>
+              <Reveal delay={i * 90} className="st-tl-row">
+                <div className="st-tl-photo">
+                  <img src={e.photo.small} alt={e.photo.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: e.photo.pos }} />
+                </div>
+                <div>
+                  <h3 className="ov-display text-[clamp(1.9rem,4vw,2.6rem)] leading-none">{e.name}</h3>
+                  <p className="ov-meta mt-3 text-[0.68rem] uppercase text-(--ov-zari)">{e.date}</p>
+                  <p className="mt-1.5 opacity-85">{e.time}</p>
+                  <p className="mt-2 text-[0.95rem] leading-relaxed opacity-70">{e.note}</p>
+                  <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
+                    <a href={maps} target="_blank" rel="noreferrer" className="ov-link">
+                      ⌖ Directions
+                    </a>
+                    <button type="button" onClick={() => downloadIcs(e, d)} className="ov-link">
+                      Add to calendar
+                    </button>
+                  </div>
+                </div>
+              </Reveal>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  )
+}
+
+/* ---------- A note from the couple ---------- */
+
+function Note({ d }: { d: Design }) {
+  if (!d.note) return null
+  return (
+    <section className="px-6 py-[14svh] text-center">
+      <Reveal className="mx-auto max-w-2xl">
+        <p className="ov-meta uppercase text-(--ov-gulab)">A note from us</p>
+        <p className="ov-display mt-6 text-[clamp(1.6rem,3.4vw,2.4rem)] italic leading-[1.35]">{d.note}</p>
+        <p className="mt-8 text-4xl">
+          <span className="st-amp">
+            {d.couple[0]} &amp; {d.couple[1]}
+          </span>
+        </p>
+      </Reveal>
+    </section>
+  )
+}
+
+/* ---------- Closing: a garden photo beside the sign-off ---------- */
+
+function Garden({ d }: { d: Design }) {
+  return (
+    <section className="grid md:grid-cols-2">
+      <div className="relative min-h-[60svh] overflow-hidden">
+        <Backdrop photo={d.finale ?? d.hero} />
+      </div>
+      <Reveal className="grid place-items-center px-6 py-20 text-center">
+        <div className="st-sign">
+          <p className="ov-display text-[clamp(1.8rem,4vw,2.6rem)] italic leading-tight">Your presence means the world to us</p>
+          <p className="ov-meta mt-6 uppercase text-(--ov-gulab)">With love, {d.families.join(' and ').replace(/The /g, 'the ')}</p>
+          <p className="ov-display st-foil mt-4 text-4xl">
+            {d.couple[0]}
+            <span className="st-amp">&amp;</span>
+            {d.couple[1]}
+          </p>
+        </div>
       </Reveal>
     </section>
   )
@@ -557,9 +757,9 @@ export default function WeddingSite() {
       <Meet d={d} />
 
       <Torn color={raised} on={bg} />
-      {d.storyStyle === 'polaroids' ? <Polaroids d={d} /> : <Frames d={d} />}
+      {d.storyStyle === 'polaroids' ? <Polaroids d={d} /> : d.storyStyle === 'carousel' ? <Carousel d={d} /> : <Frames d={d} />}
       <Torn color={panel} on={raised} />
-      <Ceremonies d={d} />
+      {d.cards === 'timeline' ? <Timeline d={d} /> : <Ceremonies d={d} />}
       <Torn color={panel} on={bg} flip />
 
       <section id="venue" className="relative overflow-hidden">
@@ -605,8 +805,12 @@ export default function WeddingSite() {
         </div>
       </section>
 
+      <Note d={d} />
+
       {d.closing === 'countdown' ? (
         <Finale d={d} />
+      ) : d.closing === 'garden' ? (
+        <Garden d={d} />
       ) : (
       <section className="relative grid min-h-[80svh] place-items-center overflow-hidden px-6">
         <Backdrop photo={d.hero} />
