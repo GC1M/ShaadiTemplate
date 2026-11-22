@@ -36,7 +36,7 @@ export function Segmented<T extends string>({ value, onChange, options, label, d
           role="radio"
           aria-checked={o.id === value}
           onClick={() => onChange(o.id)}
-          className={`rounded-full px-3.5 py-1.5 text-sm transition ${o.id === value ? (dark ? 'bg-zari text-wine-deep' : 'bg-wine text-rose shadow-sm') : dark ? 'text-rose/75 hover:text-rose' : 'text-ink/70 hover:text-wine'}`}
+          className={`rounded-full px-3.5 py-1.5 text-sm transition pointer-coarse:min-h-11 pointer-coarse:min-w-11 ${o.id === value ? (dark ? 'bg-zari text-wine-deep' : 'bg-wine text-rose shadow-sm') : dark ? 'text-rose/75 hover:text-rose' : 'text-ink/70 hover:text-wine'}`}
         >
           {o.label}
         </button>
