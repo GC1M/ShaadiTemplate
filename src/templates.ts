@@ -5,6 +5,7 @@ import { templates as batchG } from './card/designs-g'
 import { templates as batchH } from './card/designs-h'
 import { templates as batchI } from './card/designs-i'
 import { templates as batchJ } from './card/designs-j'
+import { templates as batchK } from './card/designs-k'
 import { SAMPLES } from './i18n'
 import type { CoverPage, EventType, Invite, Lang, Page, Section, SampleText, SectionsPage, SymbolId } from './types'
 
@@ -27,7 +28,7 @@ export interface Template {
   tr?: Partial<Record<Lang, { title: string; sections: Pick<Section, 'heading' | 'body'>[] }[]>>
 }
 
-export const TEMPLATES: Template[] = [...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ]
+export const TEMPLATES: Template[] = [...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK]
 
 // Designs retired in the luxury restyle, mapped to the nearest live card (same event, then the same god or
 // sacred symbol, then language), so a saved draft or an old #template/ link keeps its occasion.

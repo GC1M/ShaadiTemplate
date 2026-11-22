@@ -4,6 +4,7 @@ import { designs as batchD } from './designs-d'
 import { designs as batchE } from './designs-e'
 import { designs as batchF } from './designs-f'
 import { designs as batchG } from './designs-g'
+import { designs as batchK } from './designs-k'
 import { designs as batchH } from './designs-h'
 import { designs as batchI } from './designs-i'
 import { designs as batchJ } from './designs-j'
@@ -75,6 +76,6 @@ const custom: Design = {
 }
 
 export const DESIGNS: Record<string, Design> = Object.fromEntries(
-  [custom, ...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ].map((d) => [d.id, d]),
+  [custom, ...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK].map((d) => [d.id, d]),
 )
 

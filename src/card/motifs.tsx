@@ -358,6 +358,31 @@ export function Emblem({ symbol, color, accent, size }: { symbol: SymbolId; colo
         <path d="M30 74 L70 74 L64 84 L36 84 Z" fill="#d32f2f" />
       </g>
     )
+  else if (symbol === 'ashapura')
+    inner = (
+      <g>
+        {/* Ashapura Mataji of Mata no Madh: her trishul over a red chunri, with the kumkum dot */}
+        <path d="M22 84 Q50 64 78 84 Z" fill="#c62828" />
+        <rect x="48.5" y="24" width="3" height="56" fill={color} />
+        <path d="M36 22 Q36 40 50 42 Q64 40 64 22 L60 22 Q60 36 50 37 Q40 36 40 22 Z" fill={color} />
+        <path d="M47 24 L50 12 L53 24 Z" fill={color} />
+        <path d="M34 24 L38 14 L41 24 Z" fill={color} />
+        <path d="M59 24 L62 14 L66 24 Z" fill={color} />
+        <circle cx="50" cy="52" r="4" fill="#c62828" stroke={accent} strokeWidth="1" />
+      </g>
+    )
+  else if (symbol === 'ram-sita')
+    inner = (
+      <g>
+        {/* Shri Ram's kodanda bow and arrow, with Sita's lotus at its foot */}
+        <path d="M34 14 Q70 50 34 86" fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" />
+        <line x1="34" y1="14" x2="34" y2="86" stroke={color} strokeWidth="1.2" />
+        <line x1="22" y1="50" x2="80" y2="50" stroke={color} strokeWidth="2" />
+        <path d="M80 50 L70 45 L70 55 Z" fill={color} />
+        <path d="M22 50 L16 45 M22 50 L16 55" stroke={accent} strokeWidth="2" />
+        <LotusBloom x={58} y={80} s={0.55} petal={accent} deep={color} />
+      </g>
+    )
   else if (symbol === 'jain')
     inner = (
       <g>

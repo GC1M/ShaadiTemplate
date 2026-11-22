@@ -18,6 +18,8 @@ export const gu: SampleText = {
     umiya: '॥ જય ઉમિયા માતાજી ॥',
     shrinathji: '॥ જય શ્રીનાથજી ॥',
     ranchhodrai: '॥ જય રણછોડરાય ॥',
+    ashapura: '॥ જય આશાપુરા માતાજી ॥',
+    'ram-sita': '॥ જય સિયારામ ॥',
     'ek-onkar': 'ੴ ਸਤਿ ਨਾਮੁ',
     bismillah: 'بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ',
     jain: '॥ ણમો અરિહંતાણં ॥',

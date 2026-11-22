@@ -35,6 +35,8 @@ export const SYMBOLS: Record<SymbolId, string> = {
   umiya: 'Umiya Mataji',
   shrinathji: 'Shrinathji',
   ranchhodrai: 'Ranchhodraiji (Dakor)',
+  ashapura: 'Ashapura Mataji',
+  'ram-sita': 'Shri Ram-Sita',
   'ek-onkar': 'Ek Onkar',
   bismillah: 'Bismillah',
   jain: 'Jain (Ahimsa hand)',
@@ -44,7 +46,7 @@ export const SYMBOLS: Record<SymbolId, string> = {
 
 export const EVENTS: Record<EventType, string> = {
   'save-the-date': 'Save the Date',
-  ring: 'Ring Ceremony',
+  ring: 'Engagement (Ring Ceremony)',
   haldi: 'Haldi',
   mehendi: 'Mehendi',
   sangeet: 'Sangeet',
