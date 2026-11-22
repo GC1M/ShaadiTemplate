@@ -46,7 +46,7 @@ export const SYMBOLS: Record<SymbolId, string> = {
 
 export const EVENTS: Record<EventType, string> = {
   'save-the-date': 'Save the Date',
-  ring: 'Engagement',
+  ring: 'Engagement (Ring Ceremony)',
   haldi: 'Haldi',
   mehendi: 'Mehendi',
   sangeet: 'Sangeet',
