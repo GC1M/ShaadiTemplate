@@ -47,6 +47,8 @@ export default function Reviews() {
   const [hover, setHover] = useState(0)
   const [name, setName] = useState('')
   const [text, setText] = useState('')
+  const [start, setStart] = useState(0)
+  const [paused, setPaused] = useState(false)
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>(() => {
     try {
       return localStorage.getItem(SENT) ? 'sent' : 'idle'
@@ -58,6 +60,13 @@ export default function Reviews() {
   useEffect(() => {
     loadReviews().then(setReviews, () => setReviews([]))
   }, [])
+
+  const pool = reviews?.filter((r) => r.stars >= 4 && r.text).length ?? 0
+  useEffect(() => {
+    if (pool <= 3 || paused || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = setInterval(() => setStart((s) => s + 1), 6000)
+    return () => clearInterval(id)
+  }, [pool, paused])
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -93,7 +102,9 @@ export default function Reviews() {
   const counts = [5, 4, 3, 2, 1].map((n) => ({ n, c: reviews?.filter((r) => r.stars === n).length ?? 0 }))
   const top = Math.max(1, ...counts.map((x) => x.c))
   // Examples: only good reviews that say something.
-  const good = reviews?.filter((r) => r.stars >= 4 && r.text).slice(0, 6) ?? []
+  const good = reviews?.filter((r) => r.stars >= 4 && r.text).slice(0, 12) ?? []
+  // Three at a time; with more than three, rotate one step every 6s (paused on hover or focus, off for reduced motion).
+  const shown = good.length > 3 ? [0, 1, 2].map((i) => good[(start + i) % good.length]) : good
 
   const form = (
     <form onSubmit={submit} className="h-fit rounded-lg border border-zari/40 bg-white/80 p-5">
@@ -167,9 +178,9 @@ export default function Reviews() {
       </div>
 
       {good.length > 0 && (
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {good.map((r, i) => (
-            <figure key={i} className="rounded-lg border border-ink/10 bg-white/70 p-5">
+        <div className="mt-10 grid gap-4 md:grid-cols-3" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
+          {shown.map((r, i) => (
+            <figure key={`${start}-${i}`} className="review-in rounded-lg border border-ink/10 bg-white/70 p-5" style={{ animationDelay: `${i * 90}ms` }}>
               <Stars n={r.stars} size={16} />
               {r.text && <blockquote className="mt-2 leading-relaxed text-ink/85">{r.text}</blockquote>}
               <figcaption className="mt-3 text-sm text-ink/55">
