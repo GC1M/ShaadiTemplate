@@ -36,6 +36,9 @@ const icsTime = (d: Date) => `${d.toISOString().replace(/[-:]/g, '').slice(0, 15
 // Event times are written in IST; UTC needs no VTIMEZONE block (a bare TZID breaks Outlook).
 const fromIst = (t: string) => icsTime(new Date(t.replace(/(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)/, '$1-$2-$3T$4:$5:$6+05:30')))
 
+// Commas, semicolons, backslashes and line breaks are escaped in calendar text (RFC 5545).
+const icsText = (s: string) => s.replace(/[\\,;]/g, '\\$&').replace(/\r?\n/g, '\\n')
+
 export function downloadIcs(e: WeddingEvent, d: Design) {
   const slug = d.couple.join('-').toLowerCase()
   const ics = [
@@ -47,8 +50,9 @@ export function downloadIcs(e: WeddingEvent, d: Design) {
     `DTSTAMP:${icsTime(new Date())}`,
     `DTSTART:${fromIst(e.start)}`,
     `DTEND:${fromIst(e.end)}`,
-    `SUMMARY:${e.name}: ${d.couple.join(' and ')}`,
-    `LOCATION:${d.venue.replace(/,/g, '\\,')}`,
+    `SUMMARY:${icsText(`${e.name}: ${d.couple.join(' and ')}`)}`,
+    `LOCATION:${icsText(d.venue)}`,
+    `DESCRIPTION:${icsText([e.time, e.note].filter(Boolean).join('. '))}`,
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n')
@@ -211,7 +215,7 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
       <div className="absolute inset-0 bg-(--ov-kohl)/70" />
       <div className="relative mx-auto max-w-2xl px-6 py-[16svh]">
         <h2 className="ov-display text-center text-[clamp(3rem,7vw,5.5rem)] leading-none">Will you join us?</h2>
-        <p className="mt-5 text-center text-(--ov-mogra)/70">Reply by {d.rsvpBy} so the families can plan rooms and seating.</p>
+        <p className="mt-5 text-center text-(--ov-mogra)/70">{d.rsvpBy ? `Reply by ${d.rsvpBy} so` : 'Reply soon, so'} the families can plan rooms and seating.</p>
         {!editing && saved ? (
           <div className="ov-rise mt-14 flex flex-col items-center text-center" aria-live="polite">
             <Knot />
@@ -220,7 +224,7 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
             </p>
             <p className="mt-3 text-(--ov-mogra)/75">
               {saved.events.length
-                ? `Party of ${saved.party} for ${saved.events.map((id) => d.events.find((e) => e.id === id)?.name).join(', ')}.`
+                ? `Party of ${saved.party} for ${saved.events.map((id) => d.events.find((e) => e.id === id)?.name).filter(Boolean).join(', ') || 'the celebrations'}.`
                 : 'You told us you can’t make it.'}
             </p>
             <button type="button" onClick={() => setEditing(true)} className="ov-link mt-8">

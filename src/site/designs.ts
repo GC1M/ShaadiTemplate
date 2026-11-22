@@ -54,6 +54,8 @@ export type Content = {
   // Optional line of invocation on the opening screen, and a short personal note from the couple before the closing.
   invocation?: string
   note?: string
+  // Optional line under the venue: where to stay, how to get there.
+  stay?: string
   notes: string[]
   city: string
   venue: string
@@ -450,6 +452,9 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
   return {
     ...rest,
     ...c,
+    // A blank family is named after its side, so the RSVP never offers an empty choice; no venue yet shows the city.
+    families: c.families.map((f, i) => f.trim() || `${c.couple[i]}’s family`) as [string, string],
+    venue: c.venue.trim() || c.city,
     meet: c.meet?.map((m, i) => ({ name: c.couple[i] ?? '', bio: m.bio, photo: m.photo ?? demo.meet?.[i]?.photo ?? at(demo.photos.gallery, i) })),
     story: c.story.map((s, i) => ({ ...s, photo: s.photo ?? at(demo.story, i).photo! })),
     events: c.events.map((e, i) => {

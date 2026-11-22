@@ -206,6 +206,7 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
     nativeNames: str(c.nativeNames, 80) || undefined,
     invocation: str(c.invocation, 80) || undefined,
     note: str(c.note, 400) || undefined,
+    stay: str(c.stay, 300) || undefined,
     notes: arr(c.notes, 10, (x) => str(x, 300)).filter(Boolean),
     city: str(c.city, 60),
     venue: str(c.venue, 160),
@@ -226,6 +227,9 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
   }
   if (!content.couple[0] || !content.couple[1]) fail(400, 'Add both of your names.')
   if (!content.events.some((e) => e.date)) fail(400, 'Add the date of at least one event.')
+  // expire() would delete such a site the same night: most likely a mistyped year.
+  if (content.events.every((e) => e.date < new Date(Date.now() - KEEP_DAYS * DAY).toISOString().slice(0, 10)))
+    fail(400, `Your last event was more than ${KEEP_DAYS} days ago, so the site would be deleted tonight. Check the dates and the year.`)
   if (content.mainEvent !== undefined && content.mainEvent >= content.events.length) content.mainEvent = undefined
   if (new Set(photos.map((p) => p.src)).size > MAX_PHOTOS) fail(400, `A site can have up to ${MAX_PHOTOS} photos.`)
   return { content, photos }

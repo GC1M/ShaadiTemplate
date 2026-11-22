@@ -28,6 +28,7 @@ assert.equal((await call('POST', '/api/sites', { slug: 'f-u-c-k', look: 'rajwada
 assert.equal((await call('POST', '/api/sites', { slug: 'fuckyou-1', look: 'rajwada', content })).status, 400)
 assert.equal((await call('POST', '/api/sites', { slug: 'Bad Slug', look: 'rajwada', content })).status, 400)
 assert.equal((await call('POST', '/api/sites', { slug: 'admin', look: 'rajwada', content })).status, 400)
+assert.equal((await call('POST', '/api/sites', { slug, look: 'rajwada', content: { ...content, events: [{ ...content.events[0], date: '2020-05-01' }] } })).status, 400) // long past: it would be deleted tonight
 
 const made = await call('POST', '/api/sites', { slug, look: 'rajwada', content })
 assert.equal(made.status, 201, JSON.stringify(made.data))
