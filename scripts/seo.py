@@ -127,7 +127,7 @@ def structured(path, page, url, title, desc, image, cards):
             {'@type': 'WebApplication', 'name': 'ShaadiTemplate', 'url': f'{SITE}/', 'description': desc, 'applicationCategory': 'DesignApplication', 'operatingSystem': 'Any',
              'browserRequirements': 'Requires JavaScript', 'isAccessibleForFree': True, 'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'INR'},
              'inLanguage': ['en', 'hi', 'mr', 'gu', 'pa', 'ta'], 'image': image, 'publisher': ORG,
-             'featureList': ['Invitations for Save the Date, Ring Ceremony, Haldi, Mehendi, Sangeet, Wedding, Reception and Baby Shower (Simant)', 'English, Hindi, Marathi, Gujarati, Punjabi and Tamil',
+             'featureList': ['Invitations for Save the Date, Engagement, Haldi, Mehendi, Sangeet, Wedding, Reception and Baby Shower (Simant)', 'English, Hindi, Marathi, Gujarati, Punjabi and Tamil',
                              'Phonetic typing in Indian scripts', '1080x1920 image for WhatsApp', '5x7 inch print-ready PDF', 'No login']},
         ]
     if rel in ('templates/index.html', 'guides/index.html'):
