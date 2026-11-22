@@ -43,6 +43,9 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
   // Suggestions remember which word they belong to, so a fast typist never gets the list for "krup" on "krupa".
   const [sugg, setSugg] = useState<{ word: string; list: string[] }>({ word: '', list: [] })
   const [active, setActive] = useState(0)
+  // The word just converted and its other spellings, so "Priya" that became प्रिय can be switched to प्रिया.
+  const [last, setLast] = useState<{ start: number; text: string; list: string[] } | null>(null)
+  const [converting, setConverting] = useState(0) // finished words still waiting for their conversion
   const on = enabled && lang !== 'en'
   const options = on && word && sugg.word === word ? sugg.list : []
   // Latest text, updated as soon as we write it so async conversions never act on a stale copy.
@@ -75,24 +78,48 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
     const start = caret - word.length
     write(v.slice(0, start) + choice + suffix + v.slice(caret))
     setWord('')
+    if (options.length > 1) setLast({ start, text: choice, list: options })
     const pos = start + choice.length + suffix.length
     setTimeout(() => el.setSelectionRange(pos, pos)) // after React writes the new value
   }
 
   // A word was finished before its suggestions arrived (fast typing, or an Android keyboard that
   // sends no key events): swap in the top suggestion once it lands, if the word is still there.
-  const convertLater = (start: number, latin: string) =>
-    suggest(latin, lang).then(([top]) => {
-      const v = latest.current.value
-      if (!top || v.slice(start, start + latin.length) !== latin) return
-      const el = ref.current
-      const caret = el?.selectionStart ?? v.length
-      write(v.slice(0, start) + top + v.slice(start + latin.length))
-      const pos = caret > start ? caret + top.length - latin.length : caret
-      if (el && document.activeElement === el) setTimeout(() => el.setSelectionRange(pos, pos))
-    }, () => {}) // offline: the Latin word stays
+  const convertLater = (start: number, latin: string) => {
+    setConverting((n) => n + 1)
+    suggest(latin, lang)
+      .then((list) => {
+        const top = list[0]
+        const v = latest.current.value
+        if (!top || v.slice(start, start + latin.length) !== latin) return
+        const el = ref.current
+        const caret = el?.selectionStart ?? v.length
+        write(v.slice(0, start) + top + v.slice(start + latin.length))
+        const pos = caret > start ? caret + top.length - latin.length : caret
+        if (el && document.activeElement === el) {
+          setTimeout(() => el.setSelectionRange(pos, pos))
+          if (list.length > 1) setLast({ start, text: top, list })
+        }
+      }, () => {}) // offline: the Latin word stays
+      .finally(() => setConverting((n) => n - 1))
+  }
+
+  // Swap the word just converted for another spelling, keeping the caret where it was.
+  const repick = (choice: string) => {
+    if (!last) return
+    const el = ref.current!
+    const v = latest.current.value
+    const caret = el.selectionStart ?? v.length
+    write(v.slice(0, last.start) + choice + v.slice(last.start + last.text.length))
+    setLast({ ...last, text: choice })
+    const pos = caret > last.start ? caret + choice.length - last.text.length : caret
+    setTimeout(() => el.setSelectionRange(pos, pos))
+  }
+  // Still showing only while that word is untouched in the text and no new word is being typed.
+  const alternatives = on && !word && last && value.slice(last.start, last.start + last.text.length) === last.text ? last : null
 
   const onKeyDown = (e: KeyboardEvent) => {
+    if (alternatives && e.key === 'Escape') return setLast(null)
     if (!on || !word) return
     if (e.key === 'Escape') return setWord('') // keep the English word
     const finish = e.key === ' ' || e.key === ',' || e.key === '.' || e.key === 'Enter' || e.key === 'Tab'
@@ -140,6 +167,7 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
       if (options.length) commit(options[active])
       else if (on && word) convertLater((ref.current!.selectionStart ?? 0) - word.length, word)
       setWord('')
+      setLast(null)
     },
     lang: on ? lang : undefined,
     autoComplete: 'off',
@@ -150,6 +178,36 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
   return (
     <div className="relative">
       {multiline ? <textarea {...shared} /> : <input {...shared} />}
+      {on && converting > 0 && (
+        <span role="status" className="pointer-events-none absolute right-2.5 top-2.5 rounded bg-white/90 px-1.5 text-xs text-stone-500">
+          converting…
+        </span>
+      )}
+      {alternatives && (
+        <ul
+          role="listbox"
+          aria-label="Other spellings"
+          className="absolute left-0 right-0 z-30 mt-1 flex flex-wrap gap-1 rounded-lg bg-white p-1.5 shadow-lg ring-1 ring-stone-200"
+        >
+          {alternatives.list.map((o) => (
+            <li key={o}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={o === alternatives.text}
+                onMouseDown={(e) => {
+                  e.preventDefault() // keep focus in the field
+                  repick(o)
+                }}
+                className={`rounded-md px-3 py-1.5 text-base ${o === alternatives.text ? 'bg-maroon text-white' : 'text-stone-800 hover:bg-stone-100'}`}
+              >
+                {o}
+              </button>
+            </li>
+          ))}
+          <li className="ml-auto self-center px-2 text-xs text-stone-500">Tap another spelling · Esc closes</li>
+        </ul>
+      )}
       {on && word && options.length > 0 && (
         <ul
           role="listbox"

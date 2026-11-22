@@ -268,9 +268,9 @@ function Credits() {
           <a href="#/ananya-arjun/hall" className="underline underline-offset-4 hover:text-(--ov-zari)">
             walk through a 3D palace hall
           </a>
-          , or{' '}
-          <a href="#" className="underline underline-offset-4 hover:text-(--ov-zari)">
-            make your own
+          . Wedding websites like this are coming soon; for now,{' '}
+          <a href="#templates" className="underline underline-offset-4 hover:text-(--ov-zari)">
+            make your invitation card
           </a>
           .
         </p>
