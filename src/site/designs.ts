@@ -48,6 +48,9 @@ export type Content = {
   meet?: { bio: string; photo?: Photo }[]
   // Optional "with best compliments from" scroll: the families sending the invitation.
   compliments?: string[]
+  // Optional: the couple's names in their own script, as they would be written on the card ("अदिति संग विहान"),
+  // shown on the opening screen and under the names on the cover.
+  nativeNames?: string
   // Optional line of invocation on the opening screen, and a short personal note from the couple before the closing.
   invocation?: string
   note?: string
@@ -93,6 +96,7 @@ export const LOOKS: Look[] = [
     elephants: true,
     demo: {
       couple: ['Aditi', 'Vihaan'],
+      nativeNames: 'अदिति संग विहान',
       families: ['Aditi’s family', 'Vihaan’s family'],
       parents: ['Daughter of Smt. Sunita and Shri Rakesh Sharma, granddaughter of Late Shri Ramesh Chandra Sharma', 'Son of Smt. Kavita and Shri Ajay Rathore, grandson of Smt. Kamla Devi and Late Shri Mohan Singh Rathore'],
       notes: ['Complimentary valet parking at the main gate of the City Palace.', 'The baraat leaves the hotel at 6 pm. Bring your dancing shoes.', 'Jaipur nights are cool in December. A shawl for the pheras.'],
@@ -126,6 +130,7 @@ export const LOOKS: Look[] = [
     closing: 'countdown',
     demo: {
       couple: ['Krupa', 'Nirav'],
+      nativeNames: 'કૃપા અને નીરવ',
       families: ['Krupa’s family', 'Nirav’s family'],
       parents: ['Daughter of Smt. Hetal and Shri Jayesh Patel', 'Son of Smt. Bhavna and Shri Ketan Shah'],
       meet: [
@@ -171,6 +176,7 @@ export const LOOKS: Look[] = [
     demo: {
       invocation: 'श्री गणेशाय नमः',
       couple: ['Ishita', 'Aarav'],
+      nativeNames: 'इशिता संग आरव',
       families: ['The bride’s family', 'The groom’s family'],
       parents: ['Daughter of Smt. Neelam and Shri Anil Malhotra, granddaughter of Smt. Kusum and Late Shri Prem Nath Malhotra', 'Son of Smt. Ritu and Shri Sanjeev Khanna, grandson of Smt. Savitri and Shri Ramesh Khanna'],
       compliments: ['Shri Rajiv Malhotra and family', 'Smt. Pooja Kapoor and family', 'Shri Deepak Khanna and family', 'Smt. Anju Sethi and family'],
@@ -211,6 +217,7 @@ export const LOOKS: Look[] = [
     demo: {
       invocation: '॥ ॐ नमः शिवाय ॥',
       couple: ['Tara', 'Shaurya'],
+      nativeNames: 'तारा संग शौर्य',
       families: ['Tara’s family', 'Shaurya’s family'],
       parents: ['Daughter of Smt. Archana and Shri Alok Tripathi, granddaughter of Smt. Shanti and Late Shri Kailash Tripathi', 'Son of Smt. Meenu and Shri Vineet Mishra, grandson of Smt. Kamla and Shri Gopal Mishra'],
       compliments: ['Shri Ashok Tripathi and family', 'Smt. Rekha Pandey and family', 'Shri Manoj Mishra and family'],
@@ -245,6 +252,7 @@ export const LOOKS: Look[] = [
     theme: { bg: '#1e1519', raised: '#2a1f24', accent: '#c9a15b', text: '#f3ece3', soft: '#d7a79e', display: CORMORANT, script: CORMORANT },
     demo: {
       couple: ['Ananya', 'Arjun'],
+      nativeNames: 'अनन्या संग अर्जुन',
       families: ['Ananya’s family', 'Arjun’s family'],
       parents: ['Daughter of Smt. Rekha and Shri Vivek Mehta', 'Son of Smt. Anjali and Shri Rajiv Kapoor'],
       notes: ['Udaipur airport is 40 minutes away; cars will be waiting for every flight on the 20th.', 'The pheras are outdoors by the lake. Bring a shawl for the evening.', 'Boats to the palace leave from the City Palace jetty every 20 minutes.'],
@@ -274,6 +282,7 @@ export const LOOKS: Look[] = [
     theme: { bg: '#fbf3e4', raised: '#f3e3c8', accent: '#b4235a', text: '#3a1420', soft: '#b5501a', display: '"Rozha One", Georgia, serif', script: GREAT_VIBES },
     demo: {
       couple: ['Simran', 'Harjot'],
+      nativeNames: 'ਸਿਮਰਨ ਤੇ ਹਰਜੋਤ',
       families: ['Simran’s family', 'Harjot’s family'],
       parents: ['Daughter of Sardarni Harpreet Kaur and Sardar Gurmeet Singh Gill', 'Son of Sardarni Jasleen Kaur and Sardar Manjit Singh Sandhu'],
       notes: ['Please cover your head during the Anand Karaj. Rumals are kept at the door.', 'Langar follows the ceremony; shoes come off at the gurdwara entrance.', 'Amritsar is cold in February. Pack a warm shawl for the evening.'],
@@ -303,6 +312,7 @@ export const LOOKS: Look[] = [
     theme: { bg: '#3b0d14', raised: '#4d1520', accent: '#e0a526', text: '#fbefd9', soft: '#f0b9a0', display: '"Marcellus", Georgia, serif', script: CORMORANT },
     demo: {
       couple: ['Meenakshi', 'Karthik'],
+      nativeNames: 'மீனாட்சி & கார்த்திக்',
       families: ['Meenakshi’s family', 'Karthik’s family'],
       parents: ['Daughter of Smt. Lakshmi and Shri Venkatesh Iyer', 'Son of Smt. Revathi and Shri Sundaram Pillai'],
       notes: ['The muhurtham is at 7:15 am sharp. Please be seated by 7.', 'Shoes come off at the mandapam; there is a counter by the steps.', 'Madurai is warm in May. Cotton and silk both welcome.'],
@@ -361,6 +371,7 @@ export const LOOKS: Look[] = [
     theme: { bg: '#0f2723', raised: '#17352f', accent: '#d2c08a', text: '#eef2ec', soft: '#9fc7b4', display: '"Amiri", Georgia, serif', script: '"Amiri", Georgia, serif' },
     demo: {
       couple: ['Zoya', 'Kabir'],
+      nativeNames: 'زویا اور کبیر',
       families: ['Zoya’s family', 'Kabir’s family'],
       parents: ['Daughter of Begum Nasreen and Janab Imran Siddiqui', 'Son of Begum Farah and Janab Asif Rizvi'],
       notes: ['Seating for the nikah is separate for men and women, as the families prefer.', 'Dinner at the walima is served from 9:30 pm.', 'Valet parking is at the main porch of the hotel.'],

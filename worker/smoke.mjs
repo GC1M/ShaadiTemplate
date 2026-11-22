@@ -11,6 +11,7 @@ const JPEG = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP/////////
 const slug = `smoke-${Date.now().toString(36)}`
 const content = {
   couple: ['Asha', 'Dev'],
+  nativeNames: 'आशा संग देव',
   families: ['Asha’s family', 'Dev’s family'],
   parents: ['Daughter of A', 'Son of B'],
   notes: ['Bring a shawl'],
@@ -19,7 +20,7 @@ const content = {
   invite: 'Come celebrate',
   rsvpBy: '1 May',
   story: [{ year: '2020', title: 'Met', body: 'At work', photo: { src: JPEG, alt: 'us' } }],
-  events: [{ name: 'Wedding', date: '2028-05-01', time: '18:00', where: '', note: '' }],
+  events: [{ name: 'Wedding', date: '2028-05-01', time: '18:00', where: '', note: '', photo: { src: JPEG, alt: 'mandap', pos: '30% 70%' } }],
   photos: { hero: { src: JPEG, alt: 'cover' }, gallery: [{ src: 'https://evil.example/x.jpg' }] },
 }
 
@@ -43,6 +44,9 @@ assert.equal(got.status, 200)
 const hero = got.data.content.photos.hero.src
 assert.match(hero, new RegExp(`/api/photo/${slug}/[a-f0-9]{16}\\.jpg$`))
 assert.equal(got.data.content.story[0].photo.src, hero) // same upload stored once
+assert.equal(got.data.content.events[0].photo.src, hero) // an event's own photo
+assert.equal(got.data.content.events[0].photo.pos, '30% 70%') // and the part of it to keep in view
+assert.equal(got.data.content.nativeNames, 'आशा संग देव')
 assert.equal(got.data.content.photos.gallery.length, 0) // foreign URL dropped
 const img = await fetch(hero)
 assert.equal(img.status, 200)
@@ -56,7 +60,7 @@ const after = await call('GET', `/api/sites/${slug}`)
 assert.equal(after.data.look, 'pichola')
 assert.equal(after.data.content.city, 'Mumbai')
 assert.equal(after.data.content.photos.hero.src, hero)
-const noPhotos = { ...edited, story: [], photos: { gallery: [] } }
+const noPhotos = { ...edited, story: [], events: edited.events.map(({ photo, ...e }) => e), photos: { gallery: [] } }
 assert.equal((await call('PUT', `/api/sites/${slug}`, { look: 'pichola', content: noPhotos }, key)).status, 200)
 assert.equal((await fetch(hero)).status, 404)
 // An old copy of the site that still names the deleted photo saves without it.

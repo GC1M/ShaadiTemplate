@@ -61,7 +61,7 @@ export function Gate({ d, open, onOpen }: { d: Design; open: boolean; onOpen: ()
         <span className="st-door-panel" />
       </div>
       <div className="st-gate-center">
-        {d.invocation && <p className="font-deva text-lg text-(--ov-zari)">{d.invocation}</p>}
+        {d.invocation && <p className="st-script text-lg text-(--ov-zari)">{d.invocation}</p>}
         <p className="ov-meta uppercase text-(--ov-zari)">You are invited</p>
         <button type="button" onClick={onOpen} className="st-seal ov-press" aria-label={`Open the invitation from ${d.couple.join(' and ')}`}>
           <span className="ov-display text-3xl">
@@ -71,6 +71,7 @@ export function Gate({ d, open, onOpen }: { d: Design; open: boolean; onOpen: ()
           </span>
         </button>
         <p className="ov-display mt-2 text-2xl italic">{d.couple.join(' & ')}</p>
+        {d.nativeNames && <p className="st-script text-xl">{d.nativeNames}</p>}
         <p className="ov-meta mt-1 text-[0.68rem] uppercase opacity-70">Tap the seal to open</p>
       </div>
     </div>
@@ -121,8 +122,9 @@ function Trifold({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => 
       {flap('l')}
       <div className="st-tri-center">
         {d.emblem && <Emblem symbol={d.emblem} color="var(--st-deep)" accent="var(--ov-zari)" size={96} />}
-        {d.invocation && <p className="font-deva mt-6 text-[clamp(1.6rem,3vw,2.2rem)] text-(--st-deep)">{d.invocation}</p>}
+        {d.invocation && <p className="st-script mt-6 text-[clamp(1.6rem,3vw,2.2rem)] text-(--st-deep)">{d.invocation}</p>}
         <p className="ov-display mt-6 max-w-[18ch] text-[clamp(1.3rem,2.4vw,1.7rem)] leading-snug text-(--st-deep)">We joyfully invite you to celebrate the wedding of…</p>
+        {d.nativeNames && <p className="st-script mt-4 text-[clamp(1.3rem,2.4vw,1.7rem)] text-(--ov-zari)">{d.nativeNames}</p>}
         <button type="button" onClick={onOpen} className="st-tab ov-press mt-10">
           Tap to open
         </button>
@@ -191,6 +193,11 @@ function Names({ d, open }: { d: Design; open: boolean }) {
           <Letters text={d.couple[1]} start={1100 + d.couple[0].length * 70} />
         </span>
       </h1>
+      {d.nativeNames && (
+        <p className="st-script st-glow st-fade mt-5 text-[clamp(1.5rem,3.4vw,2.3rem)]" style={{ animationDelay: '2000ms' }}>
+          {d.nativeNames}
+        </p>
+      )}
       <div className="st-fade" style={{ animationDelay: '2200ms' }}>
         <p className="ov-meta mt-7 uppercase">
           {main.date.split(', ')[1]} · {d.city}

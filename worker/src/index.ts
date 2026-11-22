@@ -19,7 +19,7 @@ interface Env {
   IP_SALT?: string
 }
 
-const MAX_PHOTOS = 12
+const MAX_PHOTOS = 16
 const MAX_PHOTO_BYTES = 1_500_000
 const MAX_BODY = 25_000_000
 const HOUR = 36e5
@@ -178,6 +178,7 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
     parents: [str(c.parents?.[0], 300), str(c.parents?.[1], 300)],
     meet: Array.isArray(c.meet) ? arr(c.meet, 2, (m) => ({ bio: str(m?.bio, 500), photo: photo(m?.photo) })) : undefined,
     compliments: Array.isArray(c.compliments) ? arr(c.compliments, 10, (x) => str(x, 160)).filter(Boolean) : undefined,
+    nativeNames: str(c.nativeNames, 80) || undefined,
     invocation: str(c.invocation, 80) || undefined,
     note: str(c.note, 400) || undefined,
     notes: arr(c.notes, 10, (x) => str(x, 300)).filter(Boolean),
@@ -193,6 +194,7 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
       time: /^\d\d:\d\d$/.test(e?.time) ? e.time : '',
       where: str(e?.where, 120),
       note: str(e?.note, 300),
+      photo: photo(e?.photo),
     })),
     mainEvent: Number.isInteger(c.mainEvent) && c.mainEvent >= 0 && c.mainEvent < 8 ? c.mainEvent : undefined,
     photos: { hero: photo(c.photos?.hero), venue: photo(c.photos?.venue), gallery: arr(c.photos?.gallery, 8, photo).filter(Boolean) },
