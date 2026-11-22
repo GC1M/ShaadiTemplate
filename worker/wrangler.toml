@@ -1,0 +1,16 @@
+# The free backend for couples' wedding websites (src/site/SiteEditor.tsx, src/site/HostedSite.tsx).
+# The main site stays on GitHub Pages; this Worker answers its API calls from shaaditemplate-sites.<account>.workers.dev.
+# Setup steps are in worker/README.md.
+name = "shaaditemplate-sites"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "shaaditemplate-sites"
+# Replace with the id that `npx wrangler d1 create shaaditemplate-sites` prints. Local dev works with this placeholder.
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "shaaditemplate-photos"

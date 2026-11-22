@@ -7,17 +7,32 @@ import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang
 import { Hero, preview } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
 import { track } from './analytics'
+import { keepKey } from './site/api'
 import Reviews from './Reviews'
 
-// Hash routes: #edit (editor), the sample couple website in each version (site/pages.ts: a film, and walks through
-// real 3D scans), else the gallery. Sites load on demand to keep the main bundle small.
+// Hash routes: #edit (editor), the wedding website designs (#/websites), each design's sample site
+// (site/designs.ts), the website editor (#/websites/<id>/edit, #/w/<slug>/edit) and couples' published sites
+// (#/w/<slug>), else the gallery. Sites load on demand to keep the main bundle small.
 const isEditor = () => location.hash === '#edit'
-const Scan = lazy(() => import('./site/journey/Scan'))
-const SITES: Record<string, ReturnType<typeof lazy>> = {
-  '#/ananya-arjun': lazy(() => import('./site/FilmSite')),
-  ...Object.fromEntries(['stepwell', 'courtyard', 'hall', 'salon'].map((k) => [`#/ananya-arjun/${k}`, Scan])),
+const Websites = lazy(() => import('./site/Websites'))
+const WeddingSite = lazy(() => import('./site/WeddingSite'))
+const HostedSite = lazy(() => import('./site/HostedSite'))
+const SiteEditor = lazy(() => import('./site/SiteEditor'))
+// A couple's published site, /w/<slug> (public/404.html sends it here as #/w/<slug>; the dev server serves it as is).
+if (/^\/w\/[a-z0-9-]+(\/edit)?\/?$/.test(location.pathname))
+  history.replaceState(null, '', `/#${location.pathname.replace(/\/$/, '')}${location.hash ? `?k=${location.hash.slice(1)}` : ''}`)
+// The edit key leaves the address here, before analytics starts and reports it (see keepKey).
+function takeKey() {
+  const keyed = location.hash.match(/^#\/w\/([a-z0-9-]+)\/edit\?k=([a-f0-9]+)$/)
+  if (!keyed) return
+  keepKey(keyed[1], keyed[2])
+  history.replaceState(null, '', `#/w/${keyed[1]}/edit`)
 }
-const isSite = () => (location.hash in SITES ? location.hash : '')
+takeKey()
+const isSite = () =>
+  location.hash === '#/websites' || location.hash.startsWith('#/ananya-arjun') ? '#/websites' : location.hash.startsWith('#/websites/') || location.hash.startsWith('#/w/') ? location.hash : ''
+const siteView = (hash: string) =>
+  hash === '#/websites' ? Websites : hash.endsWith('/edit') || hash.includes('/edit?') ? SiteEditor : hash.startsWith('#/w/') || hash === '#/websites/preview' ? HostedSite : WeddingSite
 // Static template pages link to #template/<id> to open that design. Consumed once, so StrictMode's re-run is a no-op.
 let linked = location.hash.startsWith('#template/') ? TEMPLATES.find((t) => t.id === liveId(location.hash.slice(10))) : undefined
 
@@ -38,6 +53,7 @@ export default function App() {
   }, [drafts])
   useEffect(() => {
     const onHash = () => {
+      takeKey()
       setInEditor(isEditor())
       setInSite(isSite())
     }
@@ -81,7 +97,7 @@ export default function App() {
   }, [])
 
   if (inSite) {
-    const Site = SITES[inSite]
+    const Site = siteView(inSite)
     return (
       <Suspense fallback={<div className="min-h-svh bg-[#0e0a0c]" />}>
         <Site key={inSite} />
