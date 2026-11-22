@@ -1,0 +1,956 @@
+/* Sample wedding website sections. Colours come from the .ov tokens each design sets inline. */
+.st {
+  min-height: 100svh;
+  --st-deep: color-mix(in srgb, var(--ov-zari) 62%, #000);
+  --st-bright: color-mix(in srgb, var(--ov-zari) 45%, #fff);
+  --st-mat: #fbf7ef;
+  --st-ink: #2b2322;
+  --st-ivory: #fbf6ec;
+}
+.st-amp {
+  font-family: var(--ov-script);
+  font-style: italic;
+  color: var(--ov-zari);
+  padding: 0 0.12em;
+}
+.st-rule {
+  width: 64px;
+  height: 1px;
+  margin: 2.25rem auto;
+  background: var(--ov-zari);
+  position: relative;
+}
+.st-rule::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 7px;
+  height: 7px;
+  background: var(--ov-zari);
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+/* Gold leaf: a metallic gradient clipped to the text, with a slow sheen passing over it. */
+.st-foil {
+  background: linear-gradient(110deg, var(--st-deep) 0%, var(--ov-zari) 30%, var(--st-bright) 45%, var(--ov-zari) 60%, var(--st-deep) 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: st-shine 7s linear infinite;
+}
+@keyframes st-shine {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -150% 0;
+  }
+}
+
+/* Hero names: letters animate one by one, so a soft halo stands in for the clipped foil. */
+.st-glow {
+  text-shadow: 0 0 34px color-mix(in srgb, var(--ov-zari) 45%, transparent);
+}
+
+/* Words in the couple's own script (names, the invocation). Each face covers one script, so the browser picks
+   the right one letter by letter: Devanagari, Gujarati, Gurmukhi, Tamil, Urdu. */
+.st-script {
+  font-family: 'Tiro Devanagari Hindi', 'Noto Serif Gujarati', 'Tiro Gurmukhi', 'Tiro Tamil', 'Amiri', serif;
+}
+
+/* ---------- Gate ---------- */
+.st-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  perspective: 1800px;
+  overflow: hidden;
+}
+.st-gate[data-open] {
+  pointer-events: none;
+}
+/* Carved doors: a jaali lattice over the raised colour, an arched inset panel, and a shadow where they meet. */
+.st-door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50.5%;
+  background:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--ov-zari) 14%, transparent) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--ov-zari) 14%, transparent) 0 1px, transparent 1px 26px),
+    var(--st-panel);
+  transition: transform 1.7s cubic-bezier(0.65, 0, 0.25, 1);
+  backface-visibility: hidden;
+}
+.st-door-l {
+  left: 0;
+  transform-origin: left center;
+  box-shadow: inset -30px 0 40px -20px rgb(0 0 0 / 0.5);
+}
+.st-door-r {
+  right: 0;
+  transform-origin: right center;
+  box-shadow: inset 30px 0 40px -20px rgb(0 0 0 / 0.5);
+}
+.st-gate[data-open] .st-door-l {
+  transform: rotateY(-108deg);
+}
+.st-gate[data-open] .st-door-r {
+  transform: rotateY(108deg);
+}
+.st-door-panel {
+  position: absolute;
+  inset: 22px;
+  border: 1px solid color-mix(in srgb, var(--ov-zari) 70%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--ov-zari) 35%, transparent);
+  outline-offset: 7px;
+  border-radius: 999px 999px 4px 4px / 160px 160px 4px 4px;
+}
+.st-gate-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0 1.5rem;
+  text-align: center;
+  color: var(--st-panel-text);
+  transition:
+    opacity 500ms ease,
+    transform 700ms ease;
+}
+.st-gate[data-open] .st-gate-center {
+  opacity: 0;
+  transform: scale(0.92);
+}
+/* Wax seal across the seam. */
+.st-seal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 124px;
+  height: 124px;
+  border-radius: 999px;
+  color: color-mix(in srgb, var(--st-deep) 55%, #000);
+  background: radial-gradient(circle at 35% 30%, var(--st-bright), var(--ov-zari) 45%, var(--st-deep));
+  box-shadow:
+    0 0 0 6px color-mix(in srgb, var(--ov-zari) 25%, transparent),
+    0 18px 40px -10px rgb(0 0 0 / 0.6);
+  cursor: pointer;
+}
+.st-seal .st-amp {
+  color: inherit;
+}
+.st-seal::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 1px solid var(--ov-zari);
+  animation: st-ping 2.2s ease-out infinite;
+}
+@keyframes st-ping {
+  to {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+
+/* ---------- Nav ---------- */
+.st-nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: color-mix(in srgb, var(--ov-kohl) 82%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid color-mix(in srgb, var(--ov-zari) 25%, transparent);
+  font-size: 0.9rem;
+  opacity: 0;
+  transform: translateY(-100%);
+  transition:
+    opacity 600ms 1.4s ease,
+    transform 600ms 1.4s ease;
+}
+.st-nav[data-show] {
+  opacity: 1;
+  transform: none;
+}
+.st-back,
+.st-links a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+.st-back:hover,
+.st-links a:hover {
+  color: var(--ov-zari);
+}
+.st-links {
+  display: none;
+  gap: 1.75rem;
+  letter-spacing: 0.06em;
+}
+@media (min-width: 768px) {
+  .st-links {
+    display: flex;
+  }
+}
+.st-use {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: var(--ov-zari);
+  color: var(--ov-kohl);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.st-use:hover {
+  filter: brightness(1.08);
+}
+.ov-switch {
+  min-height: 40px;
+  max-width: 44vw;
+  padding: 0 0.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ov-zari) 50%, transparent);
+  background: var(--ov-kohl);
+  color: var(--ov-mogra);
+  font-size: 0.85rem;
+}
+
+/* ---------- Hero ---------- */
+.st-arch {
+  border-radius: 999px 999px 0 0;
+}
+.st-arch::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border: 1px solid color-mix(in srgb, var(--ov-zari) 60%, transparent);
+  border-bottom: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.st-frame-lines {
+  position: absolute;
+  inset: 22px;
+  border: 1px solid color-mix(in srgb, var(--ov-zari) 45%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--ov-zari) 25%, transparent);
+  outline-offset: -8px;
+  pointer-events: none;
+}
+.st-letter {
+  display: inline-block;
+  opacity: 0;
+  animation: st-letter 1s cubic-bezier(0.22, 0.8, 0.2, 1) forwards;
+}
+@keyframes st-letter {
+  from {
+    opacity: 0;
+    transform: translateY(0.35em);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+.st-fade {
+  opacity: 0;
+  animation: st-fade 1.1s ease forwards;
+}
+@keyframes st-fade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.st-count {
+  min-width: 62px;
+  padding: 0.7rem 0.4rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--ov-zari) 45%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ov-kohl) 45%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+/* Gold dust drifting upward. */
+.st-dust,
+.st-dust::after {
+  position: absolute;
+  inset: -50% 0 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle, color-mix(in srgb, var(--ov-zari) 80%, transparent) 1.2px, transparent 2px),
+    radial-gradient(circle, color-mix(in srgb, var(--st-bright) 70%, transparent) 1px, transparent 1.6px);
+  background-size:
+    140px 160px,
+    90px 110px;
+  background-position:
+    0 0,
+    40px 60px;
+  opacity: 0.55;
+  animation: st-drift 28s linear infinite;
+}
+.st-dust::after {
+  content: '';
+  inset: 0;
+  background-size:
+    210px 230px,
+    170px 150px;
+  opacity: 0.6;
+  animation-duration: 40s;
+}
+@keyframes st-drift {
+  to {
+    transform: translateY(33%);
+    background-position:
+      30px -320px,
+      70px -220px;
+  }
+}
+.st-zoom {
+  animation: st-zoom 16s ease-out both;
+}
+@keyframes st-zoom {
+  from {
+    transform: scale(1.14);
+  }
+}
+
+/* ---------- Reveal on scroll ---------- */
+.st-reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 1s ease,
+    transform 1.1s cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+.st-reveal[data-in] {
+  opacity: 1;
+  transform: none;
+}
+
+/* ---------- Unrolling scroll ---------- */
+.st-scroll {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+}
+.st-rod {
+  position: relative;
+  z-index: 1;
+  width: calc(100% + 24px);
+  height: 22px;
+  border-radius: 11px;
+  background: linear-gradient(to bottom, var(--st-deep), var(--ov-zari) 30%, var(--st-bright) 48%, var(--ov-zari) 66%, var(--st-deep));
+  box-shadow: 0 6px 12px -4px rgb(0 0 0 / 0.45);
+}
+.st-rod::before,
+.st-rod::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 30px;
+  border-radius: 6px;
+  transform: translateY(-50%);
+  background: linear-gradient(to bottom, var(--st-deep), var(--st-bright) 45%, var(--st-deep));
+}
+.st-rod::before {
+  left: -12px;
+}
+.st-rod::after {
+  right: -12px;
+}
+.st-paper {
+  display: grid;
+  grid-template-rows: 0fr;
+  width: 100%;
+  background:
+    linear-gradient(to bottom, rgb(0 0 0 / 0.28), transparent 18px, transparent calc(100% - 18px), rgb(0 0 0 / 0.28)),
+    var(--st-panel);
+  color: var(--st-panel-text);
+  border-inline: 1px solid color-mix(in srgb, var(--ov-zari) 45%, transparent);
+  transition: grid-template-rows 1.8s cubic-bezier(0.6, 0, 0.2, 1);
+}
+.st-paper > div {
+  overflow: hidden;
+}
+.st-scroll[data-in] .st-paper {
+  grid-template-rows: 1fr;
+}
+
+/* ---------- Save the date ---------- */
+.st-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: clamp(88px, 24vw, 132px);
+  padding: 1rem 0.4rem 1.1rem;
+  background: var(--st-panel);
+  color: var(--st-panel-text);
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ov-zari) 55%, transparent);
+  transition: color 300ms ease;
+}
+.st-tile:nth-child(2) {
+  padding-block: 1.4rem 1.5rem;
+}
+.st-tile[data-landed] {
+  color: var(--ov-zari);
+  animation: ov-tick 420ms cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+.ov-btn-gold[data-ready] {
+  animation: st-glow 1.6s ease-out;
+}
+@keyframes st-glow {
+  from {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ov-zari) 70%, transparent);
+  }
+  to {
+    box-shadow: 0 0 0 22px transparent;
+  }
+}
+
+.st-elephant {
+  width: clamp(62px, 14vw, 120px);
+  flex: none;
+}
+@media (max-width: 520px) {
+  .st-elephant {
+    display: none;
+  }
+}
+
+/* ---------- Story: frames on a picture rail ---------- */
+.st-rail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 7px;
+  background: linear-gradient(to bottom, var(--st-bright), var(--ov-zari) 50%, var(--st-deep));
+  box-shadow: 0 6px 10px -4px rgb(0 0 0 / 0.4);
+}
+.st-frames {
+  display: flex;
+  gap: 2.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 64px max(1.5rem, calc(50vw - 560px)) 44px;
+}
+.st-frames::-webkit-scrollbar {
+  display: none;
+}
+.st-hang {
+  position: relative;
+  flex: 0 0 clamp(220px, 64vw, 290px);
+  scroll-snap-align: center;
+  transform-origin: 50% -46px;
+}
+.st-wall[data-in] .st-hang {
+  animation: st-swing 2.6s cubic-bezier(0.3, 0.6, 0.3, 1) both;
+  animation-delay: calc(var(--i) * 110ms);
+}
+.st-hang:hover {
+  animation: st-sway 1.8s ease-out !important;
+}
+/* Two cords from a nail on the rail down to the frame's corners. */
+.st-hang::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 62%;
+  height: 50px;
+  transform: translateX(-50%);
+  background:
+    linear-gradient(to bottom right, transparent calc(50% - 0.8px), var(--ov-zari) 50%, transparent calc(50% + 0.8px)) left / 50% 100% no-repeat,
+    linear-gradient(to bottom left, transparent calc(50% - 0.8px), var(--ov-zari) 50%, transparent calc(50% + 0.8px)) right / 50% 100% no-repeat;
+}
+.st-hang::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -56px;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 35% 35%, var(--st-bright), var(--st-deep));
+}
+@keyframes st-swing {
+  0% {
+    opacity: 0;
+    transform: rotate(9deg);
+  }
+  25% {
+    opacity: 1;
+    transform: rotate(-5deg);
+  }
+  50% {
+    transform: rotate(2.5deg);
+  }
+  75% {
+    transform: rotate(-1deg);
+  }
+  100% {
+    transform: rotate(0);
+  }
+}
+@keyframes st-sway {
+  25% {
+    transform: rotate(3deg);
+  }
+  55% {
+    transform: rotate(-1.6deg);
+  }
+  80% {
+    transform: rotate(0.6deg);
+  }
+}
+.st-pframe {
+  background: var(--st-mat);
+  padding: 14px 14px 12px;
+  border: 8px solid var(--st-deep);
+  box-shadow:
+    inset 0 0 0 1px rgb(0 0 0 / 0.08),
+    0 22px 34px -14px rgb(0 0 0 / 0.55);
+}
+.st-wframe {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  aspect-ratio: 4 / 5.4;
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--st-ink);
+}
+.st-wframe p:first-child {
+  color: var(--st-deep);
+}
+.st-caption {
+  margin-top: 8px;
+  text-align: center;
+  font-family: var(--font-serif);
+  font-style: italic;
+  color: #6d5c50;
+}
+
+/* ---------- Ceremonies: arch-topped cards ---------- */
+.st-archcard {
+  position: relative;
+  height: 100%;
+  background: var(--ov-kohl);
+  border: 1px solid color-mix(in srgb, var(--ov-zari) 40%, transparent);
+  border-radius: 999px 999px 12px 12px / 230px 230px 12px 12px;
+  box-shadow: 0 26px 40px -24px rgb(0 0 0 / 0.6);
+  transition:
+    opacity 1s ease,
+    transform 700ms cubic-bezier(0.22, 0.8, 0.2, 1),
+    box-shadow 500ms ease;
+}
+.st-archcard::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px solid color-mix(in srgb, var(--ov-zari) 25%, transparent);
+  border-radius: inherit;
+  pointer-events: none;
+}
+.st-archcard[data-in]:hover {
+  transform: translateY(-8px);
+}
+.st-archcard-photo {
+  position: relative;
+  aspect-ratio: 4 / 3.4;
+  margin: 16px 16px 0;
+  overflow: hidden;
+  border-radius: 999px 999px 0 0 / 210px 210px 0 0;
+}
+.st-archcard-photo img {
+  transition: transform 900ms ease;
+}
+.st-archcard:hover .st-archcard-photo img {
+  transform: scale(1.06);
+}
+
+/* ---------- Closing sign ---------- */
+.st-sign {
+  max-width: 560px;
+  padding: 3.2rem 2.5rem 2.8rem;
+  text-align: center;
+  background: color-mix(in srgb, var(--ov-kohl) 84%, transparent);
+  border: 1px solid var(--ov-zari);
+  outline: 1px solid color-mix(in srgb, var(--ov-zari) 45%, transparent);
+  outline-offset: 9px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.st-sign::before {
+  content: '❖';
+  position: absolute;
+  top: -0.85em;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 0.6em;
+  color: var(--ov-zari);
+  font-size: 1.4rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .st-letter,
+  .st-fade,
+  .st-zoom,
+  .st-dust,
+  .st-dust::after,
+  .st-foil,
+  .st-hang,
+  .st-seal::after {
+    animation: none !important;
+    opacity: 1;
+  }
+  .st-door,
+  .st-paper,
+  .st-reveal {
+    transition-duration: 1ms;
+  }
+}
+
+/* ---------- Full-bleed hero: scroll walks into the photo ---------- */
+.st-veil > img {
+  scale: calc(1 + var(--p, 0) * 0.35);
+  transform-origin: 50% 60%;
+}
+.st-veil > .relative {
+  opacity: calc(1 - var(--p, 0) * 1.6);
+  translate: 0 calc(var(--p, 0) * -60px);
+}
+
+/* ---------- Scalloped (cusped) arch, as cut into temple doorways ---------- */
+.st-cusp {
+  overflow: hidden;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 125' preserveAspectRatio='none'%3E%3Cpath d='M0 125 V40 C0 34 4 30 8 30 C8 22 13 17 19 17 C19 9 26 4 33 5 C37 1 43 0 50 0 C57 0 63 1 67 5 C74 4 81 9 81 17 C87 17 92 22 92 30 C96 30 100 34 100 40 V125 Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 125' preserveAspectRatio='none'%3E%3Cpath d='M0 125 V40 C0 34 4 30 8 30 C8 22 13 17 19 17 C19 9 26 4 33 5 C37 1 43 0 50 0 C57 0 63 1 67 5 C74 4 81 9 81 17 C87 17 92 22 92 30 C96 30 100 34 100 40 V125 Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+.st-archcard-cusp {
+  border-radius: 12px;
+  border: 0;
+  background: var(--st-mat);
+  color: var(--st-ink);
+}
+.st-archcard-cusp::before {
+  display: none;
+}
+.st-archcard-cusp .st-archcard-photo {
+  border-radius: 0;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 85' preserveAspectRatio='none'%3E%3Cpath d='M0 85 V30 C0 25 3 22 7 22 C7 16 11 12 16 12 C16 6 22 3 28 4 C32 1 41 0 50 0 C59 0 68 1 72 4 C78 3 84 6 84 12 C89 12 93 16 93 22 C97 22 100 25 100 30 V85 Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 85' preserveAspectRatio='none'%3E%3Cpath d='M0 85 V30 C0 25 3 22 7 22 C7 16 11 12 16 12 C16 6 22 3 28 4 C32 1 41 0 50 0 C59 0 68 1 72 4 C78 3 84 6 84 12 C89 12 93 16 93 22 C97 22 100 25 100 30 V85 Z'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+}
+.st-archcard-cusp .ov-link {
+  color: var(--st-deep);
+}
+
+/* ---------- Polaroids on a table ---------- */
+.st-polaroid {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: clamp(130px, 34%, 230px);
+  padding: 10px 10px 0;
+  background: #fffdf8;
+  color: var(--st-ink);
+  text-align: center;
+  box-shadow: 0 16px 28px -12px rgb(0 0 0 / 0.5);
+  transform: rotate(var(--r));
+  cursor: pointer;
+  transition:
+    transform 700ms cubic-bezier(0.22, 0.8, 0.2, 1),
+    left 700ms cubic-bezier(0.22, 0.8, 0.2, 1),
+    top 700ms cubic-bezier(0.22, 0.8, 0.2, 1),
+    width 700ms cubic-bezier(0.22, 0.8, 0.2, 1),
+    box-shadow 300ms ease;
+}
+.st-table:not([data-in]) .st-polaroid {
+  transform: translateY(-120px) rotate(calc(var(--r) * -2));
+  opacity: 0;
+}
+.st-table[data-in] .st-polaroid {
+  animation: st-drop 900ms cubic-bezier(0.3, 1.3, 0.5, 1) both;
+  animation-delay: calc(var(--i) * 120ms);
+}
+@keyframes st-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-120px) scale(1.15) rotate(calc(var(--r) * -2));
+  }
+}
+.st-polaroid:hover {
+  transform: rotate(0) scale(1.04);
+  box-shadow: 0 26px 40px -14px rgb(0 0 0 / 0.55);
+}
+.st-polaroid[data-up] {
+  left: 50%;
+  top: 50%;
+  width: min(84%, 380px);
+  transform: translate(-50%, -50%) rotate(0);
+  animation: none;
+}
+.st-polaroid-text {
+  display: block;
+  padding: 0.7rem 0.3rem 0.9rem;
+  font-family: var(--ov-script);
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+.st-polaroid[data-up] .st-polaroid-text {
+  font-family: var(--font-serif);
+}
+.st-table-dim {
+  position: absolute;
+  inset: -40px;
+  z-index: 20;
+  background: color-mix(in srgb, var(--ov-smoke) 70%, transparent);
+  backdrop-filter: blur(3px);
+}
+
+/* ---------- Reveal-the-date button breathes until tapped ---------- */
+.st-beckon {
+  animation: st-breathe 2.4s ease-in-out infinite;
+}
+@keyframes st-breathe {
+  50% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--ov-zari) 22%, transparent);
+  }
+}
+
+/* ---------- Story carousel ---------- */
+.st-carousel {
+  display: flex;
+  gap: 2rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 0 max(1.5rem, calc(50vw - 170px));
+}
+.st-carousel::-webkit-scrollbar {
+  display: none;
+}
+.st-chapter {
+  flex: 0 0 min(78vw, 340px);
+  scroll-snap-align: center;
+  text-align: center;
+  opacity: 0.45;
+  transform: scale(0.92);
+  transition:
+    opacity 500ms ease,
+    transform 600ms cubic-bezier(0.22, 0.8, 0.2, 1);
+}
+.st-chapter[aria-current] {
+  opacity: 1;
+  transform: none;
+}
+.st-dot {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 44px;
+}
+.st-dot span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ov-zari) 35%, transparent);
+  transition:
+    width 300ms ease,
+    background-color 300ms ease;
+}
+.st-dot[aria-pressed='true'] span {
+  width: 24px;
+  background: var(--ov-zari);
+}
+
+/* ---------- Ceremony timeline ---------- */
+.st-timeline {
+  position: relative;
+  display: grid;
+  gap: 3rem;
+}
+.st-timeline::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  bottom: 40px;
+  left: 47px;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, var(--ov-zari) 8%, var(--ov-zari) 92%, transparent);
+}
+.st-tl-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+.st-tl-photo {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 2px solid var(--ov-zari);
+  box-shadow:
+    0 0 0 5px var(--st-panel),
+    0 0 0 6px color-mix(in srgb, var(--ov-zari) 45%, transparent);
+}
+@media (min-width: 640px) {
+  .st-timeline::before {
+    left: 63px;
+  }
+  .st-tl-row {
+    grid-template-columns: 128px 1fr;
+    gap: 2rem;
+  }
+  .st-tl-photo {
+    width: 128px;
+    height: 128px;
+  }
+}
+
+/* ---------- Tri-fold opening card ---------- */
+.st-tri {
+  display: grid;
+  grid-template-columns: 1fr min(calc(100vw - 72px), 600px) 1fr;
+  background: var(--st-flap);
+}
+.st-flap {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--ov-zari) 30%, transparent) 1.2px, transparent 1.8px) 0 0 / 22px 22px,
+    var(--st-flap);
+  transition: transform 1.5s cubic-bezier(0.65, 0, 0.25, 1);
+  overflow: hidden;
+}
+.st-flap-l {
+  transform-origin: left center;
+  box-shadow: inset -24px 0 30px -18px rgb(0 0 0 / 0.25);
+}
+.st-flap-r {
+  transform-origin: right center;
+  box-shadow: inset 24px 0 30px -18px rgb(0 0 0 / 0.25);
+}
+.st-flap-half {
+  display: grid;
+  place-items: center;
+  padding: 8%;
+  border: 1px dashed color-mix(in srgb, #5d6b3e 40%, transparent);
+  border-width: 0 0 1px;
+}
+.st-sprig {
+  width: min(70%, 220px);
+  max-height: 80%;
+}
+.st-flap .st-elephant {
+  display: block;
+  width: min(80%, 300px);
+}
+.st-tri-center {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background:
+    repeating-linear-gradient(45deg, color-mix(in srgb, var(--ov-zari) 7%, transparent) 0 1px, transparent 1px 30px),
+    repeating-linear-gradient(-45deg, color-mix(in srgb, var(--ov-zari) 7%, transparent) 0 1px, transparent 1px 30px),
+    var(--ov-kohl);
+  border-inline: 6px double color-mix(in srgb, #5d6b3e 70%, transparent);
+  box-shadow: 0 0 40px rgb(0 0 0 / 0.18);
+  transition:
+    transform 1.2s 300ms cubic-bezier(0.65, 0, 0.25, 1),
+    opacity 900ms 500ms ease;
+}
+.st-tri[data-open] {
+  background: transparent;
+}
+.st-tri[data-open] .st-flap-l {
+  transform: perspective(1600px) rotateY(-100deg);
+}
+.st-tri[data-open] .st-flap-r {
+  transform: perspective(1600px) rotateY(100deg);
+}
+.st-tri[data-open] .st-tri-center {
+  transform: translateY(-104%);
+  opacity: 0;
+}
+/* A tab with pointed ends, like a ribbon label. */
+.st-tab {
+  min-height: 52px;
+  padding: 0 3rem;
+  font-family: var(--font-serif);
+  font-size: 1.35rem;
+  color: var(--st-deep);
+  background: color-mix(in srgb, var(--ov-zari) 40%, #fff);
+  clip-path: polygon(14% 0, 86% 0, 100% 50%, 86% 100%, 14% 100%, 0 50%);
+  cursor: pointer;
+  animation: st-breathe 2.4s ease-in-out infinite;
+}
+.st-tab:hover {
+  background: color-mix(in srgb, var(--ov-zari) 55%, #fff);
+}
+@media (max-width: 640px) {
+  .st-flap .st-elephant,
+  .st-sprig {
+    width: 150%;
+    max-width: none;
+  }
+}
+
+/* ---------- Designs page: a design's opening screen inside its phone frame ---------- */
+/* `.st` brings the site's own colours; its full-screen height is not wanted in the frame. */
+.st-cover {
+  min-height: 0;
+}
+/* The tri-fold's centre and words are sized from the window on a real site; in the frame, from the phone. */
+.st-cover .st-tri {
+  grid-template-columns: 1fr 64% 1fr;
+}
+.st-cover .st-tri-center {
+  padding-inline: 0.75rem;
+}
+.st-cover .st-tri-center .st-script {
+  font-size: 1.3rem;
+}
+.st-cover .st-tri-center .ov-display {
+  font-size: 1.05rem;
+}
+.st-cover .st-tab {
+  min-height: 40px;
+  margin-top: 1.75rem;
+  padding: 0 1.7rem;
+  font-size: 1.05rem;
+}

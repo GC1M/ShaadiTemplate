@@ -10,7 +10,7 @@ import { EVENTS, LANGS, SAMPLES, SYMBOLS } from './i18n'
 import { CUSTOM, keepEdits, samplePages, sectionsPage, stripIds, templateOf } from './templates'
 import { TransliterateInput } from './transliterate'
 import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type CardStyle, type EventType, type SymbolId, type CoverPage, type FontScale, type Format, type Invite, type Lang, type Page, type Photo, type SectionsPage } from './types'
-import { ScaledCard, Segmented } from './ui'
+import { ScaledCard, Segmented, useSplit } from './ui'
 import { track } from './analytics'
 
 type Props = { invite: Invite; setInvite: Dispatch<SetStateAction<Invite | null>>; onBack: () => void }
@@ -28,6 +28,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   const previewRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLElement>(null)
   const asideRef = useRef<HTMLElement>(null)
+  const split = useSplit('card')
   // Phones stack the preview under the form; a floating button jumps to it while it's out of view.
   const [previewSeen, setPreviewSeen] = useState(false)
   useEffect(() => {
@@ -212,7 +213,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       </header>
 
       {/* An ivory workbench on the left, and the card on a velvet display on the right. */}
-      <main className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,min(46vw,640px))]">
+      <main className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_min(var(--pane,min(46vw,640px)),calc(100vw-420px))]" style={split.style}>
         <div className="min-w-0 px-4 pb-16 pt-8 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl space-y-12">
             <section className="space-y-6">
@@ -357,7 +358,8 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           </div>
         </div>
 
-        <aside ref={asideRef} className="velvet min-w-0 scroll-mt-16 text-rose">
+        <aside ref={asideRef} className="velvet relative min-w-0 scroll-mt-16 text-rose">
+          {split.handle}
           <div className="flex flex-col lg:sticky lg:top-[66px] lg:h-[calc(100svh-66px)]">
             <div className="flex items-center justify-between px-5 pb-3 pt-5 sm:px-8">
               <p className="text-sm text-rose/70">

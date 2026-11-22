@@ -1,5 +1,4 @@
 import { Fragment, type CSSProperties, type ReactNode } from 'react'
-import { PAGES } from './site/pages'
 
 // The gallery's header and hero. vite.config.ts also renders this into index.html at build time, so crawlers get
 // the H1 and the page doesn't jump when React mounts. Keep it free of browser-only code.
@@ -130,37 +129,45 @@ function Mandap() {
   )
 }
 
+// The site header. The last link swaps between the two products: the invitation cards page links to wedding
+// websites, and the wedding websites page links back to the cards.
+export function SiteHeader({ swap = ['Wedding websites', '/websites/'] }: { swap?: [string, string] }) {
+  return (
+  <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-5 sm:px-6">
+    <a href="/" aria-label="ShaadiTemplate home">
+      <Wordmark />
+    </a>
+    <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px]">
+      {[['Designs', '/templates/'], ['Guides', '/guides/'], swap].map(([label, href]) => (
+        <a key={href} href={href} className="text-rose/80 underline-offset-[6px] hover:text-rose hover:underline">
+          {label}
+        </a>
+      ))}
+      <span className="flex items-center gap-4">
+        <a href="https://www.instagram.com/shaaditemplate/" target="_blank" rel="me noopener" aria-label="ShaadiTemplate on Instagram" title="Instagram" className="text-zari hover:text-rose">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <rect x="3" y="3" width="18" height="18" rx="5" />
+            <circle cx="12" cy="12" r="4" />
+            <circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none" />
+          </svg>
+        </a>
+        <a href="https://in.pinterest.com/shaaditemplate/" target="_blank" rel="me noopener" aria-label="ShaadiTemplate on Pinterest" title="Pinterest" className="text-zari hover:text-rose">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true">
+            <path d="M12 2a10 10 0 0 0-3.64 19.31c-.09-.78-.17-1.98.03-2.83l1.17-4.96s-.3-.6-.3-1.48c0-1.39.8-2.42 1.81-2.42.85 0 1.26.64 1.26 1.4 0 .86-.55 2.14-.83 3.32-.24 1 .5 1.81 1.48 1.81 1.78 0 3.15-1.88 3.15-4.58 0-2.4-1.72-4.07-4.18-4.07-2.85 0-4.52 2.13-4.52 4.34 0 .86.33 1.78.74 2.28a.3.3 0 0 1 .07.29l-.28 1.13c-.04.18-.15.22-.34.13-1.25-.58-2.03-2.41-2.03-3.88 0-3.16 2.29-6.06 6.62-6.06 3.47 0 6.17 2.48 6.17 5.79 0 3.45-2.18 6.23-5.2 6.23-1.02 0-1.97-.53-2.3-1.15l-.62 2.38c-.23.87-.84 1.96-1.25 2.62A10 10 0 1 0 12 2Z" />
+          </svg>
+        </a>
+      </span>
+    </nav>
+  </header>
+  )
+}
+
 // The intro (mandap drawing, headline) runs on the prerendered copy. When React replaces it, `elapsed` (ms since
 // navigation) shifts every delay back so the animation carries on from the same point instead of restarting.
 export function Hero({ draftName, elapsed = 0 }: { draftName?: string | null; elapsed?: number }) {
   return (
     <div className="velvet text-rose" style={{ '--t0': `${-Math.round(elapsed)}ms` } as CSSProperties}>
-      <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-5 sm:px-6">
-        <a href="#" aria-label="ShaadiTemplate home">
-          <Wordmark />
-        </a>
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px]">
-          {[['Designs', 'templates/'], ['Guides', 'guides/'], ["A couple's wedding website", PAGES[0][1]]].map(([label, href]) => (
-            <a key={href} href={href} className="text-rose/80 underline-offset-[6px] hover:text-rose hover:underline">
-              {label}
-            </a>
-          ))}
-          <span className="flex items-center gap-4">
-            <a href="https://www.instagram.com/shaaditemplate/" target="_blank" rel="me noopener" aria-label="ShaadiTemplate on Instagram" title="Instagram" className="text-zari hover:text-rose">
-              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <rect x="3" y="3" width="18" height="18" rx="5" />
-                <circle cx="12" cy="12" r="4" />
-                <circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none" />
-              </svg>
-            </a>
-            <a href="https://in.pinterest.com/shaaditemplate/" target="_blank" rel="me noopener" aria-label="ShaadiTemplate on Pinterest" title="Pinterest" className="text-zari hover:text-rose">
-              <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true">
-                <path d="M12 2a10 10 0 0 0-3.64 19.31c-.09-.78-.17-1.98.03-2.83l1.17-4.96s-.3-.6-.3-1.48c0-1.39.8-2.42 1.81-2.42.85 0 1.26.64 1.26 1.4 0 .86-.55 2.14-.83 3.32-.24 1 .5 1.81 1.48 1.81 1.78 0 3.15-1.88 3.15-4.58 0-2.4-1.72-4.07-4.18-4.07-2.85 0-4.52 2.13-4.52 4.34 0 .86.33 1.78.74 2.28a.3.3 0 0 1 .07.29l-.28 1.13c-.04.18-.15.22-.34.13-1.25-.58-2.03-2.41-2.03-3.88 0-3.16 2.29-6.06 6.62-6.06 3.47 0 6.17 2.48 6.17 5.79 0 3.45-2.18 6.23-5.2 6.23-1.02 0-1.97-.53-2.3-1.15l-.62 2.38c-.23.87-.84 1.96-1.25 2.62A10 10 0 1 0 12 2Z" />
-              </svg>
-            </a>
-          </span>
-        </nav>
-      </header>
+      <SiteHeader />
 
       {/* A gold mandap draws itself, and the headline stands in its opening. */}
       <section className="hero mandap-hero">

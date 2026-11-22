@@ -15,28 +15,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # Build and deploy are separate jobs: in one job, deploy-pages sometimes looked for the artifact a moment after
+  # the upload finished, before it was listed, and failed with "No artifacts named github-pages were found".
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0 # the IndexNow step diffs against the previous deploy
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
       - run: npm ci
-      # Relative base works on username.github.io/<repo>/ and later on a custom domain root, no config change.
-      - run: npm run build -- --base=./
+      # Base / (the site is at the domain root): the website pages are served from /websites/..., where relative asset paths would break.
+      - run: npm run build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the IndexNow step diffs against the previous deploy
       # IndexNow tells Bing (and Yandex, Seznam, Naver) which pages changed, so they are recrawled within days.
       # Only pages changed since the previous deploy are sent (all of them on a manual run).
       # The key is public by design and is served from public/0f579664dcfd107af412065882ffdf85.txt.

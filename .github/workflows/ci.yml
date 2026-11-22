@@ -31,4 +31,4 @@ jobs:
       # Fails when a name field would pick a dictionary word over the name (Priya -> प्रिय instead of प्रिया).
       - run: node scripts/names-check.mjs
       # Type-checks (tsc -b) and builds exactly as the Pages deploy does.
-      - run: npm run build -- --base=./
+      - run: npm run build
