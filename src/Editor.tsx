@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetSta
 import { Wordmark } from './Hero'
 import { CardPage, PHOTO_FIT, SIZES, photoStyle } from './card/Card'
 import { DESIGNS } from './card/designs'
-import { FOIL_SWATCH, FOILS, FONTS, FRAMES, PALETTES, PATTERNS, SCENES, TOPS, Thumb, styled } from './card/style'
+import { FOIL_SWATCH, FOILS, FONTS, BORDERS, FRAMES, PALETTES, PATTERNS, SACRED, SCENES, TOPS, Thumb, styled } from './card/style'
 import { DATE_FORMATS, formatDate, type DateFormat } from './dates'
 import { EVENTS, LANGS, SAMPLES, SYMBOLS } from './i18n'
 import { CUSTOM, keepEdits, samplePages, sectionsPage, stripIds, templateOf } from './templates'
@@ -90,8 +90,9 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   }
   // Make your own: a new occasion brings that occasion's sample pages; a new symbol re-fills an untouched sample.
   const rebuild = (patch: { event?: EventType; symbol?: SymbolId }) => {
-    // The Golden temple scene is Harmandir Sahib: only on a card that carries Ik Onkar.
-    const style = patch.symbol && patch.symbol !== 'ek-onkar' && invite.style?.scene === 'harmandir' ? { ...invite.style, scene: 'none' } : invite.style
+    // A sacred part (Harmandir Sahib, the rose window's cross) stays only on a card for that faith.
+    const off = (['top', 'scene', 'border'] as const).filter((k) => patch.symbol && SACRED[invite.style?.[k] ?? ''] && SACRED[invite.style![k]!] !== patch.symbol)
+    const style = off.length ? { ...invite.style, ...Object.fromEntries(off.map((k) => [k, 'none'])) } : invite.style
     const untouched = stripIds(invite.pages) === stripIds(samplePages(t, invite.lang))
     if (untouched || (patch.event && confirm('Replace your text with the sample text for this occasion?'))) {
       const pages = samplePages(templateOf({ ...invite, ...patch }), invite.lang)
@@ -648,11 +649,11 @@ function Customise({ invite, page, set, rebuild }: { invite: Invite; page: Page;
   const [more, setMore] = useState(!!rebuild)
   const phone = useNarrow()
   // Chips of pictures: the card as it would look with that one part changed.
-  const chips = (k: 'frame' | 'pattern' | 'top' | 'scene', label: string, opts: Record<string, string>, view: [number, number, number, number]) => (
+  const chips = (k: 'frame' | 'pattern' | 'top' | 'scene' | 'border', label: string, opts: Record<string, string>, view: [number, number, number, number]) => (
     <Control label={label}>
       <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
         {Object.entries(opts)
-          .filter(([id]) => id !== 'harmandir' || t.symbol === 'ek-onkar')
+          .filter(([id]) => !SACRED[id] || t.symbol === SACRED[id])
           .map(([id, l]) => {
             const on = (s[k] ?? 'none') === id
             return (
@@ -732,6 +733,7 @@ function Customise({ invite, page, set, rebuild }: { invite: Invite; page: Page;
       {rebuild && chips('frame', 'Frame', { ...FRAMES, original: 'None' }, [0, 0, 300, 220])}
       {rebuild && chips('top', 'Top decoration', TOPS, [0, 0, 540, 300])}
       {rebuild && chips('scene', 'Bottom scene', SCENES, [0, 620, 540, 340])}
+      {rebuild && chips('border', 'Border art', BORDERS, [0, 0, 540, 960])}
       <details open={more} onToggle={(e) => setMore(e.currentTarget.open)}>
         <summary className="cursor-pointer py-2 text-[14px] text-wine">More options: pattern, foil, lettering</summary>
         {more && <div className="mt-3 space-y-5">

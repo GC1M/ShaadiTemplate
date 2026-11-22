@@ -36,11 +36,24 @@ const LATIN = {
   heritage: { title: '"Marcellus"', heading: '"Cinzel"', body: '"Cormorant Garamond", Georgia, serif', names: '"Pinyon Script"' },
 }
 
-// Parts for Make your own, borrowed from the designs that draw them: top decorations and bottom scenes.
-// Only parts drawn in metal or in colours that sit on every palette: a magenta pallu or a blue lotus pond fights
-// half the grounds, so those stay on their own cards.
-export const TOPS = { none: 'None', genda: 'Marigold garland', kalire: 'Kalire tassels', garbo: 'Copper bunting', korvai: 'Gold brocade', 'gota-patti': 'Gota lace' } as const
-export const SCENES = { none: 'None', genda: 'Brass urli', garbo: 'Diya lamp', choodi: 'Bangles', deco: 'Deco fan', harmandir: 'Golden temple' } as const
+// Parts for Make your own, borrowed from the featured designs that draw them, so anyone can mix and match: every
+// top decoration and bottom scene, and every border that is more than a hairline (the Hairline frame covers those).
+export const TOPS = {
+  none: 'None', genda: 'Marigold garland', kalire: 'Kalire tassels', garbo: 'Copper bunting', korvai: 'Gold brocade', 'gota-patti': 'Gota lace',
+  patola: 'Ikat band', 'pithi-bandhani': 'Bandhani mirrors', 'jain-manuscript': 'Manuscript band', phulkari: 'Phulkari band', 'mehndi-jaal': 'Henna mandala',
+  pichhwai: 'Lotus buds', paithani: 'Pallu stripe', kolam: 'Kolam edge', thipka: 'Rangoli dots', choodi: 'Bangle charm', deco: 'Deco lines', 'rose-window': 'Rose window',
+} as Record<string, string>
+export const SCENES = {
+  none: 'None', genda: 'Brass urli', garbo: 'Diya lamp', choodi: 'Bangles', deco: 'Deco fan', harmandir: 'Golden temple',
+  pichhwai: 'Lotus pond', paithani: 'Peacock pallu', korvai: 'Zari border', patola: 'Ikat diamonds', 'jain-manuscript': 'Elephant frieze', 'pithi-bandhani': 'Bandhani mirrors',
+  phulkari: 'Phulkari bagh', 'pietra-dura': 'Inlay vase', thipka: 'Rangoli lotus', kalire: 'Red chooda', 'gota-patti': 'Gota leaves', kolam: 'Kolam lattice', 'mehndi-jaal': 'Henna mandala',
+} as Record<string, string>
+export const BORDERS = {
+  none: 'None', thanjavur: 'Gilt mandapa', aaina: 'Mirror arch', korvai: 'Zari sides', patola: 'Ikat sides', 'jain-manuscript': 'Lapis sides',
+  genda: 'Marigold strings', 'pietra-dura': 'Marble inlay', paithani: 'Gold butis', phulkari: 'Phulkari dots', kalire: 'Gold dots',
+} as Record<string, string>
+// Parts that show a sacred place or symbol: offered only on a card for that faith.
+export const SACRED: Record<string, string> = { harmandir: 'ek-onkar', 'rose-window': 'christian' }
 
 export const PLAIN: CardStyle = { frame: 'original', pattern: 'none', foil: 'gold', palette: 'original', fonts: 'original' }
 
@@ -101,14 +114,17 @@ function build(d: Design, own?: Partial<CardStyle>): { d: Design; s: CardStyle }
   const sky = [...add.map((l) => (l === VIGNETTE ? l.replace('55%', '68%').replace('.28', dark ? '.3' : '.1') : l)), ground].join(',')
   const fonts = s.fonts === 'original' ? d.fonts : LATIN[s.fonts]
   const framed = s.frame !== 'original'
-  const Overlay = framed || s.pattern !== 'none' ? (({ h }: { h: number }) => <Layers h={h} s={s} dark={dark} own={d.Overlay} ink={colors.title} crest={s.top ? s.top === 'none' : OPEN_TOP.has(d.id)} />) : d.Overlay
+  // Border art borrowed from another design (Make your own), or the design's own.
+  const art = !s.border ? d.Overlay : s.border === 'none' ? undefined : (DESIGNS[s.border]?.Overlay ?? d.Overlay)
+  const Overlay = framed || s.pattern !== 'none' ? (({ h }: { h: number }) => <Layers h={h} s={s} dark={dark} own={art} ink={colors.title} crest={s.top ? s.top === 'none' : OPEN_TOP.has(d.id)} />) : art
   // A frame takes the edge, so text keeps clear of it; the wide bands (zari, temple) take more.
   const x = s.frame === 'zari' || s.frame === 'temple' ? 58 : 50
   const safe: Design['safe'] = framed ? { story: { ...d.safe.story, x: Math.max(d.safe.story.x, x) }, print: { ...d.safe.print, x: Math.max(d.safe.print.x, x * 0.85) } } : { ...d.safe }
   // A borrowed scene or top keeps the words clear of itself, as on the card it comes from.
   const lend = (id: string | undefined) => (id && id !== 'none' ? DESIGNS[id]?.safe : undefined)
-  const [up, down] = [lend(s.top), lend(s.scene)]
+  const [up, down, side] = [lend(s.top), lend(s.scene), lend(s.border)]
   for (const f of ['story', 'print'] as const) {
+    if (side) safe[f] = { ...safe[f], x: Math.max(safe[f].x, side[f].x) }
     if (up) safe[f] = { ...safe[f], top: Math.max(safe[f].top, up[f].top) }
     if (down) safe[f] = { ...safe[f], bottom: Math.max(safe[f].bottom, down[f].bottom) }
   }

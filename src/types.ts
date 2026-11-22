@@ -72,6 +72,7 @@ export interface CardStyle {
   fonts: 'original' | 'regal' | 'romantic' | 'editorial' | 'heritage'
   top?: string // another design whose top decoration (toran, garland, lanterns) to use, or 'none'
   scene?: string // another design whose bottom scene (temple, palace, kalash) to use, or 'none'
+  border?: string // another design whose border art (side vines, mirror panels, painted frame) to use, or 'none'
 }
 
 // x, y: object-position in % (which part of the photo the frame shows); zoom: 1 fills the frame, up to 3.
