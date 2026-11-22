@@ -1,7 +1,7 @@
 // API for couples' wedding websites: publish and edit a site, its photos, guests' RSVPs and blessings, and
 // "report this site". No accounts: publishing returns a secret edit key, and only its SHA-256 is stored.
 //
-//   POST   /api/sites                    {slug, look, content}  -> {slug, key}
+//   POST   /api/sites                    {slug, look, content}  -> {slug, key, look, content}
 //   GET    /api/sites/:slug                                     -> {look, content}
 //   PUT    /api/sites/:slug              (Bearer key) {look, content}
 //   DELETE /api/sites/:slug              (Bearer key)           deletes the site, its photos, RSVPs and blessings
@@ -65,7 +65,7 @@ async function route(req: Request, env: Env): Promise<Response> {
   const [api, kind, slug, sub, id] = url.pathname.split('/').filter(Boolean)
   const m = req.method
   if (api !== 'api') fail(404, 'Not found.')
-  if (kind === 'photo' && m === 'GET' && slug && sub) return photo(env, `${slug}/${sub}`)
+  if (kind === 'photo' && m === 'GET' && slug && sub) return photo(env, slug, sub)
   if (kind !== 'sites') fail(404, 'Not found.')
   if (!slug && m === 'POST') return create(req, env, url.origin)
   if (!slug) fail(404, 'Not found.')
@@ -134,14 +134,18 @@ async function owner(req: Request, env: Env, slug: string) {
 
 /* ---------- abuse checks ---------- */
 
-// Matched anywhere in a slug or word (long enough not to hit real names).
+// Matched anywhere inside a word (long enough not to hit real names).
 const BAD_ANYWHERE = ['fuck', 'cunt', 'bitch', 'nigg', 'whore', 'madarchod', 'maderchod', 'behenchod', 'bhenchod', 'benchod', 'bhosd', 'chutiy', 'chutia', 'gaand', 'lavda', 'lauda', 'porn']
 // Matched only as a whole word.
-const BAD_WORDS = new Set(['shit', 'rape', 'sex', 'sexy', 'nude', 'nudes', 'dick', 'cock', 'pussy', 'slut', 'fag', 'nazi', 'hitler', 'retard', 'gandu', 'lund', 'loda', 'randi', 'harami', 'kamina', 'kutta', 'bsdk', 'mc', 'bc', 'mkc', 'bkl', 'chod', 'escort', 'casino', 'viagra', 'crypto', 'loan'])
+const BAD_WORDS = new Set(['shit', 'rape', 'sex', 'sexy', 'nude', 'nudes', 'cock', 'pussy', 'slut', 'fag', 'nazi', 'hitler', 'retard', 'gandu', 'lund', 'loda', 'randi', 'harami', 'kamina', 'kutta', 'bsdk', 'mc', 'bc', 'mkc', 'bkl', 'chod', 'escort', 'casino', 'viagra', 'crypto', 'loan'])
 const RESERVED = new Set(['api', 'admin', 'edit', 'new', 'www', 'help', 'support', 'about', 'contact', 'login', 'official', 'shaaditemplate', 'shaadi-template', 'test', 'demo', 'sample'])
+// ponytail: word lists only, so "fu-ck" or a misspelling gets through; couples can remove blessings and anyone can
+// report a site. Swap in a moderation API if abuse shows up.
 const isAbusive = (text: string) => {
-  const t = text.toLowerCase()
-  return BAD_ANYWHERE.some((w) => t.replace(/[^a-z]/g, '').includes(w)) || t.split(/[^a-z0-9]+/).some((w) => BAD_WORDS.has(w))
+  const words = text.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean)
+  // Letters spelled out one at a time (f-u-c-k) are read as one word. Whole text is never joined: "who really" is fine.
+  const spelled = words.filter((w) => w.length === 1).join('')
+  return [...words, spelled].some((w) => BAD_ANYWHERE.some((b) => w.includes(b))) || words.some((w) => BAD_WORDS.has(w))
 }
 const slugProblem = (slug: unknown) => {
   if (typeof slug !== 'string' || slug.length < 4 || slug.length > 40 || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return 'Use 4 to 40 lowercase letters, numbers and single hyphens.'
@@ -183,6 +187,7 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
     rsvpBy: str(c.rsvpBy, 40),
     story: arr(c.story, 6, (s) => ({ year: str(s?.year, 12), title: str(s?.title, 80), body: str(s?.body, 400), photo: photo(s?.photo) })),
     events: arr(c.events, 8, (e) => ({
+      id: /^[a-z0-9]{1,8}$/.test(e?.id) ? e.id : undefined,
       name: str(e?.name, 60),
       date: /^\d{4}-\d\d-\d\d$/.test(e?.date) ? e.date : '',
       time: /^\d\d:\d\d$/.test(e?.time) ? e.time : '',
@@ -200,32 +205,32 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
 }
 
 // Saves new photos to R2 and points them at /api/photo/. Returns every photo key the site now uses.
+// ponytail: photo URLs carry the Worker's origin. If the API moves to another host, old sites keep working (the
+// old host still serves them) but an edit would drop photos; accept the old origin in update() then.
 async function storePhotos(env: Env, slug: string, origin: string, photos: Photo[]) {
-  const done = new Map<string, string>()
+  const prefix = `${origin}/api/photo/`
+  // Every new photo is read before any is saved, so one bad photo leaves nothing behind.
+  const fresh = new Map<string, { key: string; type: string; bytes: Uint8Array }>()
   for (const p of photos) {
-    let url = done.get(p.src) ?? (p.src.startsWith('data:') ? '' : p.src)
-    if (!url) {
-      const [, type, b64] = p.src.match(DATA_URL)!
-      let bytes: Uint8Array
-      try {
-        bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0))
-      } catch {
-        return fail(400, 'One of the photos could not be read.')
-      }
-      if (bytes.length > MAX_PHOTO_BYTES) fail(413, 'Each photo must be under 1.5 MB.')
-      const key = `${slug}/${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}.${type === 'jpeg' ? 'jpg' : type}`
-      await env.PHOTOS.put(key, bytes, { httpMetadata: { contentType: `image/${type}` } })
-      url = `${origin}/api/photo/${key}`
-      done.set(p.src, url)
+    if (!p.src.startsWith('data:') || fresh.has(p.src)) continue
+    const [, type, b64] = p.src.match(DATA_URL)!
+    let bytes: Uint8Array
+    try {
+      bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0))
+    } catch {
+      return fail(400, 'One of the photos could not be read.')
     }
-    p.src = p.small = url
+    if (bytes.length > MAX_PHOTO_BYTES) fail(413, 'Each photo must be under 1.5 MB.')
+    fresh.set(p.src, { key: `${slug}/${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}.${type === 'jpeg' ? 'jpg' : type}`, type, bytes })
   }
-  return new Set(photos.map((p) => p.src.slice(`${origin}/api/photo/`.length)))
+  await Promise.all([...fresh.values()].map((f) => env.PHOTOS.put(f.key, f.bytes, { httpMetadata: { contentType: `image/${f.type}` } })))
+  for (const p of photos) {
+    const f = fresh.get(p.src)
+    if (f) p.src = p.small = prefix + f.key
+  }
+  return new Set(photos.map((p) => p.src.slice(prefix.length)))
 }
 
-// ponytail: photo URLs carry the Worker's origin. If the API moves to another host, old sites keep working (the
-// old host still serves them) but an edit would drop photos; widen ownPhoto() to the old origin then.
-const ownPhotoFor = (origin: string, slug: string) => (src: string) => new RegExp(`^${origin.replace(/[.]/g, '\\.')}/api/photo/${slug}/[a-f0-9]{16}\\.(jpg|png|webp)$`).test(src)
 const LOOK = /^[a-z0-9-]{2,30}$/
 
 async function create(req: Request, env: Env, origin: string) {
@@ -233,13 +238,13 @@ async function create(req: Request, env: Env, origin: string) {
   const problem = slugProblem(b?.slug)
   if (problem) fail(400, problem)
   if (!LOOK.test(b.look)) fail(400, 'Pick a design.')
+  if (await env.DB.prepare('SELECT 1 FROM sites WHERE slug = ?').bind(b.slug).first()) fail(409, 'That address is taken. Try another.')
   const ip = await ipOf(req, env)
   // ponytail: 5 new sites a day per IP; a shared office or college IP could hit it. Raise it if couples write in.
   if ((await count(env, 'SELECT COUNT(*) AS n FROM sites WHERE ip = ? AND created > ?', ip, Date.now() - DAY)) >= 5)
     fail(429, 'You have published several sites today. Please try again tomorrow, or edit the one you made.')
-  if (await env.DB.prepare('SELECT 1 FROM sites WHERE slug = ?').bind(b.slug).first()) fail(409, 'That address is taken. Try another.')
   const { content, photos } = clean(b.content, () => false)
-  await storePhotos(env, b.slug, origin, photos)
+  const saved = await storePhotos(env, b.slug, origin, photos)
   const key = hex(crypto.getRandomValues(new Uint8Array(24)).buffer as ArrayBuffer)
   const now = Date.now()
   try {
@@ -247,27 +252,33 @@ async function create(req: Request, env: Env, origin: string) {
       .bind(b.slug, JSON.stringify({ look: b.look, content }), await sha256(key), ip, now, now)
       .run()
   } catch {
-    fail(409, 'That address is taken. Try another.') // lost a race for the same slug
+    // Lost a race for the same slug: take this request's photos back out.
+    if (saved.size) await env.PHOTOS.delete([...saved])
+    fail(409, 'That address is taken. Try another.')
   }
-  return json({ slug: b.slug, key }, 201)
+  // The stored content comes back with the key, so the editor never needs a second request to keep it.
+  return json({ slug: b.slug, key, look: b.look, content }, 201)
 }
 
 async function update(req: Request, env: Env, slug: string, origin: string) {
   await owner(req, env, slug)
   const b = await body(req)
   if (!LOOK.test(b?.look)) fail(400, 'Pick a design.')
-  const { content, photos } = clean(b.content, ownPhotoFor(origin, slug))
+  // A photo is kept only if it is still in this site's folder: an old copy of the site can name ones since deleted.
+  const have = new Set((await env.PHOTOS.list({ prefix: `${slug}/` })).objects.map((o) => o.key))
+  const prefix = `${origin}/api/photo/`
+  const { content, photos } = clean(b.content, (src) => src.startsWith(prefix) && have.has(src.slice(prefix.length)))
   const keep = await storePhotos(env, slug, origin, photos)
   await env.DB.prepare('UPDATE sites SET data = ?, updated = ? WHERE slug = ?').bind(JSON.stringify({ look: b.look, content }), Date.now(), slug).run()
   // Delete photos the site no longer uses.
-  const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
-  const gone = listed.objects.map((o) => o.key).filter((k) => !keep.has(k))
+  const gone = [...have].filter((k) => !keep.has(k))
   if (gone.length) await env.PHOTOS.delete(gone)
   return json({ look: b.look, content })
 }
 
-async function photo(env: Env, key: string) {
-  const obj = await env.PHOTOS.get(key)
+async function photo(env: Env, slug: string, file: string) {
+  await site(env, slug) // a deleted or taken-down site's photos go with it
+  const obj = await env.PHOTOS.get(`${slug}/${file}`)
   if (!obj) return fail(404, 'Not found.')
   return new Response(obj.body, {
     headers: { 'Content-Type': obj.httpMetadata?.contentType ?? 'image/jpeg', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' },

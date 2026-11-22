@@ -7,6 +7,7 @@ import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang
 import { Hero, preview } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
 import { track } from './analytics'
+import { keepKey } from './site/api'
 import Reviews from './Reviews'
 
 // Hash routes: #edit (editor), the wedding website designs (#/websites), each design's sample site
@@ -20,6 +21,14 @@ const SiteEditor = lazy(() => import('./site/SiteEditor'))
 // A couple's published site, /w/<slug> (public/404.html sends it here as #/w/<slug>; the dev server serves it as is).
 if (/^\/w\/[a-z0-9-]+(\/edit)?\/?$/.test(location.pathname))
   history.replaceState(null, '', `/#${location.pathname.replace(/\/$/, '')}${location.hash ? `?k=${location.hash.slice(1)}` : ''}`)
+// The edit key leaves the address here, before analytics starts and reports it (see keepKey).
+function takeKey() {
+  const keyed = location.hash.match(/^#\/w\/([a-z0-9-]+)\/edit\?k=([a-f0-9]+)$/)
+  if (!keyed) return
+  keepKey(keyed[1], keyed[2])
+  history.replaceState(null, '', `#/w/${keyed[1]}/edit`)
+}
+takeKey()
 const isSite = () =>
   location.hash === '#/websites' || location.hash.startsWith('#/ananya-arjun') ? '#/websites' : location.hash.startsWith('#/websites/') || location.hash.startsWith('#/w/') ? location.hash : ''
 const siteView = (hash: string) =>
@@ -44,6 +53,7 @@ export default function App() {
   }, [drafts])
   useEffect(() => {
     const onHash = () => {
+      takeKey()
       setInEditor(isEditor())
       setInSite(isSite())
     }

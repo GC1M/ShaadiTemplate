@@ -923,3 +923,24 @@
     max-width: none;
   }
 }
+
+/* ---------- Designs page: a design's opening screen inside its phone frame ---------- */
+/* The tri-fold's centre and words are sized from the window on a real site; in the frame, from the phone. */
+.st-cover .st-tri {
+  grid-template-columns: 1fr 64% 1fr;
+}
+.st-cover .st-tri-center {
+  padding-inline: 0.75rem;
+}
+.st-cover .st-tri-center .font-deva {
+  font-size: 1.3rem;
+}
+.st-cover .st-tri-center .ov-display {
+  font-size: 1.05rem;
+}
+.st-cover .st-tab {
+  min-height: 40px;
+  margin-top: 1.75rem;
+  padding: 0 1.7rem;
+  font-size: 1.05rem;
+}

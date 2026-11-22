@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type M
 import './organza.css'
 import { DESIGNS, designPath, type Design, type WeddingEvent } from './designs'
 import type { Photo } from './photos'
-import { api } from './api'
+import { api, API } from './api'
 
 // Shared pieces of the wedding websites. On a couple's published site (slug set) RSVPs and blessings go to the
 // sites API (worker/), so every guest sees the blessings. The demo designs and the editor preview keep them in
@@ -121,11 +121,16 @@ export function SeeAlso({ d }: { d: Design }) {
       <a href="#/websites" className="underline underline-offset-4 hover:text-(--ov-zari)">
         See all designs
       </a>
-      .{' '}
-      <a href={`${designPath(d)}/edit`} className="underline underline-offset-4 hover:text-(--ov-zari)">
-        Make your own wedding website with {d.name}
-      </a>
-      , free.
+      .
+      {API && (
+        <>
+          {' '}
+          <a href={`${designPath(d)}/edit`} className="underline underline-offset-4 hover:text-(--ov-zari)">
+            Make your own wedding website with {d.name}
+          </a>
+          , free.
+        </>
+      )}
     </p>
   )
 }

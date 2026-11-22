@@ -17,6 +17,9 @@ declare global {
 // "Privacy & messaging") grants it, GA sends cookieless pings there and everyone else is measured normally.
 const CONSENT_REGIONS = 'AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE IS LI NO GB CH'.split(' ')
 
+// The address as analytics may see it: never with a wedding website's edit key.
+const href = () => location.href.replace(/\?k=[a-f0-9]+/, '')
+
 const load = (src: string) => document.head.appendChild(Object.assign(document.createElement('script'), { async: true, src }))
 
 export function track(name: string, params: Record<string, string | number | boolean> = {}) {
@@ -51,11 +54,11 @@ export function initAnalytics() {
     window.gtag('js', new Date())
     // GA sends the first page view itself (it ignored send_page_view: false and double-counted every load).
     // Hash routes (#edit, #/websites/...) don't count as page changes to GA, so those are sent by hand.
-    window.gtag('config', GA, { page_location: location.href })
+    window.gtag('config', GA, { page_location: href() })
     load(`https://www.googletagmanager.com/gtag/js?id=${GA}`)
     addEventListener('hashchange', () => {
-      window.gtag!('set', { page_location: location.href })
-      track('page_view', { page_location: location.href, page_title: document.title })
+      window.gtag!('set', { page_location: href() })
+      track('page_view', { page_location: href(), page_title: document.title })
     })
   }
   if (CLARITY) {

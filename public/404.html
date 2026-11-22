@@ -6,8 +6,13 @@
 <meta name="robots" content="noindex" />
 <script>
 // Couples' wedding websites live at /w/<slug> (and /w/<slug>/edit#<key>); GitHub Pages has no such file, so hand the
-// path to the app's hash router. The edit key stays in the fragment, which never reaches a server.
-if (/^\/w\/[a-z0-9-]+(\/edit)?\/?$/.test(location.pathname)) location.replace('/#' + location.pathname.replace(/\/$/, '') + (location.hash ? '?k=' + location.hash.slice(1) : ''))
+// path to the app's hash router. The edit key stays in the fragment, which never reaches a server, and comes off
+// this page's address first so analytics.js below cannot report it.
+if (/^\/w\/[a-z0-9-]+(\/edit)?\/?$/.test(location.pathname)) {
+  var key = location.hash.slice(1)
+  history.replaceState(null, '', location.pathname)
+  location.replace('/#' + location.pathname.replace(/\/$/, '') + (key ? '?k=' + key : ''))
+}
 </script>
 <title>Page not found · ShaadiTemplate</title>
 <link rel="stylesheet" href="/legal.css" />

@@ -1,14 +1,14 @@
 import { ArrowLeft, Copy, ExternalLink, Loader2, Mail, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Wordmark } from '../Hero'
-import { api, editLink, liveLink } from './api'
+import { api, editKey, editLink, lean, liveLink } from './api'
 import { LOOKS, lookById, type Content, type Look } from './designs'
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
 
 // The wedding website editor: #/websites/<design>/edit starts a new site from a design, #/w/<slug>/edit?k=<key>
-// edits a published one (the secret link from publishing). The form is on the left, and the live site on the
+// edits a published one (the secret link from publishing; App.tsx keeps the key and takes it off the address). The form is on the left, and the live site on the
 // right in an iframe (#/websites/preview, HostedSite.tsx), so its full-screen sections behave as on a phone.
 // A new site's draft is kept in localStorage until it is published, and after, so this browser can keep editing.
 
@@ -27,17 +27,17 @@ const fresh = (l: Look): Content => ({
   ...l.demo,
   story: l.demo.story.map(({ photo: _, ...s }) => s),
   meet: l.demo.meet?.map(({ photo: _, ...m }) => m),
-  events: l.demo.events.map(({ photo: _, ...e }) => e),
+  events: l.demo.events.map(({ photo: _, ...e }, i) => ({ ...e, id: `e${i}` })),
   photos: { gallery: [] },
 })
 const ascii = (s: string) => s.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-const SUFFIX = Math.random().toString(36).slice(2, 6)
-const suggest = (c: Content['couple']) => `${[ascii(c[0]), ascii(c[1])].filter(Boolean).join('-').slice(0, 30) || 'wedding'}-${SUFFIX}`
+// names-xxxx: the random tail keeps two couples with the same names apart, and stays put while the names are typed.
+const suggest = (c: Content['couple'], tail = Math.random().toString(36).slice(2, 6)) => `${[ascii(c[0]), ascii(c[1])].filter(Boolean).join('-').slice(0, 30) || 'wedding'}-${tail}`
 
 function startDraft(lookId: string): Draft {
   const look = lookById(lookId) ?? LOOKS[0]
   try {
-    const saved = JSON.parse(localStorage.getItem(DRAFT) ?? 'null') as Draft | null
+    const saved = JSON.parse(localStorage.getItem(DRAFT) ?? 'null', (_, v) => (typeof v?.src === 'string' && !v.small ? { ...v, small: v.src } : v)) as Draft | null
     if (saved?.content) return { ...saved, look: look.id }
   } catch {
     /* no draft */
@@ -76,19 +76,43 @@ async function shrink(file: File, alt: string): Promise<Photo> {
   return { src, small: src, alt, pos: 'center' }
 }
 
+// For a draft too big to store: without the photos not yet published, so the words survive a reload.
+const unsent = (k: string, v: any) => (k === 'gallery' ? v.filter((p: Photo) => !p.src.startsWith('data:')) : typeof v?.src === 'string' && v.src.startsWith('data:') ? undefined : v)
+
 export default function SiteEditor() {
-  const m = location.hash.match(/^#\/w\/([a-z0-9-]+)\/edit\?k=([a-f0-9]+)/)
-  const [draft, setDraft] = useState<Draft | null>(() => (m ? null : startDraft(location.hash.split('/')[2])))
-  const [error, setError] = useState('')
+  const linked = location.hash.match(/^#\/w\/([a-z0-9-]+)\/edit/)?.[1] // opened from an edit link
+  const key = linked ? editKey(linked) : ''
+  const [local] = useState(() => (linked ? null : startDraft(location.hash.split('/')[2])))
+  // A published site is read from the server first: this browser's copy may be older than the live one (edited
+  // since from the emailed link), and saving it would undo those edits.
+  const [draft, setDraft] = useState<Draft | null>(local?.key ? null : local)
+  const [error, setError] = useState(linked && !key ? 'This edit link is missing its key. Open the full link from your email.' : '')
   useEffect(() => {
-    if (m) api<SiteData>(`sites/${m[1]}`).then((s) => setDraft({ ...s, slug: m[1], key: m[2] }), (e: Error) => setError(e.message))
+    const slug = linked ?? (local?.key ? local.slug : '')
+    if (!slug || (linked && !key)) return
+    api<SiteData>(`sites/${slug}`).then(
+      (s) => {
+        if (!linked) history.replaceState(null, '', `#/websites/${s.look}/edit`)
+        setDraft({ ...s, slug, key: key || local!.key })
+      },
+      (e: Error & { status?: number }) => {
+        if (linked || e.status === 410) return setError(e.message)
+        if (e.status !== 404) return setDraft(local) // offline: this browser's copy
+        localStorage.removeItem(DRAFT) // deleted since, from the edit link
+        setDraft(startNew(local!.look))
+      },
+    )
   }, [])
   useEffect(() => {
-    if (!draft || m) return
+    if (!draft || linked) return
     try {
-      localStorage.setItem(DRAFT, JSON.stringify(draft))
+      localStorage.setItem(DRAFT, JSON.stringify(draft, lean))
     } catch {
-      /* photos can overflow storage; the words are still in memory */
+      try {
+        localStorage.setItem(DRAFT, JSON.stringify(draft, unsent))
+      } catch {
+        /* storage is off; the draft lasts as long as this page */
+      }
     }
   }, [draft])
   useTitle('Make your wedding website | ShaadiTemplate')
@@ -108,13 +132,33 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
   const up = (f: (c: Content) => Partial<Content>) =>
     setDraft((d) => {
       const patch = f(d.content)
-      return { ...d, content: { ...d.content, ...patch }, slug: !d.key && !d.slugTouched && patch.couple ? suggest(patch.couple) : d.slug }
+      return { ...d, content: { ...d.content, ...patch }, slug: !d.key && !d.slugTouched && patch.couple ? suggest(patch.couple, d.slug.split('-').pop()) : d.slug }
     })
   const pair = (k: 'couple' | 'families' | 'parents', i: number, v: string) => up((c) => ({ [k]: (i ? [c[k][0], v] : [v, c[k][1]]) as [string, string] }))
   const item = <K extends 'events' | 'story'>(k: K, i: number, patch: Partial<Content[K][number]>) => up((c) => ({ [k]: c[k].map((x, j) => (j === i ? { ...x, ...patch } : x)) }))
   const drop = (k: 'events' | 'story', i: number) =>
-    up((c) => ({ [k]: c[k].filter((_, j) => j !== i), ...(k === 'events' && c.mainEvent !== undefined && { mainEvent: c.mainEvent === i ? undefined : c.mainEvent > i ? c.mainEvent - 1 : c.mainEvent }) }))
+    up((c) => {
+      // The wedding day stays the same event when one before it goes (when not picked, it is the second event).
+      const main = c.mainEvent ?? Math.min(1, c.events.length - 1)
+      return { [k]: c[k].filter((_, j) => j !== i), ...(k === 'events' && { mainEvent: main === i ? undefined : main > i ? main - 1 : main }) }
+    })
   const photo = (k: 'hero' | 'venue') => (p: Photo | undefined) => up((c) => ({ photos: { ...c.photos, [k]: p } }))
+  // A new site's address bar names its design, so a reload keeps the one picked here.
+  const pickLook = (look: string) => {
+    if (location.hash.startsWith('#/websites/')) history.replaceState(null, '', `#/websites/${look}/edit`)
+    setDraft((d) => ({ ...d, look }))
+  }
+  // Back to a blank site: after deleting one, or to make another. From an edit link this leaves for the new-site page.
+  const restart = () => {
+    try {
+      localStorage.removeItem(DRAFT)
+    } catch {
+      /* nothing saved */
+    }
+    const hash = `#/websites/${draft.look}/edit`
+    if (location.hash === hash) setDraft(() => startNew(draft.look))
+    else location.hash = hash
+  }
   const count = photosIn(c).size
   const names = c.couple.filter(Boolean).join(' and ') || 'Your names'
 
@@ -123,6 +167,15 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
   const [justPublished, setJustPublished] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  // Up to the links, once they are on the page (a scroll started before that is cut short as the page grows).
+  useEffect(() => {
+    if (justPublished) scrollTo(0, 0)
+  }, [justPublished])
+  useEffect(() => {
+    if (!saved) return
+    const t = setTimeout(() => setSaved(false), 4000)
+    return () => clearTimeout(t)
+  }, [saved])
 
   const publish = async (e: FormEvent) => {
     e.preventDefault()
@@ -136,12 +189,10 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
         setDraft((d) => ({ ...d, content: stored(d.content, s.content) }))
         setSaved(true)
       } else {
-        const r = await api<{ slug: string; key: string }>('sites', { method: 'POST', body })
-        // Swap the uploaded photos' data URLs for their stored addresses, so the next save doesn't send them again.
-        const s = await api<SiteData>(`sites/${r.slug}`)
-        setDraft((d) => ({ ...d, content: stored(d.content, s.content), key: r.key }))
+        // The reply carries the stored content: uploaded photos now have addresses, so the next save doesn't send them again.
+        const r = await api<SiteData & { key: string }>('sites', { method: 'POST', body })
+        setDraft((d) => ({ ...d, content: stored(d.content, r.content), key: r.key }))
         setJustPublished(true)
-        scrollTo({ top: 0, behavior: 'smooth' })
       }
     } catch (err) {
       setError((err as Error).message)
@@ -193,27 +244,23 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
         </div>
       </header>
 
-      <main className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)]">
+      <main className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,450px)]">
         <form id="site-form" onSubmit={publish} className="min-w-0 px-4 pb-24 pt-8 sm:px-8 lg:px-12">
-          <div className="mx-auto max-w-2xl space-y-12">
+          {/* Nothing can be typed while a save is on its way: the reply replaces the form's content. */}
+          <div className="mx-auto max-w-2xl space-y-12" inert={busy}>
             <section className="space-y-4">
               <h1 className="font-display text-[34px] leading-tight tracking-[-0.015em] sm:text-[42px]">Your wedding website</h1>
               <p className="text-ink/70">Free, on shaaditemplate.com. Fill in your details and publish; you can keep editing after.</p>
               {draft.key && <Live draft={draft} fresh={justPublished} />}
-              {(error || saved) && (
-                <p role="alert" className={`rounded-md px-4 py-3 text-[15px] ${error ? 'bg-maroon/10 text-maroon' : 'bg-zari/15 text-wine'}`}>
-                  {error || 'Saved. Your website is up to date.'}
-                </p>
-              )}
             </section>
 
-            {draft.key && <Replies slug={draft.slug} edit={draft.key} events={c.events.map((e) => e.name)} />}
+            {draft.key && <Replies slug={draft.slug} edit={draft.key} events={c.events} />}
 
             <section className="space-y-5">
               <Step n={1} title="Design and address" />
               <label className="block">
                 <span className="text-[13px] text-ink/65">Design</span>
-                <select value={draft.look} onChange={(e) => setDraft((d) => ({ ...d, look: e.target.value }))} className={`${inputCls} select-chevron pr-10`}>
+                <select value={draft.look} onChange={(e) => pickLook(e.target.value)} className={`${inputCls} select-chevron pr-10`}>
                   {LOOKS.map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.name} ({l.tradition})
@@ -305,7 +352,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                   </label>
                 )}
                 {c.events.length < 8 && (
-                  <button type="button" onClick={() => up((c) => ({ events: [...c.events, { name: '', date: '', time: '19:00', where: '', note: '' }] }))} className={small}>
+                  <button type="button" onClick={() => up((c) => ({ events: [...c.events, { id: Math.random().toString(36).slice(2, 8), name: '', date: '', time: '19:00', where: '', note: '' }] }))} className={small}>
                     <Plus className="size-4" aria-hidden /> Add an event
                   </button>
                 )}
@@ -425,7 +472,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                   <button
                     type="button"
                     className="text-[13px] text-wine underline underline-offset-2 pointer-coarse:min-h-11"
-                    onClick={() => confirm('Start a new website? Keep your edit link: it is the only way back to this one.') && setDraft(() => startNew(draft.look))}
+                    onClick={() => confirm('Start a new website? Keep your edit link: it is the only way back to this one.') && restart()}
                   >
                     Start a new website instead
                   </button>
@@ -436,8 +483,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                       if (!confirm('Delete your website for good? Its photos, replies and blessings go too. This cannot be undone.')) return
                       try {
                         await api(`sites/${draft.slug}`, { method: 'DELETE', key: draft.key })
-                        setDraft(() => startNew(draft.look))
                         alert('Your website has been deleted.')
+                        restart()
                       } catch (err) {
                         setError((err as Error).message)
                       }
@@ -451,6 +498,16 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
           </div>
         </form>
 
+        {/* Fixed to the screen, so it is seen wherever in the long form the button was pressed. */}
+        {(error || saved) && (
+          <p role="alert" className={`fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-center gap-3 rounded-md px-4 py-3 text-[15px] shadow-xl ${error ? 'bg-maroon text-rose' : 'bg-paper text-wine ring-1 ring-zari'}`}>
+            <span className="flex-1">{error || 'Saved. Your website is up to date.'}</span>
+            <button type="button" onClick={() => (setError(''), setSaved(false))} className="underline underline-offset-2 pointer-coarse:min-h-11">
+              Close
+            </button>
+          </p>
+        )}
+
         {/* The live site, in a phone-sized frame on wide screens and full screen behind "Preview" on phones. */}
         <aside className={`${showPreview ? 'fixed inset-0 z-30 flex' : 'hidden'} velvet flex-col lg:sticky lg:top-[64px] lg:z-auto lg:flex lg:h-[calc(100svh-64px)] lg:p-6`}>
           <div className="flex items-center justify-between px-4 py-2 text-rose lg:hidden">
@@ -459,7 +516,10 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
               Back to editing
             </button>
           </div>
-          <iframe ref={frame} src={`${location.pathname}#/websites/preview`} title="Preview of your wedding website" className="h-full w-full flex-1 border-0 bg-[#0e0a0c] lg:rounded-[1.6rem] lg:border-[6px] lg:border-[#120b0e] lg:shadow-2xl" />
+          <iframe ref={frame} src={`${location.pathname}#/websites/preview`} title="Preview of your wedding website" className="min-h-0 w-full flex-1 border-0 bg-[#0e0a0c] lg:mx-auto lg:max-w-[402px] lg:rounded-[1.6rem] lg:border-[6px] lg:border-[#120b0e] lg:shadow-2xl" />
+          <button type="button" onClick={() => frame.current?.contentWindow?.postMessage('preview-replay', location.origin)} className={`${btn} mx-auto my-2 border border-zari/70 text-rose hover:bg-white/10 lg:mb-0 lg:mt-4`}>
+            Replay the opening
+          </button>
         </aside>
       </main>
     </div>
@@ -566,7 +626,8 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
 }
 
 // Guests' replies and blessings, for the couple only (needs the edit key).
-function Replies({ slug, edit, events }: { slug: string; edit: string; events: string[] }) {
+function Replies({ slug, edit, events }: { slug: string; edit: string; events: Content['events'] }) {
+  const eventName = (id: string) => events.find((e, i) => (e.id ?? `e${i}`) === id)?.name || 'an event since removed'
   const [rsvps, setRsvps] = useState<Rsvp[] | null>(null)
   const [blessings, setBlessings] = useState<Blessing[]>([])
   useEffect(() => {
@@ -575,7 +636,7 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: s
   }, [slug, edit])
   if (!rsvps) return null
   // A guest who replies twice counts once: their latest reply.
-  const latest = [...new Map(rsvps.map((r) => [r.name.toLowerCase(), r])).values()]
+  const latest = [...new Map([...rsvps].reverse().map((r) => [r.name.toLowerCase(), r])).values()] // rows come newest first
   const coming = latest.filter((r) => r.events.length)
   const remove = async (id: number) => {
     if (!confirm('Remove this blessing from your site?')) return
@@ -592,7 +653,7 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: s
           <ul className="divide-y divide-wine/10">
             {latest.map((r) => (
               <li key={r.id} className="py-3 text-[15px]">
-                <span className="font-medium">{r.name}</span> · {r.events.length ? `${r.party} for ${r.events.map((id) => events[Number(id.slice(1))] ?? id).join(', ')}` : "can't come"}
+                <span className="font-medium">{r.name}</span> · {r.events.length ? `${r.party} for ${r.events.map(eventName).join(', ')}` : "can't come"}
                 {r.note && <span className="block text-ink/65">{r.note}</span>}
               </li>
             ))}

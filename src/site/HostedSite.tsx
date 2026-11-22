@@ -23,13 +23,18 @@ function Message({ title, children }: { title: string; children: React.ReactNode
 
 function Preview() {
   const [data, setData] = useState<SiteData | null>(null)
+  const [run, setRun] = useState(0) // "Replay the opening" in the editor starts the site again from its gate
   useEffect(() => {
-    const on = (e: MessageEvent) => e.origin === location.origin && e.data?.content && setData(e.data)
+    const on = (e: MessageEvent) => {
+      if (e.origin !== location.origin) return
+      if (e.data === 'preview-replay') (scrollTo(0, 0), setRun((n) => n + 1))
+      else if (e.data?.content) setData(e.data)
+    }
     addEventListener('message', on)
     parent.postMessage('preview-ready', location.origin)
     return () => removeEventListener('message', on)
   }, [])
-  return data ? <Site d={draw(data)} mode="preview" /> : <div className="min-h-svh bg-[#0e0a0c]" />
+  return data ? <Site key={run} d={draw(data)} mode="preview" /> : <div className="min-h-svh bg-[#0e0a0c]" />
 }
 
 function Hosted({ slug }: { slug: string }) {

@@ -36,7 +36,8 @@ export type Look = {
 }
 
 // date is YYYY-MM-DD and time HH:MM, both in IST. where: the time and place in words ("7 pm, in the lawns").
-export type SiteEvent = { name: string; date: string; time: string; where: string; note: string; photo?: Photo }
+// id: a short stable name, so replies still point at the right event after others are added or removed.
+export type SiteEvent = { id?: string; name: string; date: string; time: string; where: string; note: string; photo?: Photo }
 // Any photo left out falls back to the look's demo photo in the same place.
 export type Content = {
   couple: [string, string]
@@ -443,9 +444,9 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
     events: c.events.map((e, i) => {
       const date = /^\d{4}-\d\d-\d\d$/.test(e.date) ? e.date : today
       const time = /^\d\d:\d\d$/.test(e.time) ? e.time : '10:00'
-      return { id: `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: e.where || clock(time), note: e.note, photo: e.photo ?? at(demo.events, i).photo! }
+      return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: e.where || clock(time), note: e.note, photo: e.photo ?? at(demo.events, i).photo! }
     }),
-    mainEvent: c.mainEvent === undefined ? undefined : `e${c.mainEvent}`,
+    mainEvent: c.mainEvent === undefined ? undefined : (c.events[c.mainEvent]?.id ?? `e${c.mainEvent}`),
     hero: c.photos.hero ?? demo.photos.hero!,
     venuePhoto: c.photos.venue ?? demo.photos.venue!,
     rsvpPhoto: c.photos.rsvp ?? demo.photos.rsvp!,

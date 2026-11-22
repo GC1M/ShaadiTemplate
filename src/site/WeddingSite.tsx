@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Emblem } from '../card/motifs'
 import { designByHash, designPath, DESIGNS, mainOf, type Design } from './designs'
-import { api } from './api'
+import { api, API } from './api'
 import { Backdrop, Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion, useLenis, useTitle } from './shared'
 import './organza.css'
 import './site.css'
@@ -43,10 +43,10 @@ function Reveal({ children, className = '', delay = 0 }: { children: ReactNode; 
 
 /* ---------- Gate: two carved doors with a wax seal; tapping opens them onto the hero ---------- */
 
-function Gate({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => void }) {
+export function Gate({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => void }) {
   const [gone, setGone] = useState(open)
   useEffect(() => {
-    if (!open) return
+    if (!open) return setGone(false) // the designs page closes it again
     const t = setTimeout(() => setGone(true), 1900)
     return () => clearTimeout(t)
   }, [open])
@@ -340,7 +340,7 @@ function SaveTheDate({ d }: { d: Design }) {
       if (n > 24) clearInterval(t)
     }, 70)
     return () => clearInterval(t)
-  }, [go]) // `final` is derived from the design, which never changes while mounted
+  }, [go]) // `final` is derived from the date, and a new date remounts this (its key)
   const landed = shown.every((v, i) => v === final[i])
   return (
     <section className="px-6 py-[14svh] text-center">
@@ -744,7 +744,7 @@ function Report({ slug }: { slug: string }) {
 
 export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | 'preview'; slug?: string }) {
   useLenis()
-  const [open, setOpen] = useState(mode === 'preview')
+  const [open, setOpen] = useState(false)
   useEffect(() => {
     document.documentElement.style.overflow = open ? '' : 'hidden'
     return () => void (document.documentElement.style.overflow = '')
@@ -760,8 +760,8 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
 
       <nav aria-label="Sections" className="st-nav" data-show={open || undefined}>
         {mode === 'demo' ? (
-          <a href="#/websites" className="st-back">
-            ← All designs
+          <a href="#/websites" className="st-back min-w-11" aria-label="All designs">
+            ←<span className="ml-1.5 hidden sm:inline">All designs</span>
           </a>
         ) : (
           <span className="st-back ov-display">{d.couple.join(' & ')}</span>
@@ -780,9 +780,11 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
         </div>
         {mode === 'demo' && (
           <div className="flex items-center gap-2">
-            <a href={`${designPath(d)}/edit`} className="st-use">
-              Make yours free
-            </a>
+            {API && (
+              <a href={`${designPath(d)}/edit`} className="st-use">
+                Make yours free
+              </a>
+            )}
             <PageSwitch d={d} />
           </div>
         )}
@@ -804,7 +806,7 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
         </div>
       </section>
 
-      <SaveTheDate d={d} />
+      <SaveTheDate key={mainOf(d).start} d={d} />
 
       <Meet d={d} />
 

@@ -31,6 +31,11 @@ assert.equal((await call('POST', '/api/sites', { slug: 'admin', look: 'rajwada',
 const made = await call('POST', '/api/sites', { slug, look: 'rajwada', content })
 assert.equal(made.status, 201, JSON.stringify(made.data))
 const { key } = made.data
+assert.match(made.data.content.photos.hero.src, /\/api\/photo\//) // the stored content comes back with the key
+// A bad word is only matched inside one word: Durga and Andrew may marry (durGA-ANDrew).
+const durga = await call('POST', '/api/sites', { slug: `durga-andrew-${slug.slice(-6)}`, look: 'rajwada', content: { ...content, story: [], photos: { gallery: [] } } })
+assert.equal(durga.status, 201, JSON.stringify(durga.data))
+assert.equal((await call('DELETE', `/api/sites/durga-andrew-${slug.slice(-6)}`, undefined, durga.data.key)).status, 200)
 assert.equal((await call('POST', '/api/sites', { slug, look: 'rajwada', content })).status, 409)
 
 const got = await call('GET', `/api/sites/${slug}`)
@@ -54,6 +59,10 @@ assert.equal(after.data.content.photos.hero.src, hero)
 const noPhotos = { ...edited, story: [], photos: { gallery: [] } }
 assert.equal((await call('PUT', `/api/sites/${slug}`, { look: 'pichola', content: noPhotos }, key)).status, 200)
 assert.equal((await fetch(hero)).status, 404)
+// An old copy of the site that still names the deleted photo saves without it.
+const stale = await call('PUT', `/api/sites/${slug}`, { look: 'pichola', content: edited }, key)
+assert.equal(stale.status, 200)
+assert.equal(stale.data.content.photos.hero, undefined)
 
 // Guests.
 assert.equal((await call('POST', `/api/sites/${slug}/blessings`, { name: 'Meera', text: 'Much love!' })).status, 201)
@@ -66,6 +75,7 @@ const rsvps = await call('GET', `/api/sites/${slug}/rsvps`, undefined, key)
 assert.equal(rsvps.data[0].party, 3)
 assert.equal((await call('DELETE', `/api/sites/${slug}/blessings/${list.data[0].id}`, undefined, key)).status, 200)
 assert.equal((await call('GET', `/api/sites/${slug}/blessings`)).data.length, 0)
+assert.equal((await call('POST', `/api/sites/${slug}/blessings`, { name: 'Asha', text: 'Two people who really deserve each other. May Maa Durga and Ganesh ji bless you.' })).status, 201)
 assert.equal((await call('POST', `/api/sites/${slug}/report`, { reason: 'spam' })).status, 201)
 assert.equal((await call('GET', '/api/sites/no-such-site')).status, 404)
 assert.equal((await call('DELETE', `/api/sites/${slug}`, undefined, 'wrong')).status, 403)
