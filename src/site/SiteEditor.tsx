@@ -6,6 +6,7 @@ import { go, LOOKS, lookById, type Content, type Look } from './designs'
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
+import { Segmented, useSplit } from '../ui'
 
 // The wedding website editor: /websites/<design>/edit starts a new site from a design, /w/<slug>/edit#<key>
 // edits a published one (the secret link from publishing; App.tsx keeps the key and takes it off the address). The form is on the left, and the live site on the
@@ -206,6 +207,16 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
   // Live preview: the iframe asks for the site when it loads, and gets every edit after (a beat later, so typing
   // doesn't re-draw it on every key).
   const frame = useRef<HTMLIFrameElement>(null)
+  const split = useSplit('site')
+  const [view, setView] = useState<'phone' | 'computer'>('phone')
+  const computer = view === 'computer'
+  const stage = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0.3)
+  useEffect(() => {
+    const ro = new ResizeObserver(([e]) => setScale(Math.max(0.1, Math.min(1, (e.contentRect.width - 12) / 1280, (e.contentRect.height - 12) / 800))))
+    ro.observe(stage.current!)
+    return () => ro.disconnect()
+  }, [])
   const latest = useRef<SiteData>(null)
   latest.current = { look: draft.look, content: prep(c) }
   useEffect(() => {
@@ -246,7 +257,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
         </div>
       </header>
 
-      <main className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,450px)]">
+      <main className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_min(var(--pane,450px),calc(100vw-420px))]" style={split.style}>
         <form id="site-form" onSubmit={publish} className="min-w-0 px-4 pb-24 pt-8 sm:px-8 lg:px-12">
           {/* Nothing can be typed while a save is on its way: the reply replaces the form's content. */}
           <div className="mx-auto max-w-2xl space-y-12" inert={busy}>
@@ -512,18 +523,46 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
           </p>
         )}
 
-        {/* The live site, in a phone-sized frame on wide screens and full screen behind "Preview" on phones. */}
+        {/* The live site: in a phone-sized frame, or as a computer shows it (a 1280 by 800 window, scaled to fit).
+            On wide screens it sits beside the form; on phones it opens full screen behind "Preview". */}
         <aside className={`${showPreview ? 'fixed inset-0 z-30 flex' : 'hidden'} velvet flex-col lg:sticky lg:top-[64px] lg:z-auto lg:flex lg:h-[calc(100svh-64px)] lg:p-6`}>
+          {split.handle}
           <div className="flex items-center justify-between px-4 py-2 text-rose lg:hidden">
             <span className="text-sm text-rose/75">Preview</span>
             <button type="button" onClick={() => setShowPreview(false)} className={`${btn} border border-zari/70`}>
               Back to editing
             </button>
           </div>
-          <iframe ref={frame} src="/websites/preview/" title="Preview of your wedding website" className="min-h-0 w-full flex-1 border-0 bg-[#0e0a0c] lg:mx-auto lg:max-w-[402px] lg:rounded-[1.6rem] lg:border-[6px] lg:border-[#120b0e] lg:shadow-2xl" />
-          <button type="button" onClick={() => frame.current?.contentWindow?.postMessage('preview-replay', location.origin)} className={`${btn} mx-auto my-2 border border-zari/70 text-rose hover:bg-white/10 lg:mb-0 lg:mt-4`}>
-            Replay the opening
-          </button>
+          <div ref={stage} className="grid min-h-0 w-full flex-1 place-items-center overflow-hidden">
+            <div className={computer ? 'overflow-hidden rounded-lg border-[6px] border-[#120b0e] shadow-2xl' : 'h-full w-full lg:max-w-[402px]'} style={computer ? { width: 1280 * scale + 12, height: 800 * scale + 12 } : undefined}>
+              <iframe
+                ref={frame}
+                src="/websites/preview/"
+                title="Preview of your wedding website"
+                className={`block border-0 bg-[#0e0a0c] ${computer ? 'origin-top-left' : 'h-full w-full lg:rounded-[1.6rem] lg:border-[6px] lg:border-[#120b0e] lg:shadow-2xl'}`}
+                style={computer ? { width: 1280, height: 800, transform: `scale(${scale})` } : undefined}
+              />
+            </div>
+          </div>
+          <div className="mx-auto my-2 flex flex-wrap items-center justify-center gap-3 lg:mb-0 lg:mt-4">
+            <Segmented
+              dark
+              label="Preview as seen on"
+              value={view}
+              onChange={(v) => {
+                setView(v)
+                // A computer's view needs room to be read: give the preview half the window if it has less.
+                if (v === 'computer' && innerWidth >= 1024 && stage.current!.clientWidth < 600) split.set(innerWidth / 2)
+              }}
+              options={[
+                { id: 'phone', label: 'Phone' },
+                { id: 'computer', label: 'Computer' },
+              ]}
+            />
+            <button type="button" onClick={() => frame.current?.contentWindow?.postMessage('preview-replay', location.origin)} className={`${btn} border border-zari/70 text-rose hover:bg-white/10`}>
+              Replay the opening
+            </button>
+          </div>
         </aside>
       </main>
     </div>
