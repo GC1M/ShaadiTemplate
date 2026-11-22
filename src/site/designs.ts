@@ -470,5 +470,11 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
 export const mainOf = (d: Design) => d.events.find((e) => e.id === d.mainEvent) ?? d.events[1] ?? d.events[0]
 export const lookById = (id: string) => LOOKS.find((l) => l.id === id)
 export const DESIGNS = LOOKS.map((l) => toDesign(l))
-export const designPath = (d: { id: string }) => `#/websites/${d.id}`
-export const designByHash = (hash: string) => DESIGNS.find((d) => designPath(d) === hash)
+// Trailing slashes, as GitHub Pages serves each page from <path>/index.html (vite.config.ts writes them).
+export const designPath = (d: { id: string }) => `/websites/${d.id}/`
+export const designByPath = (path: string) => DESIGNS.find((d) => d.id === path.split('/')[2])
+// Go to another page of the app without loading it again (App.tsx listens for popstate).
+export const go = (path: string) => {
+  history.pushState(null, '', path)
+  dispatchEvent(new PopStateEvent('popstate'))
+}
