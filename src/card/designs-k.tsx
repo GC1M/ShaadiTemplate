@@ -95,7 +95,7 @@ const TITLE = '**ચાંદલા વિધિ**'
 const PHONES = '૯૮૭૬૫ ૪૩૨૧૦, ૯૧૨૩૪ ૫૬૭૮૯'
 const chandla = { lang: 'gu', event: 'ring' } as const
 
-// The groom's family letter, the couple and the bride's family letter shared by Bagh Chhatri and Siyaram Toran.
+// The groom's family letter is shared by Bagh Chhatri and Siyaram Toran; the bride's family letter (desai) is Bagh Chhatri's alone.
 const beladiya = 'સહર્ષ ખુશાલી સાથે જણાવવાનું કે\nઅમારા કુળદેવી શ્રી બ્રહ્માણી માતાજીની અસીમ કૃપાથી\nમાખણિયા નિવાસી (હાલ સુરત)\nઅ.સૌ. વર્ષાબેન તથા શ્રી ભરતભાઈ\nગોપાલભાઈ બેલાડીયા ના સુપુત્ર'
 const desai = (date: string, day: string) =>
   `શિવેન્દ્રનગર નિવાસી (હાલ સુરત)\nઅ.સૌ. હંસાબેન તથા શ્રી રમેશભાઈ નરશીભાઈ દેસાઈ ના સુપુત્રી\nસાથે ${day} તા. ${date}\nના શુભ દિવસે સાંજે ૫:૦૦ કલાકે ચાંદલા વિધિ રાખેલ છે.\nતો આ શુભ પ્રસંગે પધારી શોભામાં અભિવૃદ્ધિ કરશોજી.`
