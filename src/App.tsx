@@ -62,12 +62,13 @@ export default function App() {
     if (mine) setDrafts((d) => [mine, ...d.filter((x) => x !== mine)])
     else {
       const fresh = newInvite(t, lang)
-      const last = drafts.find(isEdited)
+      // The most recently opened card that has names to share (printed-page designs have none).
+      const last = drafts.find((d) => isEdited(d) && carryDetails(d, fresh))
       const filled = last && carryDetails(last, fresh)
       const use = filled && confirm(`Start ${t.name} with the names, venue and phone from your ${templateById(last.templateId).name} card?`)
       setDrafts((d) => [use ? filled : fresh, ...d])
     }
-    track('template_open', { template: t.id, lang: t.lang, event: t.event })
+    track('template_open', { template: t.id, lang: mine?.lang ?? lang ?? t.lang, event: t.event })
     location.hash = 'edit'
   }
   useEffect(() => {

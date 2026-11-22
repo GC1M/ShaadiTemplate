@@ -156,11 +156,16 @@ export function loadDrafts(): Invite[] {
 }
 
 export function saveDrafts(drafts: Invite[]) {
-  try {
-    // Untouched sample cards aren't worth keeping, except the one open now.
-    localStorage.setItem(KEY, JSON.stringify(drafts.filter((d, i) => i === 0 || isEdited(d))))
-  } catch {
-    // private mode / quota: editing still works, just not persisted
+  // Untouched sample cards aren't worth keeping, except the one open now.
+  const keep = drafts.filter((d, i) => i === 0 || isEdited(d))
+  // Photos make drafts large: when storage is full, drop the least recently opened cards rather than stop saving
+  // the one being edited.
+  for (let n = keep.length; n > 0; n--) {
+    try {
+      return localStorage.setItem(KEY, JSON.stringify(keep.slice(0, n)))
+    } catch {
+      // quota: try with one card fewer; private mode: editing still works, just not persisted
+    }
   }
 }
 
@@ -174,8 +179,9 @@ export function keepEdits(pages: Page[], oldSample: Page[], newSample: Page[]): 
   const swap = (mine: string, was?: string, now?: string) => (mine === was && now !== undefined ? now : mine)
   return pages.map((p, i) => {
     // Pages can be deleted or moved, so find the sample page this one came from by its title, else by position.
-    const j = oldSample.findIndex((o) => o.kind === p.kind && o.title === p.title)
-    const k = j >= 0 ? j : i
+    const same = (o?: Page) => o?.kind === p.kind && o.title === p.title
+    const j = oldSample.findIndex(same)
+    const k = same(oldSample[i]) || j < 0 ? i : j
     const was = oldSample[k]
     const now = newSample[k]
     if (!was || !now || was.kind !== p.kind || now.kind !== p.kind) return p
