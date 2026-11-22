@@ -6,7 +6,7 @@ import { CardPage, PHOTO_FIT, SIZES, photoStyle } from './card/Card'
 import { DESIGNS } from './card/designs'
 import { DATE_FORMATS, formatDate, type DateFormat } from './dates'
 import { LANGS, SAMPLES } from './i18n'
-import { samplePages, sectionsPage, templateById } from './templates'
+import { keepEdits, samplePages, sectionsPage, stripIds, templateById } from './templates'
 import { TransliterateInput } from './transliterate'
 import { LANG_IDS, type CoverPage, type FontScale, type Format, type Invite, type Lang, type Page, type Photo, type SectionsPage } from './types'
 import { ScaledCard, Segmented } from './ui'
@@ -15,7 +15,6 @@ import { track } from './analytics'
 type Props = { invite: Invite; setInvite: Dispatch<SetStateAction<Invite | null>>; onBack: () => void }
 
 const inputCls = 'mt-1.5 w-full rounded-md border border-wine/20 bg-paper px-3.5 py-2.5 text-base outline-none transition-colors hover:border-wine/40 focus:border-wine focus:ring-2 focus:ring-zari/40'
-const stripIds = (pages: Page[]) => JSON.stringify(pages.map(({ id: _id, ...rest }) => rest))
 
 export default function Editor({ invite, setInvite, onBack }: Props) {
   const t = templateById(invite.templateId)
@@ -81,13 +80,12 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   const editCover = (patch: Partial<CoverPage>) => editPage((p) => ({ ...(p as CoverPage), ...patch }))
   const editSections = (fn: (p: SectionsPage) => SectionsPage) => editPage((p) => fn(p as SectionsPage))
 
+  // Swap the sample wording into the new language and keep everything the family typed (names, venue, phone).
   const changeLang = (lang: Lang) => {
-    const untouched = stripIds(invite.pages) === stripIds(samplePages(t, invite.lang))
-    if (untouched || confirm(`Replace your text with the ${LANGS[lang].name} sample text? Choose Cancel to keep your text and only switch fonts and typing.`)) {
-      const pages = samplePages(t, lang)
-      set({ lang, pages })
-      setCurrent(pages[0].id)
-    } else set({ lang })
+    const pages = keepEdits(invite.pages, samplePages(t, invite.lang), samplePages(t, lang))
+    const kept = stripIds(pages) !== stripIds(samplePages(t, lang))
+    set({ lang, pages })
+    if (kept) setToast(`Switched the wording to ${LANGS[lang].name}. Your names and details are kept as you typed them.`)
   }
   const reset = () => {
     if (!confirm('Replace every page with the sample text?')) return

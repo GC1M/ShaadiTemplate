@@ -199,17 +199,17 @@ export function SeeAlso() {
   return (
     <p className="mt-8">
       A sample wedding website made with ShaadiTemplate. The couple and their story are fictional. Other versions:{' '}
-      {others.map(([label, href]) => (
+      {others.map(([label, href], i) => (
         <span key={href}>
           <a href={href} className="underline underline-offset-4 hover:text-(--ov-zari)">
             {label}
           </a>
-          ,{' '}
+          {i < others.length - 1 ? ', ' : '. '}
         </span>
       ))}
-      or{' '}
-      <a href="#" className="underline underline-offset-4 hover:text-(--ov-zari)">
-        make your own
+      Wedding websites like this are coming soon; for now,{' '}
+      <a href="#templates" className="underline underline-offset-4 hover:text-(--ov-zari)">
+        make your invitation card
       </a>
       .
     </p>

@@ -138,21 +138,87 @@ export function newInvite(t: Template, lang: Lang = t.lang): Invite {
   return { version: 2, templateId: t.id, lang, format: 'story', scale: 'm', pages: samplePages(t, lang) }
 }
 
-const KEY = 'shaadidraft:invite:v2'
+// One draft per design, the one being edited first, so a family can make the haldi, mehendi and wedding cards side by side.
+const KEY = 'shaadidraft:drafts:v1'
+const OLD_KEY = 'shaadidraft:invite:v2' // the single draft kept before drafts were per design
 
-export function loadInvite(): Invite | null {
+export function loadDrafts(): Invite[] {
   try {
-    const v = JSON.parse(localStorage.getItem(KEY) ?? 'null')
-    return v?.version === 2 ? { ...v, templateId: liveId(v.templateId) } : null
+    const v = JSON.parse(localStorage.getItem(KEY) ?? 'null') ?? [JSON.parse(localStorage.getItem(OLD_KEY) ?? 'null')]
+    const seen = new Set<string>()
+    return (v as (Invite | null)[])
+      .filter((i): i is Invite => i?.version === 2)
+      .map((i) => ({ ...i, templateId: liveId(i.templateId) }))
+      .filter((i) => !seen.has(i.templateId) && !!seen.add(i.templateId)) // two retired designs can map to one live card
   } catch {
-    return null // corrupt or unavailable storage: start fresh
+    return [] // corrupt or unavailable storage: start fresh
   }
 }
 
-export function saveInvite(i: Invite) {
+export function saveDrafts(drafts: Invite[]) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(i))
+    // Untouched sample cards aren't worth keeping, except the one open now.
+    localStorage.setItem(KEY, JSON.stringify(drafts.filter((d, i) => i === 0 || isEdited(d))))
   } catch {
     // private mode / quota: editing still works, just not persisted
   }
+}
+
+// Page ids are random, so they're ignored when comparing text.
+export const stripIds = (x: unknown) => JSON.stringify(x, (k, v) => (k === 'id' ? undefined : v))
+export const isEdited = (i: Invite) => stripIds(i) !== stripIds(newInvite(templateById(i.templateId), i.lang))
+
+// The text the family typed, kept field by field: anything still equal to the old sample is swapped for the new
+// sample, anything they changed (names, venue, phone) stays. Used when a card changes language.
+export function keepEdits(pages: Page[], oldSample: Page[], newSample: Page[]): Page[] {
+  const swap = (mine: string, was?: string, now?: string) => (mine === was && now !== undefined ? now : mine)
+  return pages.map((p, i) => {
+    // Pages can be deleted or moved, so find the sample page this one came from by its title, else by position.
+    const j = oldSample.findIndex((o) => o.kind === p.kind && o.title === p.title)
+    const k = j >= 0 ? j : i
+    const was = oldSample[k]
+    const now = newSample[k]
+    if (!was || !now || was.kind !== p.kind || now.kind !== p.kind) return p
+    if (p.kind === 'cover') {
+      const w = was as CoverPage
+      const n = now as CoverPage
+      const out = { ...p }
+      for (const f of ['invocation', 'shlok', 'title', 'hostLine', 'joiner', 'date', 'time', 'venue', 'address', 'rsvpTitle', 'rsvp'] as const) out[f] = swap(p[f], w[f], n[f])
+      for (const who of ['bride', 'groom'] as const)
+        out[who] = { name: swap(p[who].name, w[who].name, n[who].name), parents: swap(p[who].parents, w[who].parents, n[who].parents) }
+      return out
+    }
+    const w = was as SectionsPage
+    const n = now as SectionsPage
+    return {
+      ...p,
+      title: swap(p.title, w.title, n.title),
+      sections: p.sections.map((x, s) => ({ ...x, heading: swap(x.heading, w.sections[s]?.heading, n.sections[s]?.heading), body: swap(x.body, w.sections[s]?.body, n.sections[s]?.body) })),
+    }
+  })
+}
+
+// Names, parents, venue and phone the family typed on one card's cover, copied onto another design's cover, so the
+// next card of the set starts filled in. Null when there's nothing to carry (designs with their own printed pages
+// have no shared fields).
+export function carryDetails(from: Invite, to: Invite): Invite | null {
+  const was = samplePages(templateById(from.templateId), from.lang)[0]
+  const mine = from.pages.find((p) => p.kind === 'cover')
+  const [cover, ...rest] = to.pages
+  if (was?.kind !== 'cover' || !mine || mine.kind !== 'cover' || cover?.kind !== 'cover') return null
+  const out = { ...cover, bride: { ...cover.bride }, groom: { ...cover.groom } }
+  let carried = false
+  const take = (mineV: string, wasV: string, set: (v: string) => void, slot: string) => {
+    // Only what was typed, and only into a slot this design shows (a haldi card has no parents' line).
+    if (mineV !== wasV && mineV.trim() && slot) {
+      set(mineV)
+      carried = true
+    }
+  }
+  for (const who of ['bride', 'groom'] as const) {
+    take(mine[who].name, was[who].name, (v) => (out[who].name = v), cover[who].name)
+    take(mine[who].parents, was[who].parents, (v) => (out[who].parents = v), cover[who].parents)
+  }
+  for (const f of ['venue', 'address', 'rsvp'] as const) take(mine[f], was[f], (v) => (out[f] = v), cover[f])
+  return carried ? { ...to, pages: [out, ...rest] } : null
 }
