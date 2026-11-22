@@ -22,7 +22,8 @@ PUBLIC = ROOT / 'public'
 SITE = 'https://shaaditemplate.com'
 AUTHOR = 'Ashok Lalakiya'
 # Every page names the publisher in full, so the reference resolves inside each page's own graph.
-ORG = {'@type': 'Organization', '@id': f'{SITE}/#org', 'name': 'ShaadiTemplate', 'url': f'{SITE}/', 'logo': f'{SITE}/icon-512.png'}
+ORG = {'@type': 'Organization', '@id': f'{SITE}/#org', 'name': 'ShaadiTemplate', 'url': f'{SITE}/', 'logo': f'{SITE}/icon-512.png',
+       'sameAs': ['https://www.instagram.com/shaaditemplate/', 'https://in.pinterest.com/shaaditemplate/']}
 HOME_CARDS = ['harmandir-gold-leaf', 'gota-patti', 'korvai-silk']  # featured designs for the homepage's structured data
 FONTS = ROOT / 'node_modules/@fontsource'
 WINE, WINE_DEEP, ZARI, ROSE = (74, 14, 28), (44, 7, 16), (201, 164, 92), (247, 237, 234)

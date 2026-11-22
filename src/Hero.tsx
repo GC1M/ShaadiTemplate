@@ -145,6 +145,20 @@ export function Hero({ draftName, elapsed = 0 }: { draftName?: string | null; el
               {label}
             </a>
           ))}
+          <span className="flex items-center gap-4">
+            <a href="https://www.instagram.com/shaaditemplate/" target="_blank" rel="me noopener" aria-label="ShaadiTemplate on Instagram" title="Instagram" className="text-zari hover:text-rose">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="5" />
+                <circle cx="12" cy="12" r="4" />
+                <circle cx="17.3" cy="6.7" r="1" fill="currentColor" stroke="none" />
+              </svg>
+            </a>
+            <a href="https://in.pinterest.com/shaaditemplate/" target="_blank" rel="me noopener" aria-label="ShaadiTemplate on Pinterest" title="Pinterest" className="text-zari hover:text-rose">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden="true">
+                <path d="M12 2a10 10 0 0 0-3.64 19.31c-.09-.78-.17-1.98.03-2.83l1.17-4.96s-.3-.6-.3-1.48c0-1.39.8-2.42 1.81-2.42.85 0 1.26.64 1.26 1.4 0 .86-.55 2.14-.83 3.32-.24 1 .5 1.81 1.48 1.81 1.78 0 3.15-1.88 3.15-4.58 0-2.4-1.72-4.07-4.18-4.07-2.85 0-4.52 2.13-4.52 4.34 0 .86.33 1.78.74 2.28a.3.3 0 0 1 .07.29l-.28 1.13c-.04.18-.15.22-.34.13-1.25-.58-2.03-2.41-2.03-3.88 0-3.16 2.29-6.06 6.62-6.06 3.47 0 6.17 2.48 6.17 5.79 0 3.45-2.18 6.23-5.2 6.23-1.02 0-1.97-.53-2.3-1.15l-.62 2.38c-.23.87-.84 1.96-1.25 2.62A10 10 0 1 0 12 2Z" />
+              </svg>
+            </a>
+          </span>
         </nav>
       </header>
 

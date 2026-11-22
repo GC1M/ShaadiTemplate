@@ -1,0 +1,18 @@
+rules_version = '2';
+// Site reviews (src/Reviews.tsx). Paste into Firebase console > Firestore > Rules.
+// Anyone may post a review and it shows at once. To hide spam, delete it (or set approved to false) in the console.
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /reviews/{id} {
+      allow read: if resource.data.approved == true;
+      allow create: if request.resource.data.keys().hasOnly(['stars', 'name', 'text', 'approved', 'created'])
+        && request.resource.data.stars is int
+        && request.resource.data.stars >= 1 && request.resource.data.stars <= 5
+        && request.resource.data.name is string && request.resource.data.name.size() <= 40
+        && request.resource.data.text is string && request.resource.data.text.size() <= 500
+        && request.resource.data.approved == true
+        && request.resource.data.created is timestamp;
+      allow update, delete: if false;
+    }
+  }
+}

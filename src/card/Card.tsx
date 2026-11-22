@@ -330,27 +330,34 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
   // Painted templates: each page has its own artwork and its own text band, scaled from story px.
   const own = base0.pages?.[Math.max(0, invite.pages.indexOf(page)) % base0.pages.length]
   // In another language a page with painted words uses its plain artwork, and its title is typed instead.
-  const art = own?.plain && invite.lang !== t.lang ? { ...own, ...own.plain, head: false } : own
+  const lang = own?.plain && invite.lang !== t.lang ? { ...own, ...own.plain, head: false } : own
+  // Print with its own 5:7 artwork: shown whole, no crop of the 9:16 page.
+  const art = lang?.print && invite.format === 'print' ? { ...lang, ...lang.print } : lang
   const d = art?.colors ? { ...base0, colors: { ...base0.colors, ...art.colors } } : base0
   // 'lang': the template's own pages type their title in the text, in its language and in every translation (tr).
   const head = art?.head === 'lang' ? invite.lang === t.lang || !!t.tr?.[invite.lang] : !!art?.head
   const k = w / 540
-  const crop = (960 * k - h) / 2
+  const crop = art?.print && invite.format === 'print' ? 0 : (960 * k - h) / 2
   const safe = art ? { top: art.top * k - crop, bottom: art.bottom * k - crop, x: d.safe.story.x * k } : d.safe[invite.format]
   const side = art?.x ? { left: (art.x[0] * w) / 100, right: (art.x[1] * w) / 100 } : { left: safe.x, right: safe.x }
-  const fit = art?.photo && { ...PHOTO_FIT, ...invite.photos?.[base0.pages!.indexOf(art)] }
+  const fit = art?.photo && { ...PHOTO_FIT, ...invite.photos?.[base0.pages!.indexOf(own!)] }
   const photo = art?.photo && { src: fit!.src ?? art.photo.src, b: art.photo.box.map((v) => v * k), fade: art.photo.fade }
   const x = look(d, invite.lang)
   const base = w / 30
   const box = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
+  // lead: the first section gets its own band (a title typed into a painted frame), fitted on its own.
+  const leadBox = useRef<HTMLDivElement>(null)
+  const leadInner = useRef<HTMLDivElement>(null)
+  // In print, only the print art's own lead box applies: the story box is placed for the cropped 9:16 page.
+  const leadDef = art !== lang ? lang?.print?.lead : art?.lead
+  const lead = leadDef && page.kind !== 'cover' && page.sections.length > 1 ? leadDef : undefined
+  const body = lead && page.kind !== 'cover' ? { ...page, sections: page.sections.slice(1) } : page
 
   // Shrink text until it fits the safe area, so long family lists never spill onto the artwork.
   // Designs with type.grow start larger, so sparse pages fill their band as a designer would.
   useLayoutEffect(() => {
-    const fit = () => {
-      const b = box.current
-      const el = inner.current
+    const fitOne = (b: HTMLDivElement | null, el: HTMLDivElement | null) => {
       if (!b || !el) return
       let k = SCALE[invite.scale] * (art?.size ?? d.type?.grow ?? 1)
       el.style.fontSize = `${base * k}px`
@@ -359,6 +366,10 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
         k -= 0.03
         el.style.fontSize = `${base * k}px`
       }
+    }
+    const fit = () => {
+      fitOne(box.current, inner.current)
+      fitOne(leadBox.current, leadInner.current)
     }
     fit()
     // Re-fit whenever a web font finishes loading (faces load lazily on first use), not on every keystroke.
@@ -371,7 +382,7 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
       el?.removeEventListener('load', fit, true)
     }
     // Only pages whose content or look changed re-fit; untouched pages keep their object identity.
-  }, [page, base, invite.scale, invite.lang, invite.templateId, art, invite.style])
+  }, [page, base, invite.scale, invite.lang, invite.templateId, invite.format, own, invite.style])
 
   return (
     <div className="relative overflow-hidden" style={{ width: w, height: h, background: d.sky, color: d.colors.text, fontFamily: x.f.body, letterSpacing: d.tracking, textShadow: d.press, '--names': x.f.names } as CSSProperties}>
@@ -397,6 +408,15 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
           </div>
         </>
       )}
+      {lead && page.kind !== 'cover' && (
+        <div ref={leadBox} className="absolute overflow-hidden" style={{ top: lead.box[1] * k - crop, height: lead.box[3] * k, left: lead.box[0] * k, width: lead.box[2] * k }}>
+          <div ref={leadInner} style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', lineHeight: 1.3, fontSize: base }}>
+            <Art.Provider value={{ orn: d.ornaments ?? {}, lang: invite.lang }}>
+              <Sections x={x} p={{ ...page, sections: page.sections.slice(0, 1) }} head />
+            </Art.Provider>
+          </div>
+        </div>
+      )}
       <div ref={box} className="absolute overflow-hidden" style={{ top: safe.top, bottom: safe.bottom, ...side }}>
         <div
           ref={inner}
@@ -412,7 +432,7 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
             fontSize: base,
           }}
         >
-          <Art.Provider value={{ orn: d.ornaments ?? {}, lang: invite.lang }}>{page.kind === 'cover' ? <Cover x={x} p={page} symbol={t.symbol} head={head} /> : <Sections x={x} p={page} head={head} cols={art?.cols} />}</Art.Provider>
+          <Art.Provider value={{ orn: d.ornaments ?? {}, lang: invite.lang }}>{page.kind === 'cover' ? <Cover x={x} p={page} symbol={t.symbol} head={head} /> : <Sections x={x} p={body as SectionsPage} head={head} cols={art?.cols} />}</Art.Provider>
         </div>
       </div>
     </div>

@@ -20,6 +20,16 @@ async function suggest(word: string, lang: Lang): Promise<string[]> {
 
 const LATIN_TAIL = /[A-Za-z]+$/
 
+// A name typed with a final "a" (Priya, Kavya, Shukla) ends in the long aa sign, but Google often ranks the
+// dictionary word first (प्रिय "dear", काव्य "poetry"). In name fields, move the first long-aa spelling to the top.
+const AA: Partial<Record<Lang, string>> = { hi: '\u093e', mr: '\u093e', gu: '\u0abe', pa: '\u0a3e', ta: '\u0bbe' }
+export function nameFirst(list: string[], latin: string, lang: Lang): string[] {
+  const aa = AA[lang]
+  if (!aa || !/a$/i.test(latin) || !list.length || list[0].endsWith(aa)) return list
+  const i = list.findIndex((o) => o.endsWith(aa))
+  return i < 0 ? list : [list[i], ...list.filter((_, j) => j !== i)]
+}
+
 // Kankotris in these scripts print native numerals (૨૧/૧૧/૨૦૨૭), matching the sample text.
 // Hindi, Punjabi and Tamil samples use 0-9, so those stay as typed.
 const ZERO: Partial<Record<Lang, number>> = { gu: 0x0ae6, mr: 0x0966 }
@@ -35,9 +45,10 @@ type Props = Omit<InputHTMLAttributes<HTMLInputElement & HTMLTextAreaElement>, '
   enabled?: boolean // false = plain input (English card, or user turned phonetic typing off)
   multiline?: boolean
   rows?: number
+  person?: boolean // a person's name: prefer the spelling of a name over a dictionary word
 }
 
-export function TransliterateInput({ value, onChange, lang, enabled = true, multiline, className, ...rest }: Props) {
+export function TransliterateInput({ value, onChange, lang, enabled = true, multiline, person, className, ...rest }: Props) {
   const ref = useRef<HTMLInputElement & HTMLTextAreaElement>(null)
   const [word, setWord] = useState('') // Latin word just before the caret
   // Suggestions remember which word they belong to, so a fast typist never gets the list for "krup" on "krupa".
@@ -51,6 +62,7 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
   // Latest text, updated as soon as we write it so async conversions never act on a stale copy.
   const latest = useRef({ value, onChange })
   latest.current = { value, onChange }
+  const rank = (list: string[], latin: string) => (person ? nameFirst(list, latin, lang) : list)
   const write = (v: string) => {
     latest.current.value = v
     latest.current.onChange(v)
@@ -61,7 +73,7 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
     let stale = false
     const t = setTimeout(() => {
       suggest(word, lang)
-        .then((list) => !stale && (setSugg({ word, list }), setActive(0)))
+        .then((list) => !stale && (setSugg({ word, list: rank(list, word) }), setActive(0)))
         .catch(() => {}) // offline: the Latin text simply stays
     }, 120)
     return () => {
@@ -88,7 +100,8 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
   const convertLater = (start: number, latin: string) => {
     setConverting((n) => n + 1)
     suggest(latin, lang)
-      .then((list) => {
+      .then((found) => {
+        const list = rank(found, latin)
         const top = list[0]
         const v = latest.current.value
         if (!top || v.slice(start, start + latin.length) !== latin) return
@@ -199,7 +212,7 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
                   e.preventDefault() // keep focus in the field
                   repick(o)
                 }}
-                className={`rounded-md px-3 py-1.5 text-base ${o === alternatives.text ? 'bg-maroon text-white' : 'text-stone-800 hover:bg-stone-100'}`}
+                className={`rounded-md px-3 py-1.5 text-base pointer-coarse:min-h-11 ${o === alternatives.text ? 'bg-maroon text-white' : 'text-stone-800 hover:bg-stone-100'}`}
               >
                 {o}
               </button>
@@ -225,7 +238,7 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
                   e.preventDefault()
                   commit(o)
                 }}
-                className={`rounded-md px-3 py-1.5 text-base ${i === active ? 'bg-maroon text-white' : 'text-stone-800 hover:bg-stone-100'}`}
+                className={`rounded-md px-3 py-1.5 text-base pointer-coarse:min-h-11 ${i === active ? 'bg-maroon text-white' : 'text-stone-800 hover:bg-stone-100'}`}
               >
                 {o}
               </button>

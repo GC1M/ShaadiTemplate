@@ -174,7 +174,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
     }
   }
 
-  const btn = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium disabled:opacity-60'
+  const btn = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium disabled:opacity-60 pointer-coarse:min-h-11'
   const canShare = typeof navigator !== 'undefined' && !!navigator.share
 
   return (
@@ -182,7 +182,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
     <div className="min-h-screen" data-clarity-mask="true">
       <header className="velvet sticky top-0 z-20 text-rose shadow-[0_8px_24px_-12px_rgba(10,0,4,0.6)]">
         <div className="flex items-center gap-x-4 px-4 py-3 sm:px-6">
-          <button onClick={onBack} className="inline-flex shrink-0 items-center gap-1.5 py-2 text-[15px] text-rose/80 hover:text-rose">
+          <button onClick={onBack} className="inline-flex shrink-0 items-center gap-1.5 py-2 text-[15px] pointer-coarse:min-h-11 text-rose/80 hover:text-rose">
             <ArrowLeft className="size-4" aria-hidden /> <span className="hidden sm:inline">All designs</span>
             <span className="sm:hidden">Back</span>
           </button>
@@ -255,7 +255,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
               {!artPages && <Customise invite={invite} page={page} set={set} rebuild={t.id === CUSTOM.id ? rebuild : undefined} />}
               {L !== 'en' && (
                 <label className="flex items-start gap-3 rounded-md bg-wine/[0.04] p-4 text-[15px] text-ink/85 ring-1 ring-wine/10">
-                  <input type="checkbox" checked={phonetic} onChange={(e) => setPhonetic(e.target.checked)} className="mt-1 size-4 accent-wine" />
+                  <input type="checkbox" checked={phonetic} onChange={(e) => setPhonetic(e.target.checked)} className="mt-1 size-4 shrink-0 accent-wine pointer-coarse:size-6 pointer-coarse:mt-0" />
                   <span>
                     Type in English letters and get {LANGS[L].native}. Press space to accept a word, Esc to keep English.
                     <span className="mt-1 block text-[13px] text-ink/55">Each word you type is sent to Google's transliteration service.</span>
@@ -272,7 +272,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                     <button
                       onClick={() => setCurrent(p.id)}
                       aria-current={p.id === page.id}
-                      className={`flex max-w-[13rem] items-center gap-2 rounded-full py-2 pl-2 pr-4 text-sm transition-colors ${p.id === page.id ? 'bg-wine text-rose' : 'bg-paper text-ink/80 ring-1 ring-wine/15 hover:ring-wine/40'}`}
+                      className={`flex max-w-[13rem] items-center gap-2 rounded-full py-2 pl-2 pr-4 text-sm pointer-coarse:min-h-11 transition-colors ${p.id === page.id ? 'bg-wine text-rose' : 'bg-paper text-ink/80 ring-1 ring-wine/15 hover:ring-wine/40'}`}
                     >
                       <span className={`grid size-6 shrink-0 place-items-center rounded-full font-display text-[13px] italic ${p.id === page.id ? 'bg-zari text-wine-deep' : 'bg-wine/[0.07]'}`}>{i + 1}</span>
                       <span className="truncate">{p.title || 'Untitled'}</span>
@@ -295,7 +295,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
               <div className="flex flex-wrap items-center gap-2 text-sm">
                 <span className="mr-1 text-ink/60">Add a page:</span>
                 {PAGE_KINDS.map((k) => (
-                  <button key={k.label} onClick={() => addPage(k.make)} className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-wine ring-1 ring-wine/25 hover:bg-wine/5 hover:ring-wine/50">
+                  <button key={k.label} onClick={() => addPage(k.make)} className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-wine pointer-coarse:min-h-11 ring-1 ring-wine/25 hover:bg-wine/5 hover:ring-wine/50">
                     <Plus className="size-3.5" aria-hidden /> {k.label}
                   </button>
                 ))}
@@ -305,7 +305,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
             <section ref={formRef} className="scroll-mt-24 space-y-5">
               <Step n={3} title={`Words on page ${index + 1}`} />
               <details className="text-[14px] text-ink/65">
-                <summary className="cursor-pointer select-none text-wine hover:underline">Formatting tips</summary>
+                <summary className="cursor-pointer select-none text-wine hover:underline pointer-coarse:py-3">Formatting tips</summary>
                 <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
                   {[
                     ['*word*', 'Accent colour'],
@@ -330,12 +330,12 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                   <div className="min-w-48 flex-1 space-y-2 text-[15px]">
                     <p className="text-ink/85">{ownPhoto ? 'Your photo is on this page.' : 'This page has a photo. Add your own in place of the sample.'}</p>
                     <div className="flex flex-wrap gap-2">
-                      <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-wine px-4 py-2 text-sm text-rose hover:bg-wine-deep focus-within:ring-2 focus-within:ring-zari/60">
+                      <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-wine px-4 py-2 text-sm pointer-coarse:min-h-11 text-rose hover:bg-wine-deep focus-within:ring-2 focus-within:ring-zari/60">
                         <ImagePlus className="size-4" aria-hidden /> {ownPhoto ? 'Change photo' : 'Upload photo'}
                         <input type="file" accept="image/*" className="sr-only" onChange={(e) => (pickPhoto(e.target.files?.[0]), (e.target.value = ''))} />
                       </label>
                       {invite.photos?.[artIndex] && (
-                        <button onClick={resetPhoto} className="rounded-full px-4 py-2 text-sm text-wine ring-1 ring-wine/25 hover:bg-wine/5">
+                        <button onClick={resetPhoto} className="rounded-full px-4 py-2 text-sm pointer-coarse:min-h-11 text-wine ring-1 ring-wine/25 hover:bg-wine/5">
                           {ownPhoto ? 'Use sample photo' : 'Reset'}
                         </button>
                       )}
@@ -349,7 +349,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
               ) : (
                 <SectionsForm p={page} on={editSections} lang={L} phonetic={phonetic} />
               )}
-              <button onClick={reset} className="inline-flex items-center gap-1.5 pt-2 text-sm text-ink/60 hover:text-wine">
+              <button onClick={reset} className="inline-flex items-center gap-1.5 pt-2 text-sm pointer-coarse:min-h-11 text-ink/60 hover:text-wine">
                 <RotateCcw className="size-4" aria-hidden /> Reset every page to the sample text
               </button>
             </section>
@@ -420,7 +420,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
         <button
           type="button"
           onClick={() => asideRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className="zari-button fixed bottom-5 right-4 z-30 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-wine-deep lg:hidden"
+          className="zari-button fixed bottom-5 right-4 z-30 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-wine-deep lg:hidden [body:has(:is(textarea,input:not([type])):focus)_&]:hidden"
         >
           <Eye className="size-4" aria-hidden /> Preview page {index + 1}
         </button>
@@ -443,7 +443,7 @@ function save(file: File) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)
 }
 
-const iconBtn = 'inline-flex size-10 items-center justify-center rounded-full bg-paper text-ink/80 ring-1 ring-wine/15 hover:text-wine hover:ring-wine/40 disabled:opacity-30'
+const iconBtn = 'inline-flex size-10 pointer-coarse:size-11 items-center justify-center rounded-full bg-paper text-ink/80 ring-1 ring-wine/15 hover:text-wine hover:ring-wine/40 disabled:opacity-30'
 
 // The editor is a sequence (settings, pages, words), so its sections carry their step number.
 const Step = ({ n, title }: { n: number; title: string }) => (
@@ -460,13 +460,13 @@ const Control = ({ label, children }: { label: string; children: ReactNode }) =>
   </div>
 )
 
-type FieldProps = { label: string; value: string; onChange: (v: string) => void; lang: Lang; phonetic: boolean; multiline?: boolean; rows?: number }
+type FieldProps = { label: string; value: string; onChange: (v: string) => void; lang: Lang; phonetic: boolean; multiline?: boolean; rows?: number; person?: boolean }
 
-function Field({ label, value, onChange, lang, phonetic, multiline, rows = 3 }: FieldProps) {
+function Field({ label, value, onChange, lang, phonetic, multiline, rows = 3, person }: FieldProps) {
   return (
     <label className="block">
       <span className="text-[13px] text-ink/65">{label}</span>
-      <TransliterateInput lang={lang} enabled={phonetic} value={value} onChange={onChange} multiline={multiline} rows={multiline ? rows : undefined} className={inputCls} />
+      <TransliterateInput lang={lang} enabled={phonetic} person={person} value={value} onChange={onChange} multiline={multiline} rows={multiline ? rows : undefined} className={inputCls} />
     </label>
   )
 }
@@ -507,7 +507,7 @@ function CoverForm({ p, on, lang, phonetic }: { p: CoverPage; on: (patch: Partia
   const person = (who: 'bride' | 'groom', title: string) => (
     <fieldset className="space-y-3">
       <legend className="mb-1 font-display text-xl italic">{title}</legend>
-      <Field label="Name" value={p[who].name} onChange={(name) => on({ [who]: { ...p[who], name } })} lang={lang} phonetic={phonetic} />
+      <Field label="Name" value={p[who].name} onChange={(name) => on({ [who]: { ...p[who], name } })} lang={lang} phonetic={phonetic} person />
       <Field label="Parents (optional)" value={p[who].parents} onChange={(parents) => on({ [who]: { ...p[who], parents } })} lang={lang} phonetic={phonetic} />
     </fieldset>
   )
@@ -562,7 +562,7 @@ function SectionsForm({ p, on, lang, phonetic }: { p: SectionsPage; on: (fn: (p:
       ))}
       <button
         onClick={() => on((q) => ({ ...q, sections: [...q.sections, { heading: '', body: '' }] }))}
-        className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm text-wine ring-1 ring-wine/25 hover:bg-wine/5 hover:ring-wine/50"
+        className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm text-wine pointer-coarse:min-h-11 ring-1 ring-wine/25 hover:bg-wine/5 hover:ring-wine/50"
       >
         <Plus className="size-4" aria-hidden /> Add section
       </button>

@@ -5,6 +5,7 @@ import { designs as batchE } from './designs-e'
 import { designs as batchF } from './designs-f'
 import { designs as batchG } from './designs-g'
 import { designs as batchK } from './designs-k'
+import { designs as batchL } from './designs-l'
 import { designs as batchH } from './designs-h'
 import { designs as batchI } from './designs-i'
 import { designs as batchJ } from './designs-j'
@@ -53,6 +54,10 @@ export interface Design {
     cols?: number
     photo?: { box: [number, number, number, number]; src: string; fade?: boolean }
     plain?: { src: string; top: number }
+    // print: the page's own 5:7 artwork (540x756 px) and text band, used whole in the print shape instead of cropping the 9:16 one.
+    print?: { src: string; top: number; bottom: number; x?: [number, number]; spread?: boolean; lead?: { box: [number, number, number, number] } }
+    // lead: the first section in its own box [x, y, w, h] in story px (a title inside a painted frame), centred and fitted alone.
+    lead?: { box: [number, number, number, number] }
   }[]
   // Text safe area in px, per format (story 540x960, print 450x630).
   safe: { story: Box; print: Box }
@@ -76,6 +81,6 @@ const custom: Design = {
 }
 
 export const DESIGNS: Record<string, Design> = Object.fromEntries(
-  [custom, ...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK].map((d) => [d.id, d]),
+  [custom, ...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK, ...batchL].map((d) => [d.id, d]),
 )
 
