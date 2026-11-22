@@ -10,6 +10,23 @@
     <link rel="canonical" href="https://shaaditemplate.com/" />
     <title>ShaadiTemplate · Free Indian Wedding Invitation Maker</title>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6861028375307408" crossorigin="anonymous"></script>
+    <!-- Every deploy renames the files under /assets/. A page opened before one (or from the browser's ten-minute
+         copy of this file) then asks for a file that is gone and stays blank, so fetch the page afresh and load
+         again. Once a minute at most, so a file that is really missing cannot loop. -->
+    <script>
+      function renew() {
+        try {
+          if (Date.now() - sessionStorage.renewed < 60000) return
+          sessionStorage.renewed = Date.now()
+        } catch {
+          return
+        }
+        // "/" as well: couples' sites (/w/<slug>) reach the app through public/404.html, which sends them to "/".
+        fetch('/', { cache: 'reload' }).finally(() => location.reload())
+      }
+      addEventListener('vite:preloadError', renew)
+      addEventListener('error', (e) => /\/assets\//.test(e.target.src || e.target.href || '') && renew(), true)
+    </script>
       <!-- seo -->
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
