@@ -1,5 +1,4 @@
 import { Fragment, type CSSProperties, type ReactNode } from 'react'
-import { PAGES } from './site/pages'
 
 // The gallery's header and hero. vite.config.ts also renders this into index.html at build time, so crawlers get
 // the H1 and the page doesn't jump when React mounts. Keep it free of browser-only code.
@@ -140,7 +139,7 @@ export function Hero({ draftName, elapsed = 0 }: { draftName?: string | null; el
           <Wordmark />
         </a>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px]">
-          {[['Designs', 'templates/'], ['Guides', 'guides/'], ["A couple's wedding website", PAGES[0][1]]].map(([label, href]) => (
+          {[['Designs', 'templates/'], ['Guides', 'guides/'], ['Wedding websites', '#/websites']].map(([label, href]) => (
             <a key={href} href={href} className="text-rose/80 underline-offset-[6px] hover:text-rose hover:underline">
               {label}
             </a>

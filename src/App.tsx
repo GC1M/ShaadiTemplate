@@ -9,15 +9,12 @@ import { ScaledCard, ZariBorder } from './ui'
 import { track } from './analytics'
 import Reviews from './Reviews'
 
-// Hash routes: #edit (editor), the sample couple website in each version (site/pages.ts: a film, and walks through
-// real 3D scans), else the gallery. Sites load on demand to keep the main bundle small.
+// Hash routes: #edit (editor), the wedding website designs (#/websites) and each design's sample site
+// (site/designs.ts), else the gallery. Sites load on demand to keep the main bundle small.
 const isEditor = () => location.hash === '#edit'
-const Scan = lazy(() => import('./site/journey/Scan'))
-const SITES: Record<string, ReturnType<typeof lazy>> = {
-  '#/ananya-arjun': lazy(() => import('./site/FilmSite')),
-  ...Object.fromEntries(['stepwell', 'courtyard', 'hall', 'salon'].map((k) => [`#/ananya-arjun/${k}`, Scan])),
-}
-const isSite = () => (location.hash in SITES ? location.hash : '')
+const Websites = lazy(() => import('./site/Websites'))
+const WeddingSite = lazy(() => import('./site/WeddingSite'))
+const isSite = () => (location.hash === '#/websites' || location.hash.startsWith('#/ananya-arjun') ? '#/websites' : location.hash.startsWith('#/websites/') ? location.hash : '')
 // Static template pages link to #template/<id> to open that design. Consumed once, so StrictMode's re-run is a no-op.
 let linked = location.hash.startsWith('#template/') ? TEMPLATES.find((t) => t.id === liveId(location.hash.slice(10))) : undefined
 
@@ -81,7 +78,7 @@ export default function App() {
   }, [])
 
   if (inSite) {
-    const Site = SITES[inSite]
+    const Site = inSite === '#/websites' ? Websites : WeddingSite
     return (
       <Suspense fallback={<div className="min-h-svh bg-[#0e0a0c]" />}>
         <Site key={inSite} />

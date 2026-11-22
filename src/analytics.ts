@@ -50,7 +50,7 @@ export function initAnalytics() {
     window.gtag('consent', 'default', { ...denied, region: CONSENT_REGIONS })
     window.gtag('js', new Date())
     // GA sends the first page view itself (it ignored send_page_view: false and double-counted every load).
-    // Hash routes (#edit, #/ananya-arjun/...) don't count as page changes to GA, so those are sent by hand.
+    // Hash routes (#edit, #/websites/...) don't count as page changes to GA, so those are sent by hand.
     window.gtag('config', GA, { page_location: location.href })
     load(`https://www.googletagmanager.com/gtag/js?id=${GA}`)
     addEventListener('hashchange', () => {
