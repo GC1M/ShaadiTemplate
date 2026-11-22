@@ -199,7 +199,7 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
                   e.preventDefault() // keep focus in the field
                   repick(o)
                 }}
-                className={`rounded-md px-3 py-1.5 text-base ${o === alternatives.text ? 'bg-maroon text-white' : 'text-stone-800 hover:bg-stone-100'}`}
+                className={`rounded-md px-3 py-1.5 text-base pointer-coarse:min-h-11 ${o === alternatives.text ? 'bg-maroon text-white' : 'text-stone-800 hover:bg-stone-100'}`}
               >
                 {o}
               </button>
@@ -225,7 +225,7 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
                   e.preventDefault()
                   commit(o)
                 }}
-                className={`rounded-md px-3 py-1.5 text-base ${i === active ? 'bg-maroon text-white' : 'text-stone-800 hover:bg-stone-100'}`}
+                className={`rounded-md px-3 py-1.5 text-base pointer-coarse:min-h-11 ${i === active ? 'bg-maroon text-white' : 'text-stone-800 hover:bg-stone-100'}`}
               >
                 {o}
               </button>
