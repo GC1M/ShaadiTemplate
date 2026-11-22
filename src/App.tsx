@@ -1,8 +1,8 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react'
 import { CardPage, SIZES } from './card/Card'
 import Editor from './Editor'
 import { EVENTS, LANGS, SYMBOLS } from './i18n'
-import { CUSTOM, liveId, loadInvite, newInvite, saveInvite, templateOf, TEMPLATES, type Template } from './templates'
+import { carryDetails, CUSTOM, isEdited, liveId, loadDrafts, newInvite, saveDrafts, templateById, TEMPLATES, type Template } from './templates'
 import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang, type SymbolId } from './types'
 import { Hero, preview } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
@@ -21,13 +21,20 @@ const isSite = () => (location.hash in SITES ? location.hash : '')
 let linked = location.hash.startsWith('#template/') ? [...TEMPLATES, CUSTOM].find((t) => t.id === liveId(location.hash.slice(10))) : undefined
 
 export default function App() {
-  const [invite, setInvite] = useState<Invite | null>(loadInvite)
+  // Every card the family has made, the one being edited first.
+  const [drafts, setDrafts] = useState<Invite[]>(loadDrafts)
+  const invite = drafts[0] ?? null
+  const setInvite = (u: SetStateAction<Invite | null>) =>
+    setDrafts(([cur, ...rest]) => {
+      const next = typeof u === 'function' ? u(cur ?? null) : u
+      return next ? [next, ...rest] : rest
+    })
   const [inEditor, setInEditor] = useState(isEditor)
   const [inSite, setInSite] = useState(isSite)
 
   useEffect(() => {
-    if (invite) saveInvite(invite)
-  }, [invite])
+    saveDrafts(drafts)
+  }, [drafts])
   useEffect(() => {
     const onHash = () => {
       setInEditor(isEditor())
@@ -37,7 +44,10 @@ export default function App() {
     return () => removeEventListener('hashchange', onHash)
   }, [])
   useEffect(() => {
-    scrollTo(0, 0)
+    // A link to #templates from the sample site lands on the designs; anything else starts at the top.
+    const target = location.hash === '#templates' && document.getElementById('templates')
+    if (target) target.scrollIntoView()
+    else scrollTo(0, 0)
   }, [inEditor, inSite])
   // The static guide, FAQ and footer in index.html belong to the gallery only.
   const view = inSite ? 'site' : inEditor && invite ? 'editor' : 'home'
@@ -45,17 +55,20 @@ export default function App() {
     document.documentElement.dataset.view = view
   }, [view])
 
-  const open = (t: Template) => {
-    // Re-opening the template you were editing keeps your text.
-    if (invite?.templateId !== t.id) {
-      const prev = invite && [...TEMPLATES, CUSTOM].find((p) => p.id === invite.templateId) && templateOf(invite)
-      // Page ids are random, so ignore them when checking whether the draft was ever edited.
-      const plain = (i: Invite) => JSON.stringify(i, (k, v) => (k === 'id' ? undefined : v))
-      const edited = prev && plain(invite) !== plain(newInvite(prev, invite.lang))
-      if (edited && !confirm(`Opening ${t.name} will replace your ${prev.name} draft. Continue?`)) return
-      setInvite(newInvite(t))
+  // Opens the family's own copy of a design if they've started one, else a fresh card, in `lang` when the gallery's
+  // language filter is set. A fresh card can start with the names and venue from the card they made last.
+  const open = (t: Template, lang?: Lang) => {
+    const mine = drafts.find((d) => d.templateId === t.id)
+    if (mine) setDrafts((d) => [mine, ...d.filter((x) => x !== mine)])
+    else {
+      const fresh = newInvite(t, lang)
+      // The most recently opened card that has names to share (printed-page designs have none).
+      const last = drafts.find((d) => isEdited(d) && carryDetails(d, fresh))
+      const filled = last && carryDetails(last, fresh)
+      const use = filled && confirm(`Start ${t.name} with the names, venue and phone from your ${templateById(last.templateId).name} card?`)
+      setDrafts((d) => [use ? filled : fresh, ...d])
     }
-    track('template_open', { template: t.id, lang: t.lang, event: t.event })
+    track('template_open', { template: t.id, lang: mine?.lang ?? lang ?? t.lang, event: t.event })
     location.hash = 'edit'
   }
   useEffect(() => {
@@ -75,7 +88,7 @@ export default function App() {
     )
   }
   if (inEditor && invite) return <Editor invite={invite} setInvite={setInvite} onBack={() => (location.hash = '')} />
-  return <Gallery onOpen={open} draft={invite} />
+  return <Gallery onOpen={open} draft={invite} drafts={drafts} />
 }
 
 // The hero and grid show each card's pre-rendered cover (public/templates/previews/<id>.webp), which is far lighter
@@ -113,21 +126,25 @@ function MakeYourOwn({ onOpen }: { onOpen: () => void }) {
 
 const GREETINGS = ['Shubh Vivah', 'शुभ विवाह', 'શુભ લગ્ન', 'ਸ਼ੁਭ ਵਿਆਹ', 'சுப முகூர்த்தம்', 'शुभमंगल सावधान', 'Save the Date']
 
-function Gallery({ onOpen, draft }: { onOpen: (t: Template) => void; draft: Invite | null }) {
+function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang) => void; draft: Invite | null; drafts: Invite[] }) {
   const [lang, setLang] = useState<Lang | 'all'>('all')
   const [symbol, setSymbol] = useState<SymbolId | 'all'>('all')
   const [event, setEvent] = useState<EventType | 'all'>('all')
   // How far the prerendered hero's intro has run, so React's copy picks it up mid-way instead of replaying it.
   const [elapsed] = useState(() => performance.now())
-  const byLangSymbol = TEMPLATES.filter((t) => (lang === 'all' || t.lang === lang) && (symbol === 'all' || t.symbol === symbol || !!t.also?.includes(symbol)))
-  const shown = byLangSymbol.filter((t) => event === 'all' || t.event === event).sort((a, b) => Number(!!b.featured) - Number(!!a.featured))
-  const count = (e: EventType | 'all') => byLangSymbol.filter((t) => e === 'all' || t.event === e).length
+  // Every design can be made in every language, so the language filter picks the card's language instead of hiding designs.
+  const bySymbol = TEMPLATES.filter((t) => symbol === 'all' || t.symbol === symbol || !!t.also?.includes(symbol))
+  const shown = bySymbol.filter((t) => event === 'all' || t.event === event).sort((a, b) => Number(!!b.featured) - Number(!!a.featured))
+  const count = (e: EventType | 'all') => bySymbol.filter((t) => e === 'all' || t.event === e).length
   const filtered = lang !== 'all' || symbol !== 'all' || event !== 'all'
   const clear = () => {
     setLang('all')
     setSymbol('all')
     setEvent('all')
   }
+  // The language a card opens in: the family's own copy's, else the filter's, else the design's sample.
+  const cardLang = (t: Template) => drafts.find((d) => d.templateId === t.id)?.lang ?? (lang === 'all' ? t.lang : lang)
+  const mine = drafts.filter(isEdited)
   const draftName = draft && [...TEMPLATES, CUSTOM].find((t) => t.id === draft.templateId)?.name
   // When a filter changes, bring the top of the grid back into view and fade the new set in.
   const top = useRef<HTMLDivElement>(null)
@@ -189,6 +206,20 @@ function Gallery({ onOpen, draft }: { onOpen: (t: Template) => void; draft: Invi
           </div>
         </div>
 
+        {mine.length > 0 && (
+          <nav aria-label="Your cards" className="mt-8 flex flex-wrap items-center gap-2 text-[15px]">
+            <span className="mr-1 text-ink/60">Your cards:</span>
+            {mine.map((d) => {
+              const t = templateById(d.templateId)
+              return (
+                <button key={t.id} onClick={() => onOpen(t)} className="rounded-full border border-wine/25 bg-paper px-4 py-1.5 text-wine hover:border-wine/60">
+                  {t.name} <span className="text-ink/50">· {EVENTS[t.event]}</span>
+                </button>
+              )
+            })}
+          </nav>
+        )}
+
         {/* The event is the first thing people know, so it leads and stays in reach while scrolling. */}
         <div ref={top} className="mt-8" />
         <div className="sticky top-0 z-20 -mx-4 bg-rose/90 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
@@ -212,7 +243,7 @@ function Gallery({ onOpen, draft }: { onOpen: (t: Template) => void; draft: Invi
         {shown.length === 0 ? (
           <div className="mt-14 rounded-sm border border-dashed border-wine/30 px-6 py-14 text-center">
             <p className="font-display text-2xl">No design matches these filters yet.</p>
-            <p className="mt-2 text-ink/70">Try another language or symbol. Every card can switch language once you open it.</p>
+            <p className="mt-2 text-ink/70">Try another symbol or invitation type.</p>
             <button onClick={clear} className="mt-6 rounded-full bg-wine px-6 py-3 text-[15px] text-rose hover:bg-wine-deep">
               Clear filters
             </button>
@@ -229,7 +260,7 @@ function Gallery({ onOpen, draft }: { onOpen: (t: Template) => void; draft: Invi
                   onClick={(e) => {
                     if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return
                     e.preventDefault()
-                    onOpen(t)
+                    onOpen(t, lang === 'all' ? undefined : lang)
                   }}
                   className="design group flex min-w-0 flex-col text-left"
                 >
@@ -241,7 +272,7 @@ function Gallery({ onOpen, draft }: { onOpen: (t: Template) => void; draft: Invi
                   </div>
                   <h3 className="mt-5 font-display text-[19px] leading-snug">{t.name}</h3>
                   <p className="mt-1 text-sm text-ink/60">
-                    {EVENTS[t.event]}, {LANGS[t.lang].native}
+                    {EVENTS[t.event]}, {LANGS[cardLang(t)].native}
                   </p>
                   <span className="mt-2.5 text-sm font-medium text-wine underline decoration-zari underline-offset-[6px] group-hover:decoration-wine">
                     Customize

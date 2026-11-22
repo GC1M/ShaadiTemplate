@@ -38,6 +38,31 @@ for (const t of tpl.TEMPLATES) {
   }
 }
 
+// Switching language keeps what the family typed and swaps only the sample wording: every template, every language.
+for (const t of tpl.TEMPLATES) {
+  const mine = tpl.samplePages(t, t.lang)
+  const p = mine.find((x) => x.kind === 'cover')
+  if (p) p.bride = { ...p.bride, name: 'TYPED' }
+  else mine[0].sections[0] = { ...mine[0].sections[0], body: 'TYPED' }
+  for (const lang of types.LANG_IDS) {
+    const got = tpl.keepEdits(mine, tpl.samplePages(t, t.lang), tpl.samplePages(t, lang))
+    const want = tpl.samplePages(t, lang)
+    if (p) want[0].bride.name = 'TYPED'
+    else want[0].sections[0].body = 'TYPED'
+    if (tpl.stripIds(got) !== tpl.stripIds(want)) errors.push(`${t.id}: switching to ${lang} doesn't keep typed text and swap the rest`)
+  }
+}
+
+// A new card of the set starts with the names typed on the last one (cover designs only).
+{
+  const [a, b] = tpl.TEMPLATES.filter((t) => !t.pages && t.event !== 'save-the-date')
+  const from = tpl.newInvite(a)
+  from.pages[0] = { ...from.pages[0], groom: { ...from.pages[0].groom, name: 'TYPED' } }
+  const to = tpl.carryDetails(from, tpl.newInvite(b))
+  if (to?.pages[0].groom.name !== 'TYPED' || to.pages[0].bride.name !== tpl.newInvite(b).pages[0].bride.name) errors.push(`carryDetails: ${a.id} to ${b.id} didn't copy only the typed name`)
+  if (tpl.carryDetails(tpl.newInvite(a), tpl.newInvite(b))) errors.push('carryDetails: an untouched card has nothing to carry')
+}
+
 if (errors.length) {
   console.error(`Language switch changes the layout:\n  ${errors.join('\n  ')}`)
   process.exit(1)
