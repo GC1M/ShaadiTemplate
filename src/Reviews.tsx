@@ -115,6 +115,11 @@ export default function Reviews() {
   // Three at a time; with more than three, rotate one step every 6s (paused on hover or focus, off for reduced motion).
   const shown = good.length > 3 ? [0, 1, 2].map((i) => good[(start + i) % good.length]) : good
 
+  // Any edit dismisses a showing tooltip, so it never sits over what the person is fixing.
+  const edited = () => {
+    if (state === 'nostar' || state === 'error') setState('idle')
+  }
+
   const form = (
     <form onSubmit={submit} className="h-fit rounded-lg border border-zari/40 bg-white/80 p-5">
       {state === 'sent' ? (
@@ -122,34 +127,43 @@ export default function Reviews() {
       ) : (
         <>
           <p className="font-medium text-ink">Rate ShaadiTemplate</p>
-          <div className="relative mt-2 flex w-fit gap-1" role="radiogroup" aria-label="Your rating" onMouseLeave={() => setHover(0)}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <button key={i} type="button" role="radio" aria-checked={stars === i} aria-label={`${i} star${i > 1 ? 's' : ''}`} onClick={() => {
-                setStars(i)
-                if (state === 'nostar') setState('idle')
-              }} onMouseEnter={() => setHover(i)} className="text-zari">
-                <svg viewBox="0 0 24 24" width="32" height="32" fill={i <= (hover || stars) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-                  <path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" />
-                </svg>
-              </button>
-            ))}
+          <div className="relative mt-2 w-fit">
+            <div className="flex gap-1" role="radiogroup" aria-label="Your rating" onMouseLeave={() => setHover(0)}>
+              {[1, 2, 3, 4, 5].map((i) => (
+                <button key={i} type="button" role="radio" aria-checked={stars === i} aria-label={`${i} star${i > 1 ? 's' : ''}`} onClick={() => {
+                  setStars(i)
+                  edited()
+                }} onMouseEnter={() => setHover(i)} className="text-zari">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill={i <= (hover || stars) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                    <path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" />
+                  </svg>
+                </button>
+              ))}
+            </div>
             {state === 'nostar' && <Tip>Tap a star to rate first.</Tip>}
           </div>
-          <div className="mt-4 flex items-center justify-between gap-3 text-sm text-ink/70">
-            <span id="anon-label">Post anonymously</span>
-            <button type="button" role="switch" aria-checked={anon} aria-labelledby="anon-label" onClick={() => setAnon(!anon)} className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${anon ? 'bg-wine' : 'bg-ink/20'}`}>
+          {/* The whole row is the switch, so the words are a tap target too. */}
+          <button type="button" role="switch" aria-checked={anon} onClick={() => setAnon(!anon)} className="mt-4 flex w-full items-center justify-between gap-3 text-left text-sm text-ink/70">
+            Post anonymously
+            <span aria-hidden="true" className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${anon ? 'bg-wine' : 'bg-ink/20'}`}>
               <span className={`absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow transition-transform ${anon ? 'translate-x-5' : ''}`} />
-            </button>
-          </div>
+            </span>
+          </button>
           {!anon && (
             <label className="mt-3 block text-sm text-ink/70">
-              Your name
-              <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} className="mt-1 w-full rounded border border-ink/20 bg-white px-3 py-2 text-ink" />
+              Your name (optional)
+              <input value={name} onChange={(e) => {
+                setName(e.target.value)
+                edited()
+              }} maxLength={40} className="mt-1 w-full rounded border border-ink/20 bg-white px-3 py-2 text-ink" />
             </label>
           )}
           <label className="mt-3 block text-sm text-ink/70">
             Your review (optional)
-            <textarea value={text} onChange={(e) => setText(e.target.value)} maxLength={500} rows={4} className="mt-1 w-full rounded border border-ink/20 bg-white px-3 py-2 text-ink" />
+            <textarea value={text} onChange={(e) => {
+                setText(e.target.value)
+                edited()
+              }} maxLength={500} rows={4} className="mt-1 w-full rounded border border-ink/20 bg-white px-3 py-2 text-ink" />
           </label>
           <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px]" />
           <div className="relative mt-4">
