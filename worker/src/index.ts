@@ -1,0 +1,315 @@
+// API for couples' wedding websites: publish and edit a site, its photos, guests' RSVPs and blessings, and
+// "report this site". No accounts: publishing returns a secret edit key, and only its SHA-256 is stored.
+//
+//   POST   /api/sites                    {slug, look, content}  -> {slug, key}
+//   GET    /api/sites/:slug                                     -> {look, content}
+//   PUT    /api/sites/:slug              (Bearer key) {look, content}
+//   DELETE /api/sites/:slug              (Bearer key)           deletes the site, its photos, RSVPs and blessings
+//   GET    /api/sites/:slug/blessings                           -> [{id, name, text, at}]
+//   POST   /api/sites/:slug/blessings    {name, text}
+//   DELETE /api/sites/:slug/blessings/:id (Bearer key)
+//   GET    /api/sites/:slug/rsvps        (Bearer key)           -> [{id, at, name, side, events, party, note}]
+//   POST   /api/sites/:slug/rsvps        {name, side, events, party, note}
+//   POST   /api/sites/:slug/report       {reason}
+//   GET    /api/photo/:slug/:file
+
+interface Env {
+  DB: D1Database
+  PHOTOS: R2Bucket
+  IP_SALT?: string
+}
+
+const MAX_PHOTOS = 12
+const MAX_PHOTO_BYTES = 1_500_000
+const MAX_BODY = 25_000_000
+const HOUR = 36e5
+const DAY = 24 * HOUR
+
+type Photo = { src: string; small: string; alt: string; pos: string }
+
+class Fail {
+  constructor(
+    readonly status: number,
+    readonly error: string,
+  ) {}
+}
+const fail = (status: number, error: string): never => {
+  throw new Fail(status, error)
+}
+const json = (data: unknown, status = 200) => Response.json(data, { status })
+
+export default {
+  async fetch(req: Request, env: Env): Promise<Response> {
+    // Open CORS: nothing rides on cookies, and editing needs the key in the Authorization header.
+    const cors = { 'Access-Control-Allow-Origin': '*' }
+    if (req.method === 'OPTIONS')
+      return new Response(null, { headers: { ...cors, 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE', 'Access-Control-Allow-Headers': 'Content-Type, Authorization', 'Access-Control-Max-Age': '86400' } })
+    let res: Response
+    try {
+      res = await route(req, env)
+    } catch (e) {
+      if (e instanceof Fail) res = json({ error: e.error }, e.status)
+      else {
+        console.error(e)
+        res = json({ error: 'Something went wrong. Please try again.' }, 500)
+      }
+    }
+    res = new Response(res.body, res)
+    for (const [k, v] of Object.entries(cors)) res.headers.set(k, v)
+    return res
+  },
+}
+
+async function route(req: Request, env: Env): Promise<Response> {
+  const url = new URL(req.url)
+  const [api, kind, slug, sub, id] = url.pathname.split('/').filter(Boolean)
+  const m = req.method
+  if (api !== 'api') fail(404, 'Not found.')
+  if (kind === 'photo' && m === 'GET' && slug && sub) return photo(env, `${slug}/${sub}`)
+  if (kind !== 'sites') fail(404, 'Not found.')
+  if (!slug && m === 'POST') return create(req, env, url.origin)
+  if (!slug) fail(404, 'Not found.')
+  if (!sub && m === 'GET') {
+    const s = await site(env, slug)
+    return json(JSON.parse(s.data))
+  }
+  if (!sub && m === 'PUT') return update(req, env, slug, url.origin)
+  if (!sub && m === 'DELETE') {
+    await owner(req, env, slug)
+    await env.DB.batch(['sites', 'blessings', 'rsvps'].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE slug = ?`).bind(slug)))
+    const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
+    if (listed.objects.length) await env.PHOTOS.delete(listed.objects.map((o) => o.key))
+    return json({ ok: true })
+  }
+  if (sub === 'blessings' && m === 'GET') {
+    await site(env, slug)
+    const { results } = await env.DB.prepare('SELECT id, name, text, at FROM blessings WHERE slug = ? ORDER BY at DESC LIMIT 300').bind(slug).all()
+    return json(results)
+  }
+  if (sub === 'blessings' && m === 'POST') return bless(req, env, slug)
+  if (sub === 'blessings' && m === 'DELETE' && id) {
+    await owner(req, env, slug)
+    await env.DB.prepare('DELETE FROM blessings WHERE slug = ? AND id = ?').bind(slug, Number(id)).run()
+    return json({ ok: true })
+  }
+  if (sub === 'rsvps' && m === 'GET') {
+    await owner(req, env, slug)
+    const { results } = await env.DB.prepare('SELECT id, at, data FROM rsvps WHERE slug = ? ORDER BY at DESC LIMIT 2000').bind(slug).all<{ id: number; at: number; data: string }>()
+    return json(results.map((r) => ({ id: r.id, at: r.at, ...JSON.parse(r.data) })))
+  }
+  if (sub === 'rsvps' && m === 'POST') return rsvp(req, env, slug)
+  if (sub === 'report' && m === 'POST') return report(req, env, slug)
+  return fail(404, 'Not found.')
+}
+
+/* ---------- helpers ---------- */
+
+const hex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
+const sha256 = async (s: string) => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))
+const ipOf = (req: Request, env: Env) => sha256(`${env.IP_SALT ?? ''}:${req.headers.get('CF-Connecting-IP') ?? 'local'}`)
+
+async function body(req: Request): Promise<any> {
+  if (Number(req.headers.get('Content-Length') ?? 0) > MAX_BODY) fail(413, 'That is too much to send at once. Use smaller photos.')
+  return req.json().catch(() => fail(400, 'Could not read the request.'))
+}
+
+async function count(env: Env, sql: string, ...args: unknown[]) {
+  const row = await env.DB.prepare(sql).bind(...args).first<{ n: number }>()
+  return row?.n ?? 0
+}
+
+async function site(env: Env, slug: string) {
+  const s = await env.DB.prepare('SELECT data, key_hash, hidden FROM sites WHERE slug = ?').bind(slug).first<{ data: string; key_hash: string; hidden: number }>()
+  if (!s) fail(404, 'There is no wedding website at this address.')
+  if (s!.hidden) fail(410, 'This wedding website has been taken down.')
+  return s!
+}
+
+async function owner(req: Request, env: Env, slug: string) {
+  const s = await site(env, slug)
+  const key = req.headers.get('Authorization')?.replace(/^Bearer /, '') ?? ''
+  if (!key || (await sha256(key)) !== s.key_hash) fail(403, 'This edit link is not right. Open the full link from your email.')
+  return s
+}
+
+/* ---------- abuse checks ---------- */
+
+// Matched anywhere in a slug or word (long enough not to hit real names).
+const BAD_ANYWHERE = ['fuck', 'cunt', 'bitch', 'nigg', 'whore', 'madarchod', 'maderchod', 'behenchod', 'bhenchod', 'benchod', 'bhosd', 'chutiy', 'chutia', 'gaand', 'lavda', 'lauda', 'porn']
+// Matched only as a whole word.
+const BAD_WORDS = new Set(['shit', 'rape', 'sex', 'sexy', 'nude', 'nudes', 'dick', 'cock', 'pussy', 'slut', 'fag', 'nazi', 'hitler', 'retard', 'gandu', 'lund', 'loda', 'randi', 'harami', 'kamina', 'kutta', 'bsdk', 'mc', 'bc', 'mkc', 'bkl', 'chod', 'escort', 'casino', 'viagra', 'crypto', 'loan'])
+const RESERVED = new Set(['api', 'admin', 'edit', 'new', 'www', 'help', 'support', 'about', 'contact', 'login', 'official', 'shaaditemplate', 'shaadi-template', 'test', 'demo', 'sample'])
+const isAbusive = (text: string) => {
+  const t = text.toLowerCase()
+  return BAD_ANYWHERE.some((w) => t.replace(/[^a-z]/g, '').includes(w)) || t.split(/[^a-z0-9]+/).some((w) => BAD_WORDS.has(w))
+}
+const slugProblem = (slug: unknown) => {
+  if (typeof slug !== 'string' || slug.length < 4 || slug.length > 40 || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) return 'Use 4 to 40 lowercase letters, numbers and single hyphens.'
+  if (RESERVED.has(slug)) return 'That address is taken. Try another.'
+  if (isAbusive(slug)) return 'Please choose a different address.'
+  return ''
+}
+
+/* ---------- content ---------- */
+
+const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
+const arr = <T>(v: unknown, max: number, f: (x: any) => T) => (Array.isArray(v) ? v.slice(0, max).map(f) : [])
+const DATA_URL = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+=*)$/
+
+// Keeps only the fields the site draws, trimmed to sane lengths. Photos must be new uploads (data URLs) or ones
+// already stored for this site; any other URL is dropped.
+function clean(raw: any, ownPhoto: (src: string) => boolean) {
+  const photos: Photo[] = []
+  const photo = (v: any): Photo | undefined => {
+    const src = v?.src
+    if (typeof src !== 'string' || !(DATA_URL.test(src) || ownPhoto(src))) return undefined
+    const p = { src, small: src, alt: str(v.alt, 200), pos: /^\d{1,3}% \d{1,3}%$/.test(v.pos) ? v.pos : 'center' }
+    photos.push(p)
+    return p
+  }
+  const c = raw ?? {}
+  const content = {
+    couple: [str(c.couple?.[0], 40), str(c.couple?.[1], 40)],
+    families: [str(c.families?.[0], 80), str(c.families?.[1], 80)],
+    parents: [str(c.parents?.[0], 300), str(c.parents?.[1], 300)],
+    meet: Array.isArray(c.meet) ? arr(c.meet, 2, (m) => ({ bio: str(m?.bio, 500), photo: photo(m?.photo) })) : undefined,
+    compliments: Array.isArray(c.compliments) ? arr(c.compliments, 10, (x) => str(x, 160)).filter(Boolean) : undefined,
+    notes: arr(c.notes, 10, (x) => str(x, 300)).filter(Boolean),
+    city: str(c.city, 60),
+    venue: str(c.venue, 160),
+    invite: str(c.invite, 400),
+    rsvpBy: str(c.rsvpBy, 40),
+    story: arr(c.story, 6, (s) => ({ year: str(s?.year, 12), title: str(s?.title, 80), body: str(s?.body, 400), photo: photo(s?.photo) })),
+    events: arr(c.events, 8, (e) => ({
+      name: str(e?.name, 60),
+      date: /^\d{4}-\d\d-\d\d$/.test(e?.date) ? e.date : '',
+      time: /^\d\d:\d\d$/.test(e?.time) ? e.time : '',
+      where: str(e?.where, 120),
+      note: str(e?.note, 300),
+    })),
+    photos: { hero: photo(c.photos?.hero), venue: photo(c.photos?.venue), gallery: arr(c.photos?.gallery, 8, photo).filter(Boolean) },
+  }
+  if (!content.couple[0] || !content.couple[1]) fail(400, 'Add both of your names.')
+  if (!content.events.some((e) => e.date)) fail(400, 'Add the date of at least one event.')
+  if (new Set(photos.map((p) => p.src)).size > MAX_PHOTOS) fail(400, `A site can have up to ${MAX_PHOTOS} photos.`)
+  return { content, photos }
+}
+
+// Saves new photos to R2 and points them at /api/photo/. Returns every photo key the site now uses.
+async function storePhotos(env: Env, slug: string, origin: string, photos: Photo[]) {
+  const done = new Map<string, string>()
+  for (const p of photos) {
+    let url = done.get(p.src) ?? (p.src.startsWith('data:') ? '' : p.src)
+    if (!url) {
+      const [, type, b64] = p.src.match(DATA_URL)!
+      let bytes: Uint8Array
+      try {
+        bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0))
+      } catch {
+        return fail(400, 'One of the photos could not be read.')
+      }
+      if (bytes.length > MAX_PHOTO_BYTES) fail(413, 'Each photo must be under 1.5 MB.')
+      const key = `${slug}/${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}.${type === 'jpeg' ? 'jpg' : type}`
+      await env.PHOTOS.put(key, bytes, { httpMetadata: { contentType: `image/${type}` } })
+      url = `${origin}/api/photo/${key}`
+      done.set(p.src, url)
+    }
+    p.src = p.small = url
+  }
+  return new Set(photos.map((p) => p.src.slice(`${origin}/api/photo/`.length)))
+}
+
+// ponytail: photo URLs carry the Worker's origin. If the API moves to another host, old sites keep working (the
+// old host still serves them) but an edit would drop photos; widen ownPhoto() to the old origin then.
+const ownPhotoFor = (origin: string, slug: string) => (src: string) => new RegExp(`^${origin.replace(/[.]/g, '\\.')}/api/photo/${slug}/[a-f0-9]{16}\\.(jpg|png|webp)$`).test(src)
+const LOOK = /^[a-z0-9-]{2,30}$/
+
+async function create(req: Request, env: Env, origin: string) {
+  const b = await body(req)
+  const problem = slugProblem(b?.slug)
+  if (problem) fail(400, problem)
+  if (!LOOK.test(b.look)) fail(400, 'Pick a design.')
+  const ip = await ipOf(req, env)
+  // ponytail: 5 new sites a day per IP; a shared office or college IP could hit it. Raise it if couples write in.
+  if ((await count(env, 'SELECT COUNT(*) AS n FROM sites WHERE ip = ? AND created > ?', ip, Date.now() - DAY)) >= 5)
+    fail(429, 'You have published several sites today. Please try again tomorrow, or edit the one you made.')
+  if (await env.DB.prepare('SELECT 1 FROM sites WHERE slug = ?').bind(b.slug).first()) fail(409, 'That address is taken. Try another.')
+  const { content, photos } = clean(b.content, () => false)
+  await storePhotos(env, b.slug, origin, photos)
+  const key = hex(crypto.getRandomValues(new Uint8Array(24)).buffer as ArrayBuffer)
+  const now = Date.now()
+  try {
+    await env.DB.prepare('INSERT INTO sites (slug, data, key_hash, ip, created, updated) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(b.slug, JSON.stringify({ look: b.look, content }), await sha256(key), ip, now, now)
+      .run()
+  } catch {
+    fail(409, 'That address is taken. Try another.') // lost a race for the same slug
+  }
+  return json({ slug: b.slug, key }, 201)
+}
+
+async function update(req: Request, env: Env, slug: string, origin: string) {
+  await owner(req, env, slug)
+  const b = await body(req)
+  if (!LOOK.test(b?.look)) fail(400, 'Pick a design.')
+  const { content, photos } = clean(b.content, ownPhotoFor(origin, slug))
+  const keep = await storePhotos(env, slug, origin, photos)
+  await env.DB.prepare('UPDATE sites SET data = ?, updated = ? WHERE slug = ?').bind(JSON.stringify({ look: b.look, content }), Date.now(), slug).run()
+  // Delete photos the site no longer uses.
+  const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
+  const gone = listed.objects.map((o) => o.key).filter((k) => !keep.has(k))
+  if (gone.length) await env.PHOTOS.delete(gone)
+  return json({ look: b.look, content })
+}
+
+async function photo(env: Env, key: string) {
+  const obj = await env.PHOTOS.get(key)
+  if (!obj) return fail(404, 'Not found.')
+  return new Response(obj.body, {
+    headers: { 'Content-Type': obj.httpMetadata?.contentType ?? 'image/jpeg', 'Cache-Control': 'public, max-age=31536000, immutable', 'X-Content-Type-Options': 'nosniff' },
+  })
+}
+
+async function bless(req: Request, env: Env, slug: string) {
+  await site(env, slug)
+  const b = await body(req)
+  const name = str(b?.name, 60)
+  const text = str(b?.text, 280)
+  if (!name || !text) fail(400, 'Add your name and a few words before you post.')
+  if (isAbusive(`${name} ${text}`)) fail(400, 'Please keep your blessing kind.')
+  const ip = await ipOf(req, env)
+  if ((await count(env, 'SELECT COUNT(*) AS n FROM blessings WHERE slug = ? AND ip = ? AND at > ?', slug, ip, Date.now() - HOUR)) >= 5)
+    fail(429, 'You have posted several blessings already. Please try again later.')
+  const at = Date.now()
+  const r = await env.DB.prepare('INSERT INTO blessings (slug, name, text, ip, at) VALUES (?, ?, ?, ?, ?)').bind(slug, name, text, ip, at).run()
+  return json({ id: r.meta.last_row_id, name, text, at }, 201)
+}
+
+async function rsvp(req: Request, env: Env, slug: string) {
+  await site(env, slug)
+  const b = await body(req)
+  const r = {
+    name: str(b?.name, 60),
+    side: ['a', 'b', 'both'].includes(b?.side) ? b.side : 'both',
+    events: arr(b?.events, 8, (x) => str(x, 8)),
+    party: Math.min(8, Math.max(1, Math.round(Number(b?.party)) || 1)),
+    note: str(b?.note, 200),
+  }
+  if (!r.name) fail(400, 'Add your name so the families know who is coming.')
+  const ip = await ipOf(req, env)
+  if ((await count(env, 'SELECT COUNT(*) AS n FROM rsvps WHERE slug = ? AND ip = ? AND at > ?', slug, ip, Date.now() - HOUR)) >= 20)
+    fail(429, 'Too many replies from here. Please try again later.')
+  await env.DB.prepare('INSERT INTO rsvps (slug, data, ip, at) VALUES (?, ?, ?, ?)').bind(slug, JSON.stringify(r), ip, Date.now()).run()
+  return json(r, 201)
+}
+
+async function report(req: Request, env: Env, slug: string) {
+  if (!(await env.DB.prepare('SELECT 1 FROM sites WHERE slug = ?').bind(slug).first())) fail(404, 'There is no wedding website at this address.')
+  const b = await body(req)
+  const reason = str(b?.reason, 500)
+  if (!reason) fail(400, 'Tell us what is wrong with this site.')
+  const ip = await ipOf(req, env)
+  if ((await count(env, 'SELECT COUNT(*) AS n FROM reports WHERE ip = ? AND at > ?', ip, Date.now() - DAY)) >= 5) fail(429, 'Thank you, we already have your reports.')
+  await env.DB.prepare('INSERT INTO reports (slug, reason, ip, at) VALUES (?, ?, ?, ?)').bind(slug, reason, ip, Date.now()).run()
+  return json({ ok: true }, 201)
+}

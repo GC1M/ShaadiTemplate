@@ -199,6 +199,20 @@
     display: flex;
   }
 }
+.st-use {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: var(--ov-zari);
+  color: var(--ov-kohl);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.st-use:hover {
+  filter: brightness(1.08);
+}
 .ov-switch {
   min-height: 40px;
   max-width: 44vw;

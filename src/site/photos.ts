@@ -3,7 +3,10 @@
 // pre-wedding shoot.
 
 // w = the original's width: Commons refuses thumbnails wider than the original.
-export const commons = (path: string, w: number, alt: string, by: string, licence: string, pos = 'center') => {
+// A couple's own uploads have no credit line.
+export type Photo = { src: string; small: string; srcSet?: string; alt: string; pos: string; credit?: { by: string; licence: string; file: string } }
+
+export const commons = (path: string, w: number, alt: string, by: string, licence: string, pos = 'center'): Photo => {
   const name = path.split('/').pop()!
   const thumb = (x: number) => `https://upload.wikimedia.org/wikipedia/commons/thumb/${path}/${x}px-${name}`
   const widths = [960, 1280, 1920].filter((x) => x < w)
@@ -16,7 +19,6 @@ export const commons = (path: string, w: number, alt: string, by: string, licenc
     credit: { by, licence, file: decodeURIComponent(name) },
   }
 }
-export type Photo = ReturnType<typeof commons>
 // Engagement shoots, the places, and the things each ceremony is made of.
 export const SHOTS = {
   silhouette: commons('c/ce/Sunset_beach_couple_%28Unsplash%29.jpg', 3456, 'A couple holding hands, silhouetted against the dusk sky', 'Caleb Ekeroth', 'CC0', '50% 65%'),

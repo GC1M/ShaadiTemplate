@@ -4,16 +4,17 @@ import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type M
 import './organza.css'
 import { DESIGNS, designPath, type Design, type WeddingEvent } from './designs'
 import type { Photo } from './photos'
+import { api } from './api'
 
-// Shared pieces of the sample wedding websites. Demo content only (see designs.ts).
-// ponytail: RSVPs and blessings live in this browser's localStorage, so guests can't see each other's.
-// Swap the two load/save helpers for a realtime backend (e.g. Supabase) when the hosted microsite ships.
+// Shared pieces of the wedding websites. On a couple's published site (slug set) RSVPs and blessings go to the
+// sites API (worker/), so every guest sees the blessings. The demo designs and the editor preview keep them in
+// this browser's localStorage. The guest's own reply is remembered locally either way, to show "Change your reply".
 
 /* ---------- local persistence ---------- */
 
 type Rsvp = { name: string; side: string; events: string[]; party: number; note: string }
 type Blessing = { name: string; text: string; at: number }
-const rsvpKey = (d: Design) => `shaadidraft:${d.id}:rsvp`
+const rsvpKey = (d: Design, slug?: string) => (slug ? `site:${slug}:rsvp` : `shaadidraft:${d.id}:rsvp`)
 const blessKey = (d: Design) => `shaadidraft:${d.id}:blessings`
 function load<T>(key: string, fallback: T): T {
   try {
@@ -120,11 +121,11 @@ export function SeeAlso({ d }: { d: Design }) {
       <a href="#/websites" className="underline underline-offset-4 hover:text-(--ov-zari)">
         See all designs
       </a>
-      . Wedding websites are coming soon; for now,{' '}
-      <a href="#templates" className="underline underline-offset-4 hover:text-(--ov-zari)">
-        make your invitation card
+      .{' '}
+      <a href={`${designPath(d)}/edit`} className="underline underline-offset-4 hover:text-(--ov-zari)">
+        Make your own wedding website with {d.name}
       </a>
-      .
+      , free.
     </p>
   )
 }
@@ -132,16 +133,18 @@ export function SeeAlso({ d }: { d: Design }) {
 export const photosOf = (d: Design) => [...new Set([d.hero, d.venuePhoto, ...(d.finale ? [d.finale] : []), ...(d.meet ?? []).map((m) => m.photo), d.rsvpPhoto, d.blessPhoto, ...d.gallery, ...d.story.map((s) => s.photo), ...d.events.map((e) => e.photo)])]
 
 export function PhotoCredits({ d }: { d: Design }) {
+  const credited = photosOf(d).filter((p) => p.credit)
+  if (!credited.length) return null
   return (
     <p className="mx-auto mt-4 max-w-3xl">
       Photographs from Wikimedia Commons, shown cropped and darkened:{' '}
-      {photosOf(d).map(({ credit: c }, i) => (
-        <span key={c.file}>
+      {credited.map(({ credit: c }, i) => (
+        <span key={c!.file}>
           {i > 0 && '; '}
-          <a href={`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(c.file)}`} className="underline underline-offset-4 hover:text-(--ov-zari)" target="_blank" rel="noreferrer">
-            {c.by}
+          <a href={`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(c!.file)}`} className="underline underline-offset-4 hover:text-(--ov-zari)" target="_blank" rel="noreferrer">
+            {c!.by}
           </a>{' '}
-          ({c.licence})
+          ({c!.licence})
         </span>
       ))}
       .
@@ -159,14 +162,15 @@ function Knot() {
   )
 }
 
-export function RsvpForm({ d }: { d: Design }) {
+export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
   const photo = d.rsvpPhoto
-  const [saved, setSaved] = useState<Rsvp | null>(() => load<Rsvp | null>(rsvpKey(d), null))
+  const [saved, setSaved] = useState<Rsvp | null>(() => load<Rsvp | null>(rsvpKey(d, slug), null))
   const [editing, setEditing] = useState(!saved)
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
   const [party, setParty] = useState(saved?.party ?? 1)
 
-  const submit = (e: FormEvent<HTMLFormElement>) => {
+  const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
     const name = String(f.get('name')).trim()
@@ -176,7 +180,17 @@ export function RsvpForm({ d }: { d: Design }) {
       return setError('Add your name so the families know who is coming.')
     }
     const r: Rsvp = { name, side: String(f.get('side')), events, party, note: String(f.get('note')).trim() }
-    save(rsvpKey(d), r)
+    if (slug) {
+      setBusy(true)
+      try {
+        await api(`sites/${slug}/rsvps`, { method: 'POST', body: r })
+      } catch (err) {
+        return setError((err as Error).message)
+      } finally {
+        setBusy(false)
+      }
+    }
+    save(rsvpKey(d, slug), r)
     setSaved(r)
     setEditing(false)
     setError('')
@@ -268,8 +282,8 @@ export function RsvpForm({ d }: { d: Design }) {
               <input name="note" defaultValue={saved?.note} placeholder="Vegetarian, arriving the day before" className="ov-field" />
             </label>
             <div className="text-center">
-              <button type="submit" className="ov-press ov-btn-gold">
-                Send reply
+              <button type="submit" disabled={busy} className="ov-press ov-btn-gold">
+                {busy ? 'Sending…' : 'Send reply'}
               </button>
             </div>
           </form>
@@ -279,19 +293,33 @@ export function RsvpForm({ d }: { d: Design }) {
   )
 }
 
-export function Blessings({ d }: { d: Design }) {
+export function Blessings({ d, slug }: { d: Design; slug?: string }) {
   const photo = d.blessPhoto
-  const [list, setList] = useState<Blessing[]>(() => load<Blessing[]>(blessKey(d), []))
+  const [list, setList] = useState<Blessing[]>(() => (slug ? [] : load<Blessing[]>(blessKey(d), [])))
   const [name, setName] = useState('')
   const [text, setText] = useState('')
   const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
   const [fresh, setFresh] = useState(0)
-  const submit = (e: FormEvent) => {
+  useEffect(() => {
+    if (slug) api<Blessing[]>(`sites/${slug}/blessings`).then(setList, () => {})
+  }, [slug])
+  const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (!name.trim() || !text.trim()) return setError('Add your name and a few words before you post.')
-    const b = { name: name.trim(), text: text.trim(), at: Date.now() }
+    let b = { name: name.trim(), text: text.trim(), at: Date.now() }
+    if (slug) {
+      setBusy(true)
+      try {
+        b = await api<Blessing>(`sites/${slug}/blessings`, { method: 'POST', body: b })
+      } catch (err) {
+        return setError((err as Error).message)
+      } finally {
+        setBusy(false)
+      }
+    }
     const next = [b, ...list]
-    save(blessKey(d), next)
+    if (!slug) save(blessKey(d), next)
     setList(next)
     setFresh(b.at)
     setError('')
@@ -328,8 +356,8 @@ export function Blessings({ d }: { d: Design }) {
               </span>
               <span className="text-(--ov-mogra)/50">{280 - text.length} left</span>
             </div>
-            <button type="submit" className="ov-press ov-btn-gold justify-self-start">
-              Post blessing
+            <button type="submit" disabled={busy} className="ov-press ov-btn-gold justify-self-start">
+              {busy ? 'Posting…' : 'Post blessing'}
             </button>
           </form>
           {/* Live preview: the blessing takes shape as the guest types. */}

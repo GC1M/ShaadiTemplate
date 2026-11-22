@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { designByHash, DESIGNS, type Design } from './designs'
+import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { designByHash, designPath, DESIGNS, type Design } from './designs'
+import { api } from './api'
 import { Backdrop, Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion, useLenis, useTitle } from './shared'
 import './organza.css'
 import './site.css'
 
-// One sample wedding website, drawn from a design in designs.ts. Every design shares the same sections and
+// One wedding website, drawn from a design in designs.ts: a demo (#/websites/<id>), a couple's published site
+// (HostedSite.tsx, mode 'hosted') or the editor's live preview (mode 'preview'). Every design shares the same sections and
 // interactions (gate, unrolling scrolls, rolling save-the-date, hanging frames, arch cards); the theme colours,
 // display face and hero layout are what tell them apart.
 
@@ -502,8 +504,47 @@ function Ceremonies({ d }: { d: Design }) {
 export default function WeddingSite() {
   const d = designByHash(location.hash) ?? DESIGNS[0]
   useTitle(`${d.couple.join(' and ')}: ${d.name} wedding website`)
+  return <Site d={d} mode="demo" />
+}
+
+// "Report this site", at the foot of every published site.
+function Report({ slug }: { slug: string }) {
+  const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
+  const [error, setError] = useState('')
+  const send = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setState('sending')
+    try {
+      await api(`sites/${slug}/report`, { method: 'POST', body: { reason: new FormData(e.currentTarget).get('reason') } })
+      setState('sent')
+    } catch (err) {
+      setError((err as Error).message)
+      setState('idle')
+    }
+  }
+  if (state === 'sent') return <p className="mt-3">Thank you. We will look at this site.</p>
+  return (
+    <details className="mx-auto mt-3 max-w-md">
+      <summary className="cursor-pointer underline underline-offset-4">Report this site</summary>
+      <form onSubmit={send} className="mt-4 grid gap-3 text-left">
+        <label className="block">
+          <span className="ov-label">What is wrong with it?</span>
+          <textarea name="reason" required maxLength={500} rows={3} className="ov-field resize-none" />
+        </label>
+        <span className="ov-error !mt-0" role="alert">
+          {error}
+        </span>
+        <button type="submit" disabled={state === 'sending'} className="ov-link justify-self-start">
+          Send report
+        </button>
+      </form>
+    </details>
+  )
+}
+
+export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | 'preview'; slug?: string }) {
   useLenis()
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(mode === 'preview')
   useEffect(() => {
     document.documentElement.style.overflow = open ? '' : 'hidden'
     return () => void (document.documentElement.style.overflow = '')
@@ -518,9 +559,13 @@ export default function WeddingSite() {
       <Gate d={d} open={open} onOpen={() => setOpen(true)} />
 
       <nav aria-label="Sections" className="st-nav" data-show={open || undefined}>
-        <a href="#/websites" className="st-back">
-          ← All designs
-        </a>
+        {mode === 'demo' ? (
+          <a href="#/websites" className="st-back">
+            ← All designs
+          </a>
+        ) : (
+          <span className="st-back ov-display">{d.couple.join(' & ')}</span>
+        )}
         <div className="st-links">
           {[
             ['story', 'Story'],
@@ -533,7 +578,14 @@ export default function WeddingSite() {
             </a>
           ))}
         </div>
-        <PageSwitch d={d} />
+        {mode === 'demo' && (
+          <div className="flex items-center gap-2">
+            <a href={`${designPath(d)}/edit`} className="st-use">
+              Make yours free
+            </a>
+            <PageSwitch d={d} />
+          </div>
+        )}
       </nav>
 
       <Hero d={d} open={open} />
@@ -576,8 +628,8 @@ export default function WeddingSite() {
         </Reveal>
       </section>
 
-      <RsvpForm d={d} />
-      <Blessings d={d} />
+      <RsvpForm d={d} slug={slug} />
+      <Blessings d={d} slug={slug} />
 
       <section className="px-6 py-[14svh]" style={{ background: bg }}>
         <div className="mx-auto grid max-w-xl gap-16">
@@ -623,9 +675,23 @@ export default function WeddingSite() {
       )}
 
       <footer className="px-6 py-16 text-center text-sm opacity-80">
-        <div className="mx-auto max-w-3xl">
-          <SeeAlso d={d} />
-        </div>
+        {mode === 'demo' && (
+          <div className="mx-auto max-w-3xl">
+            <SeeAlso d={d} />
+          </div>
+        )}
+        {mode === 'hosted' && slug && (
+          <>
+            <p>
+              Made with{' '}
+              <a href="/#/websites" className="underline underline-offset-4 hover:text-(--ov-zari)">
+                ShaadiTemplate
+              </a>
+              , free wedding websites and invitation cards.
+            </p>
+            <Report slug={slug} />
+          </>
+        )}
         <PhotoCredits d={d} />
       </footer>
     </div>
