@@ -1,4 +1,4 @@
-import { ArrowLeft, Copy, ExternalLink, Loader2, Mail, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Copy, Download, ExternalLink, Loader2, Mail, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Wordmark } from '../Hero'
 import { api, editKey, editLink, lean, liveLink } from './api'
@@ -476,7 +476,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                 <a href="/terms.html" className="underline underline-offset-2">
                   terms
                 </a>
-                . Your site can be seen by anyone with its link and is not listed by search engines. See our{' '}
+                . Your site can be seen by anyone with its link and is not listed by search engines, and it is deleted 30 days after your last function. See our{' '}
                 <a href="/privacy.html" className="underline underline-offset-2">
                   privacy policy
                 </a>
@@ -642,6 +642,15 @@ function PhotoPick({ label, photo, onChange, alt, full, onError }: { label: stri
   )
 }
 
+// The day a site is deleted: 30 days after its last event (KEEP_DAYS in worker/src/index.ts). Empty with no dates.
+const keepUntil = (events: Content['events']) => {
+  const last = events.map((e) => e.date).filter(Boolean).sort().at(-1)
+  if (!last) return ''
+  const d = new Date(`${last}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + 30)
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+}
+
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
 const copy = (text: string, done: (s: string) => void) => navigator.clipboard.writeText(text).then(() => done('Copied'), () => done('Select the link and copy it'))
 
@@ -683,6 +692,11 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
           </button>
         </div>
       </div>
+      {keepUntil(draft.content.events) && (
+        <p className="text-[13px] text-ink/65">
+          Your website stays up until <span className="font-medium text-ink">{keepUntil(draft.content.events)}</span>, 30 days after your last function. Then it is deleted with its photos, replies and blessings, so download your guest replies before that.
+        </p>
+      )}
       <p className="text-[13px] text-wine" aria-live="polite">
         {note}
       </p>
@@ -714,6 +728,11 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: C
         {latest.length ? `${latest.length} ${latest.length === 1 ? 'reply' : 'replies'}: ${plural(coming.reduce((n, r) => n + r.party, 0), 'guest')} coming, ${latest.length - coming.length} can't make it.` : 'No replies yet. Share your link with guests.'}
       </p>
       {latest.length > 0 && (
+        <button type="button" onClick={() => download(slug, latest, eventName)} className={small}>
+          <Download className="size-4" aria-hidden /> Download replies
+        </button>
+      )}
+      {latest.length > 0 && (
         <Details summary="See every reply">
           <ul className="divide-y divide-wine/10">
             {latest.map((r) => (
@@ -743,6 +762,17 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: C
       )}
     </section>
   )
+}
+
+// Guest replies as a spreadsheet (CSV), to keep after the site is deleted.
+function download(slug: string, rows: Rsvp[], eventName: (id: string) => string) {
+  const cell = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`
+  const lines = [['Name', 'Side', 'Coming to', 'Guests', 'Note', 'Replied on'], ...rows.map((r) => [r.name, r.side, r.events.map(eventName).join(', ') || "Can't come", r.events.length ? r.party : 0, r.note, new Date(r.at).toLocaleDateString('en-IN')])]
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + lines.map((l) => l.map(cell).join(',')).join('\r\n')], { type: 'text/csv' }))
+  a.download = `${slug}-guest-replies.csv`
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000) // Safari reads the link after click() returns
 }
 
 const Details = ({ summary, children }: { summary: string; children: ReactNode }) => (

@@ -107,7 +107,7 @@ export default function Websites() {
         </ul>
         <p className="mt-20 max-w-[60ch] text-rose/70">
           {API ? (
-            'Your website is free and lives at shaaditemplate.com/w/your-names. Fill in your details, add your photos and publish; you get a private link to come back and edit it, and see who has replied.'
+            'Your website is free and lives at shaaditemplate.com/w/your-names. Fill in your details, add your photos and publish; you get a private link to come back and edit it, and see who has replied. It stays up until 30 days after your last function, then it is deleted with its photos and replies.'
           ) : (
             <>
               Free wedding websites are opening soon. For now,{' '}

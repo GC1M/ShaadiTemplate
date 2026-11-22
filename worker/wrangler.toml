@@ -14,3 +14,7 @@ database_id = "2a381b7b-e0a0-417c-b4f6-0b47fe469010"
 [[r2_buckets]]
 binding = "PHOTOS"
 bucket_name = "shaaditemplate-photos"
+
+# Daily at 21:30 UTC (3 am in India): delete sites 30 days after their last event (expire() in src/index.ts).
+[triggers]
+crons = ["30 21 * * *"]

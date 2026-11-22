@@ -12,6 +12,8 @@
 //   POST   /api/sites/:slug/rsvps        {name, side, events, party, note}
 //   POST   /api/sites/:slug/report       {reason}
 //   GET    /api/photo/:slug/:file
+//
+// Once a day (the cron in wrangler.toml) sites whose last event was more than KEEP_DAYS ago are deleted.
 
 interface Env {
   DB: D1Database
@@ -24,6 +26,8 @@ const MAX_PHOTO_BYTES = 1_500_000
 const MAX_BODY = 25_000_000
 const HOUR = 36e5
 const DAY = 24 * HOUR
+// Days a site stays up after its last event. The editor says the same date (keepUntil in src/site/SiteEditor.tsx).
+const KEEP_DAYS = 30
 
 type Photo = { src: string; small: string; alt: string; pos: string }
 
@@ -58,6 +62,29 @@ export default {
     for (const [k, v] of Object.entries(cors)) res.headers.set(k, v)
     return res
   },
+  async scheduled(_: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(expire(env))
+  },
+}
+
+// Deletes sites whose latest event date is more than KEEP_DAYS ago. Dates are YYYY-MM-DD, so they compare as text.
+// ponytail: 50 sites a run keeps one run well inside the Worker's limits; any left over go the next day.
+async function expire(env: Env) {
+  const cutoff = new Date(Date.now() - KEEP_DAYS * DAY).toISOString().slice(0, 10)
+  const { results } = await env.DB.prepare(
+    `SELECT slug FROM sites WHERE (SELECT MAX(json_extract(value, '$.date')) FROM json_each(data, '$.content.events') WHERE json_extract(value, '$.date') != '') < ? LIMIT 50`,
+  )
+    .bind(cutoff)
+    .all<{ slug: string }>()
+  for (const { slug } of results) await remove(env, slug)
+  if (results.length) console.log(`expired ${results.length} sites`)
+}
+
+// Deletes a site, its photos, RSVPs and blessings.
+async function remove(env: Env, slug: string) {
+  await env.DB.batch(['sites', 'blessings', 'rsvps'].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE slug = ?`).bind(slug)))
+  const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
+  if (listed.objects.length) await env.PHOTOS.delete(listed.objects.map((o) => o.key))
 }
 
 async function route(req: Request, env: Env): Promise<Response> {
@@ -76,9 +103,7 @@ async function route(req: Request, env: Env): Promise<Response> {
   if (!sub && m === 'PUT') return update(req, env, slug, url.origin)
   if (!sub && m === 'DELETE') {
     await owner(req, env, slug)
-    await env.DB.batch(['sites', 'blessings', 'rsvps'].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE slug = ?`).bind(slug)))
-    const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
-    if (listed.objects.length) await env.PHOTOS.delete(listed.objects.map((o) => o.key))
+    await remove(env, slug)
     return json({ ok: true })
   }
   if (sub === 'blessings' && m === 'GET') {
