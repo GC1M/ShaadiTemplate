@@ -447,13 +447,13 @@ const Control = ({ label, children }: { label: string; children: ReactNode }) =>
   </div>
 )
 
-type FieldProps = { label: string; value: string; onChange: (v: string) => void; lang: Lang; phonetic: boolean; multiline?: boolean; rows?: number }
+type FieldProps = { label: string; value: string; onChange: (v: string) => void; lang: Lang; phonetic: boolean; multiline?: boolean; rows?: number; person?: boolean }
 
-function Field({ label, value, onChange, lang, phonetic, multiline, rows = 3 }: FieldProps) {
+function Field({ label, value, onChange, lang, phonetic, multiline, rows = 3, person }: FieldProps) {
   return (
     <label className="block">
       <span className="text-[13px] text-ink/65">{label}</span>
-      <TransliterateInput lang={lang} enabled={phonetic} value={value} onChange={onChange} multiline={multiline} rows={multiline ? rows : undefined} className={inputCls} />
+      <TransliterateInput lang={lang} enabled={phonetic} person={person} value={value} onChange={onChange} multiline={multiline} rows={multiline ? rows : undefined} className={inputCls} />
     </label>
   )
 }
@@ -494,7 +494,7 @@ function CoverForm({ p, on, lang, phonetic }: { p: CoverPage; on: (patch: Partia
   const person = (who: 'bride' | 'groom', title: string) => (
     <fieldset className="space-y-3">
       <legend className="mb-1 font-display text-xl italic">{title}</legend>
-      <Field label="Name" value={p[who].name} onChange={(name) => on({ [who]: { ...p[who], name } })} lang={lang} phonetic={phonetic} />
+      <Field label="Name" value={p[who].name} onChange={(name) => on({ [who]: { ...p[who], name } })} lang={lang} phonetic={phonetic} person />
       <Field label="Parents (optional)" value={p[who].parents} onChange={(parents) => on({ [who]: { ...p[who], parents } })} lang={lang} phonetic={phonetic} />
     </fieldset>
   )
