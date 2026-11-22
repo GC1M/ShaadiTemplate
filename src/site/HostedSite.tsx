@@ -4,8 +4,8 @@ import { LOOKS, lookById, toDesign, type Content } from './designs'
 import { useTitle } from './shared'
 import { Site } from './WeddingSite'
 
-// A couple's published wedding website (#/w/<slug>, loaded from the sites API), or the editor's live preview
-// (#/websites/preview, fed by postMessage from SiteEditor.tsx inside its iframe).
+// A couple's published wedding website (/w/<slug>, loaded from the sites API), or the editor's live preview
+// (/websites/preview, fed by postMessage from SiteEditor.tsx inside its iframe).
 
 export type SiteData = { look: string; content: Content }
 const draw = (s: SiteData) => toDesign(lookById(s.look) ?? LOOKS[0], s.content)
@@ -48,7 +48,7 @@ function Hosted({ slug }: { slug: string }) {
     return (
       <Message title="Wedding website">
         {error}{' '}
-        <a href="/#/websites" className="text-zari underline underline-offset-4">
+        <a href="/websites/" className="text-zari underline underline-offset-4">
           Make your own, free
         </a>
         .
@@ -59,6 +59,6 @@ function Hosted({ slug }: { slug: string }) {
 }
 
 export default function HostedSite() {
-  if (location.hash === '#/websites/preview') return <Preview />
-  return <Hosted slug={location.hash.slice(4).split(/[/?]/)[0]} />
+  if (location.pathname.startsWith('/websites/preview')) return <Preview />
+  return <Hosted slug={location.pathname.split('/')[2]} />
 }

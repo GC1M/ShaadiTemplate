@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Emblem } from '../card/motifs'
-import { designByHash, designPath, DESIGNS, mainOf, type Design } from './designs'
+import { designByPath, designPath, DESIGNS, mainOf, type Design } from './designs'
 import { api, API } from './api'
 import { Backdrop, Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion, useLenis, useTitle } from './shared'
 import './organza.css'
 import './site.css'
 
-// One wedding website, drawn from a design in designs.ts: a demo (#/websites/<id>), a couple's published site
+// One wedding website, drawn from a design in designs.ts: a demo (/websites/<id>), a couple's published site
 // (HostedSite.tsx, mode 'hosted') or the editor's live preview (mode 'preview'). Every design shares the same sections and
 // interactions (gate, unrolling scrolls, rolling save-the-date, hanging frames, arch cards); the theme colours,
 // display face and hero layout are what tell them apart.
@@ -702,7 +702,7 @@ function Ceremonies({ d }: { d: Design }) {
 }
 
 export default function WeddingSite() {
-  const d = designByHash(location.hash) ?? DESIGNS[0]
+  const d = designByPath(location.pathname) ?? DESIGNS[0]
   useTitle(`${d.couple.join(' and ')}: ${d.name} wedding website`)
   return <Site d={d} mode="demo" />
 }
@@ -760,7 +760,7 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
 
       <nav aria-label="Sections" className="st-nav" data-show={open || undefined}>
         {mode === 'demo' ? (
-          <a href="#/websites" className="st-back min-w-11" aria-label="All designs">
+          <a href="/websites/" className="st-back min-w-11" aria-label="All designs">
             ←<span className="ml-1.5 hidden sm:inline">All designs</span>
           </a>
         ) : (
@@ -781,7 +781,7 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
         {mode === 'demo' && (
           <div className="flex items-center gap-2">
             {API && (
-              <a href={`${designPath(d)}/edit`} className="st-use">
+              <a href={`${designPath(d)}edit/`} className="st-use">
                 Make yours free
               </a>
             )}
@@ -890,7 +890,7 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
           <>
             <p>
               Made with{' '}
-              <a href="/#/websites" className="underline underline-offset-4 hover:text-(--ov-zari)">
+              <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
                 ShaadiTemplate
               </a>
               , free wedding websites and invitation cards.

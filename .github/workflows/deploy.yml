@@ -29,8 +29,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # Relative base works on username.github.io/<repo>/ and later on a custom domain root, no config change.
-      - run: npm run build -- --base=./
+      # Base / (the site is at the domain root): the website pages are served from /websites/..., where relative asset paths would break.
+      - run: npm run build
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

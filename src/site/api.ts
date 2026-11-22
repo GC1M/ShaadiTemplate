@@ -40,7 +40,7 @@ export function editKey(slug: string) {
   }
 }
 
-// Public links. /w/<slug> is served by public/404.html, which hands it to the app as #/w/<slug>. The edit key
+// Public links. /w/<slug> is served by public/404.html, which hands it to the app (App.tsx). The edit key
 // rides in the fragment so it never reaches a server log; App.tsx takes it off the address with keepKey().
 export const liveLink = (slug: string) => `${location.origin}/w/${slug}`
 export const editLink = (slug: string, key: string) => `${location.origin}/w/${slug}/edit#${key}`

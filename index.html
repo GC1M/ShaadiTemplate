@@ -30,9 +30,12 @@
     <!-- /seo -->
   </head>
   <body>
+    <!-- The home page's own content sits between "home" marks: the build leaves it out of the wedding website pages
+         (/websites/..., vite.config.ts), which are copies of this file. -->
     <div id="root">
       <!-- Static copy of the gallery, which React replaces on mount. It gives crawlers the H1 and keeps the page
            from jumping while the app loads. The header and hero are rendered from src/Hero.tsx at build time. -->
+      <!-- home -->
       <div class="min-h-screen">
         <!-- app-hero -->
         <div class="h-10 bg-wine-deep"></div>
@@ -41,8 +44,10 @@
           <h2 class="font-display text-[40px] leading-none tracking-[-0.015em] sm:text-[56px]">Choose your design</h2>
         </section>
       </div>
+      <!-- /home -->
     </div>
 
+    <!-- home -->
     <!-- Plain HTML so crawlers and no-JS visitors see real text. App.tsx hides it outside the gallery view. -->
     <section id="site-info" class="bg-paper text-ink">
       <div class="mx-auto max-w-3xl px-4 py-16 text-[17px] leading-relaxed sm:px-6">
@@ -123,6 +128,7 @@
         <a class="underline underline-offset-4 hover:text-rose" href="https://in.pinterest.com/shaaditemplate/" rel="me noopener" target="_blank">Pinterest</a>
       </nav>
     </footer>
+    <!-- /home -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

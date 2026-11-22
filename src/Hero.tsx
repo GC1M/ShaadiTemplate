@@ -131,14 +131,14 @@ function Mandap() {
 
 // The site header. The last link swaps between the two products: the invitation cards page links to wedding
 // websites, and the wedding websites page links back to the cards.
-export function SiteHeader({ swap = ['Wedding websites', '#/websites'] }: { swap?: [string, string] }) {
+export function SiteHeader({ swap = ['Wedding websites', '/websites/'] }: { swap?: [string, string] }) {
   return (
   <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-5 sm:px-6">
-    <a href="#" aria-label="ShaadiTemplate home">
+    <a href="/" aria-label="ShaadiTemplate home">
       <Wordmark />
     </a>
     <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px]">
-      {[['Designs', 'templates/'], ['Guides', 'guides/'], swap].map(([label, href]) => (
+      {[['Designs', '/templates/'], ['Guides', '/guides/'], swap].map(([label, href]) => (
         <a key={href} href={href} className="text-rose/80 underline-offset-[6px] hover:text-rose hover:underline">
           {label}
         </a>
