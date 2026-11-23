@@ -77,11 +77,46 @@ function Phone({ d }: { d: Design }) {
 // The painted designs lead the page; the rest keep the order of designs.ts.
 const SHOWN = [...DESIGNS.filter((d) => d.bespoke), ...DESIGNS.filter((d) => !d.bespoke)]
 
+// The home page's websites section (App.tsx, loaded on demand): the two painted designs first, as on this page,
+// then two from other traditions, then the way to the rest. Scrolls sideways on phones, where four phone frames don't fit across.
+const SHOWCASE = ['mahal', 'aangan', 'phulkari', 'noor']
+export function Showcase() {
+  return (
+    <>
+      <ul className="-mx-4 mt-12 flex snap-x snap-mandatory gap-6 overflow-x-auto px-4 pb-4 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
+        {SHOWCASE.map((id) => DESIGNS.find((d) => d.id === id)!).map((d) => (
+          <li key={d.id} className="w-[250px] shrink-0 snap-center lg:w-auto">
+            <a href={designPath(d)} className="group block">
+              <div className="transition-transform duration-500 group-hover:-translate-y-1.5">
+                <Phone d={d} />
+              </div>
+              <h3 className="mt-5 text-center font-display text-[22px]">{d.name}</h3>
+              <p className="mt-1 text-center text-sm text-rose/70">{d.tradition}</p>
+            </a>
+            {API && (
+              <div className="mt-4 text-center">
+                <a href={`${designPath(d)}edit/`} className="zari-button inline-flex min-h-11 items-center rounded-full px-5 text-sm font-medium text-wine-deep">
+                  Make yours free
+                </a>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-10 text-center">
+        <a href="/websites/" className="inline-flex min-h-12 items-center rounded-full border border-zari px-8 text-[15px] text-zari hover:bg-zari hover:text-wine-deep">
+          See all {DESIGNS.length} website designs
+        </a>
+      </div>
+    </>
+  )
+}
+
 export default function Websites() {
   useTitle(WEBSITES_TITLE)
   return (
     <div className="velvet min-h-svh text-rose">
-      <SiteHeader swap={['Invitation cards', '/#templates']} />
+      <SiteHeader />
       <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         <h1 className="mt-10 max-w-[18ch] font-display text-[clamp(2.4rem,6vw,4rem)] leading-[1.05]">Wedding website designs</h1>
         <p className="mt-5 max-w-[58ch] text-lg text-rose/80">One link for every guest: your story, every function, the venue, RSVPs and blessings, on any phone. Open a design to try the live sample{API && ', then make it yours for free'}.</p>

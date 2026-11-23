@@ -93,7 +93,7 @@ button:not(:disabled) { cursor: pointer; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zari-button, .event-tab::after, .design-card, .design > div { transition: none !important; }
+  .zari-button, .event-tab::after, .design-card, .design > div, .hero-phone, .slim-header { transition: none !important; }
 }
 
 /* Velvet: two soft pools of light on wine, with a fine grain so large areas don't look flat. */
@@ -148,7 +148,7 @@ button:not(:disabled) { cursor: pointer; }
 .design:focus-visible { outline: none; }
 
 /* index.html's static info and footer show only on the gallery. */
-html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) {
+html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-closing, #site-footer) {
   display: none;
 }
 
@@ -180,21 +180,32 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
   }
 }
 
-/* Hero: a gold line-art mandap that draws itself on load, platform first and the dome last,
-   with the headline standing in its opening. Every stroke has pathLength=1, so one dash of
-   length 1 sliding from offset 1 to 0 reveals it. Technique from apex-ape's landmark drawing. */
-.mandap-hero {
-  position: relative;
-  height: clamp(640px, 88vh, 880px);
-  overflow: hidden;
+/* Hero: the copy on the left, the scene (mandap with the card, gateway with the website) on the right; stacked on
+   phones. */
+.hero-grid { display: grid; gap: 48px; grid-template-areas: 'copy' 'scene'; }
+.hero-copy { grid-area: copy; }
+.hero-scene { grid-area: scene; width: 100%; max-width: 560px; justify-self: center; }
+@media (min-width: 1100px) {
+  .hero-grid { grid-template-columns: 1fr minmax(0, 560px); grid-template-areas: 'copy scene'; align-items: center; }
 }
+/* Both drawings at one scale (600x900 and 300x620 user units), so the gateway is dropped by the height difference
+   (280 units) and the two platforms meet on one ground line. On phones the gateway goes under the mandap. */
+.hero-scene { --gap: 14px; display: flex; align-items: flex-start; gap: var(--gap); }
+.scene-mandap { flex: 600 1 0; min-width: 0; }
+.scene-gate { flex: 300 1 0; min-width: 0; margin-top: calc((100% - var(--gap)) * 280 / 900); }
+@media (max-width: 599px) {
+  .hero-scene { flex-direction: column; align-items: center; gap: 40px; }
+  .scene-mandap { width: 100%; max-width: 400px; flex: none; }
+  .scene-gate { width: 62%; max-width: 220px; flex: none; margin-top: 0; }
+}
+
+/* The mandap (viewBox 600x900) draws itself; the card stands on its platform (top edge at y 840) between the
+   pillars, and the website phone at its right foot. */
+.hero-stage { position: relative; }
 .mandap {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  height: 100%;
-  aspect-ratio: 1200 / 820;
-  translate: -50% 0;
+  display: block;
+  width: 100%;
+  height: auto;
   fill: none;
   stroke: var(--color-zari);
   stroke-width: 1.6;
@@ -206,7 +217,6 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
   animation: draw var(--dur, 1.6s) cubic-bezier(.32,.72,0,1) calc(var(--d, 0s) + var(--t0, 0ms)) both;
 }
 @keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-/* Flowers: fall outside the pillars, turning as they go, after the mandap is drawn. */
 .mandap .petal {
   fill: #e9a23b;
   opacity: 0;
@@ -219,12 +229,11 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
 .mandap .petal .eye { fill: #a8521c; }
 .mandap .petal.rose .eye { fill: #f0c46a; }
 @keyframes petal {
-  0% { opacity: 0; translate: 0 150px; rotate: 0deg; }
+  0% { opacity: 0; translate: 0 160px; rotate: 0deg; }
   10%, 80% { opacity: .9; }
-  50% { translate: 14px 455px; }
-  100% { opacity: 0; translate: -6px 760px; rotate: 360deg; }
+  50% { translate: 8px 480px; }
+  100% { opacity: 0; translate: -4px 820px; rotate: 360deg; }
 }
-/* Diya flames: filled once the strokes are in, then flicker. */
 .mandap .flame {
   fill: #f0c46a;
   stroke: none;
@@ -234,25 +243,42 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
 }
 @keyframes light { from { opacity: 0; scale: .2; } }
 @keyframes flicker { 50% { scale: .9 1.08; } }
-/* Soft lamplight pooled in the opening, so the headline reads against the velvet. */
-.mandap-hero::before {
-  content: '';
+.hero-card {
   position: absolute;
-  inset: 30% 20% 6%;
-  background: radial-gradient(closest-side, rgba(201, 164, 92, .14), transparent);
+  left: 25%;
+  width: 50%;
+  bottom: calc(100% * 60 / 900);
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+  border-radius: 2px;
+  box-shadow: 0 24px 50px -18px rgba(0, 0, 0, .75), 0 0 0 1px rgba(201, 164, 92, .3);
+  animation-delay: calc(1.2s + var(--t0, 0ms));
 }
-.mandap-hero .hero-copy {
+.hero-card-swap { animation: card-swap .45s ease-out both; }
+@keyframes card-swap { from { opacity: .35; } }
+.hero-phone {
   position: absolute;
-  inset: 45% 0 auto;
-  margin-inline: auto;
-  width: min(640px, 86%);
-  text-align: center;
+  left: 31%;
+  width: 38%;
+  bottom: calc(100% * 60 / 620);
+  aspect-ratio: 1 / 2;
+  overflow: hidden;
+  border: 4px solid #120b0e;
+  border-radius: 14px;
+  box-shadow: 0 20px 36px -12px rgba(0, 0, 0, .8);
+  animation-delay: calc(1.6s + var(--t0, 0ms));
+  transition: translate .4s cubic-bezier(.2,.7,.2,1);
 }
-@media (max-width: 767px) {
-  .mandap-hero { height: auto; padding-bottom: 56px; }
-  .mandap { position: relative; left: auto; translate: none; width: 100%; height: auto; }
-  .mandap-hero .hero-copy { position: relative; inset: auto; margin-top: 8px; }
-}
+.scene-gate:hover .hero-phone { translate: 0 -6px; }
+
+/* The slim header slides in once the hero is out of view. */
+.slim-header { transition: translate .3s cubic-bezier(.2,.7,.2,1); }
+.slim-hidden { translate: 0 -110%; }
+
+/* The guide topics on the home page open like the FAQ: a plus that turns into a cross. */
+.info-topic summary::-webkit-details-marker { display: none; }
+.info-plus { transition: rotate .3s; }
+.info-topic[open] .info-plus { rotate: 45deg; }
 
 /* A light sweep across the main button every few seconds. */
 .shine::after {
@@ -266,13 +292,6 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
 @keyframes shine {
   0%, 60% { translate: -120% 0; }
   100% { translate: 120% 0; }
-}
-
-/* Greeting ribbon: two identical runs, so sliding by half loops seamlessly. */
-.ribbon { animation: ribbon 40s linear infinite; }
-.ribbon:hover { animation-play-state: paused; }
-@keyframes ribbon {
-  to { translate: -50% 0; }
 }
 
 /* Thin zari bar at the top showing how far down the page you are. */
@@ -298,6 +317,6 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
 
 @media (prefers-reduced-motion: reduce) {
   .review-in,
-  .intro, .mandap :is(path, circle), .mandap .flame, .shine::after, .ribbon, .scroll-progress { animation: none; }
+  .intro, .hero-card-swap, .mandap :is(path, circle), .mandap .flame, .shine::after, .scroll-progress { animation: none; }
   .scroll-progress, .mandap .petals { display: none; }
 }
