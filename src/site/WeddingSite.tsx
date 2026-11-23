@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Emblem } from '../card/motifs'
 import { designByPath, designPath, designTitle, DESIGNS, mainOf, type Design } from './designs'
 import { api, API } from './api'
@@ -15,7 +15,7 @@ export const themeVars = ({ theme: t }: Design) =>
   ({ '--ov-kohl': t.bg, '--ov-smoke': t.raised, '--ov-zari': t.accent, '--ov-zari-deep': t.accent, '--ov-mogra': t.text, '--ov-gulab': t.soft, '--font-serif': t.display, '--ov-script': t.script, '--st-panel': t.panel ?? t.raised, '--st-panel-text': t.panelText ?? t.text }) as CSSProperties
 
 // Event times are written in IST.
-const istDate = (t: string) => new Date(t.replace(/(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)/, '$1-$2-$3T$4:$5:$6+05:30'))
+export const istDate = (t: string) => new Date(t.replace(/(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)/, '$1-$2-$3T$4:$5:$6+05:30'))
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
 // True once the element has scrolled into view; it stays true so reveals play once.
@@ -718,7 +718,7 @@ export default function WeddingSite() {
 }
 
 // "Report this site", at the foot of every published site.
-function Report({ slug }: { slug: string }) {
+export function Report({ slug }: { slug: string }) {
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [error, setError] = useState('')
   const send = async (e: FormEvent<HTMLFormElement>) => {
@@ -752,7 +752,74 @@ function Report({ slug }: { slug: string }) {
   )
 }
 
-export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | 'preview'; slug?: string }) {
+// The bar every design shares: back to the designs (or the couple's names on their own site), the section links,
+// and on a sample "Make yours free" and the design switcher. Bespoke designs pass their own links.
+export function SiteNav({ d, mode, links, show, className = '', namesClass = 'ov-display' }: Pick<SiteProps, 'd' | 'mode'> & { links: string[][]; show: boolean; className?: string; namesClass?: string }) {
+  return (
+    <nav aria-label="Sections" className={`st-nav ${className}`} data-show={show || undefined}>
+      {mode === 'demo' ? (
+        <a href="/websites/" className="st-back min-w-11" aria-label="All designs">
+          ←<span className="ml-1.5 hidden sm:inline">All designs</span>
+        </a>
+      ) : (
+        <span className={`st-back ${namesClass}`}>{d.couple.join(' & ')}</span>
+      )}
+      <div className="st-links">
+        {links.map(([id, label]) => (
+          <a key={id} href={`#${id}`} onClick={(e) => jump(e, id, -64)}>
+            {label}
+          </a>
+        ))}
+      </div>
+      {mode === 'demo' && (
+        <div className="flex items-center gap-2">
+          {API && (
+            <a href={`${designPath(d)}edit/`} className="st-use">
+              Make yours free
+            </a>
+          )}
+          <PageSwitch d={d} />
+        </div>
+      )}
+    </nav>
+  )
+}
+
+// The foot of every design: other designs on a sample, the credit line, the report form on a published site, photo credits.
+export function SiteFooter({ d, mode, slug }: SiteProps) {
+  return (
+    <>
+          {mode === 'demo' && (
+            <div className="mx-auto max-w-3xl">
+              <SeeAlso d={d} />
+            </div>
+          )}
+          <p className={mode === 'demo' ? 'mt-8' : undefined}>
+            Made with ❤️ by{' '}
+            <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
+              ShaadiTemplate
+            </a>
+          </p>
+          {mode === 'hosted' && slug && <Report slug={slug} />}
+          <PhotoCredits d={d} />
+    </>
+  )
+}
+
+export type SiteProps = { d: Design; mode: 'demo' | 'hosted' | 'preview'; slug?: string }
+const BESPOKE = { mahal: lazy(() => import('./bespoke/Mahal')), aangan: lazy(() => import('./bespoke/Aangan')) }
+
+export function Site(p: SiteProps) {
+  const Bespoke = p.d.bespoke && BESPOKE[p.d.bespoke]
+  if (!Bespoke) return <Shared {...p} />
+  return (
+    <Suspense fallback={<div className="min-h-svh" style={{ background: p.d.theme.bg }} />}>
+      <Bespoke {...p} />
+    </Suspense>
+  )
+}
+
+function Shared({ d, mode, slug }: SiteProps) {
   useLenis()
   const [open, setOpen] = useState(false)
   useEffect(() => {
@@ -770,37 +837,7 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
     <div className="ov st" style={themeVars(d)}>
       <Gate d={d} open={open} onOpen={() => setOpen(true)} />
 
-      <nav aria-label="Sections" className="st-nav" data-show={open || undefined}>
-        {mode === 'demo' ? (
-          <a href="/websites/" className="st-back min-w-11" aria-label="All designs">
-            ←<span className="ml-1.5 hidden sm:inline">All designs</span>
-          </a>
-        ) : (
-          <span className="st-back ov-display">{d.couple.join(' & ')}</span>
-        )}
-        <div className="st-links">
-          {[
-            ['story', 'Story'],
-            ['celebrations', 'Ceremonies'],
-            ['venue', 'Venue'],
-            ['rsvp', 'RSVP'],
-          ].map(([id, label]) => (
-            <a key={id} href={`#${id}`} onClick={(e) => jump(e, id, -64)}>
-              {label}
-            </a>
-          ))}
-        </div>
-        {mode === 'demo' && (
-          <div className="flex items-center gap-2">
-            {API && (
-              <a href={`${designPath(d)}edit/`} className="st-use">
-                Make yours free
-              </a>
-            )}
-            <PageSwitch d={d} />
-          </div>
-        )}
-      </nav>
+      <SiteNav d={d} mode={mode} show={open} links={[['story', 'Story'], ['celebrations', 'Ceremonies'], ['venue', 'Venue'], ['rsvp', 'RSVP']]} />
 
       <Hero d={d} open={open} />
 
@@ -897,19 +934,7 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
       )}
 
       <footer className="px-6 py-16 text-center text-sm opacity-80">
-        {mode === 'demo' && (
-          <div className="mx-auto max-w-3xl">
-            <SeeAlso d={d} />
-          </div>
-        )}
-        <p className={mode === 'demo' ? 'mt-8' : undefined}>
-          Made with ❤️ by{' '}
-          <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
-            ShaadiTemplate
-          </a>
-        </p>
-        {mode === 'hosted' && slug && <Report slug={slug} />}
-        <PhotoCredits d={d} />
+        <SiteFooter d={d} mode={mode} slug={slug} />
       </footer>
     </div>
   )

@@ -38,8 +38,16 @@ function Phone({ d }: { d: Design }) {
       <p className="ov-meta mt-3 text-[0.5rem] uppercase">{d.city}</p>
     </div>
   )
+  const frame = 'ov relative mx-auto h-[500px] w-[250px] overflow-hidden rounded-[2rem] border-[6px] border-[#120b0e] shadow-2xl'
+  // A design with its own painted opening shows a still of it.
+  if (d.cover)
+    return (
+      <div className={frame}>
+        <img src={d.cover} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+      </div>
+    )
   return (
-    <div className="ov relative mx-auto h-[500px] w-[250px] overflow-hidden rounded-[2rem] border-[6px] border-[#120b0e] shadow-2xl" style={themeVars(d)} onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)}>
+    <div className={frame} style={themeVars(d)} onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)}>
       {d.layout === 'veil' && (
         <>
           {photo}
