@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowUp, Copy, Download, ExternalLink, Loader2, Mail, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
 import { track } from '../analytics'
 import { Wordmark } from '../Hero'
 import { api, editKey, editLink, lean, liveLink } from './api'
@@ -48,6 +48,31 @@ function startDraft(lookId: string): Draft {
   }
   const content = fresh(look)
   return { look: look.id, content, slug: suggest(content.couple) }
+}
+
+// The parts of a site still holding a design's sample words, named as the form names them. Every design is checked:
+// switching design keeps the words typed (or not) so far.
+const DEMOS = LOOKS.map((l) => l.demo)
+export function leftovers(c: Content): string[] {
+  const any = (f: (d: Look['demo']) => (string | undefined)[], mine: (string | undefined)[]) => {
+    const sample = new Set(DEMOS.flatMap(f).filter(Boolean))
+    return mine.some((v) => v?.trim() && sample.has(v.trim()))
+  }
+  const found: [string, boolean][] = [
+    ['your names', DEMOS.some((d) => d.couple[0] === c.couple[0].trim() && d.couple[1] === c.couple[1].trim())],
+    ['family names', any((d) => [...d.families, ...d.parents], [...c.families, ...c.parents])],
+    ['invitation line', any((d) => [d.invite], [c.invite])],
+    ['city and venue', any((d) => [d.city, d.venue], [c.city, c.venue])],
+    ['reply-by date', any((d) => [d.rsvpBy], [c.rsvpBy])],
+    ['travel and stay', any((d) => [d.stay], [c.stay])],
+    ['event dates', any((d) => d.events.map((e) => e.date), c.events.map((e) => e.date))],
+    ['event places and notes', any((d) => d.events.flatMap((e) => [e.where, e.note]), c.events.flatMap((e) => [e.where, e.note]))],
+    ['your story', any((d) => d.story.flatMap((x) => [x.title, x.body]), c.story.flatMap((x) => [x.title, x.body]))],
+    ['note from the two of you', any((d) => [d.note], [c.note])],
+    ['things to note', any((d) => d.notes, c.notes)],
+    ['best compliments', any((d) => d.compliments ?? [], c.compliments ?? [])],
+  ]
+  return found.filter(([, on]) => on).map(([name]) => name)
 }
 
 // Blank optional sections are left out, and blank lines dropped, so the site doesn't draw empty scrolls.
@@ -229,6 +254,9 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
 
   const publish = async (e: FormEvent) => {
     e.preventDefault()
+    // A first publish with the design's sample words still in asks first: guests would read them as the couple's.
+    const left = leftovers(c)
+    if (!draft.key && left.length && !confirm(`These still have the design's sample words: ${left.join(', ')}. Guests will see them as written. Publish anyway?`)) return
     setBusy(true)
     setError('')
     setSaved(false)
@@ -726,6 +754,7 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
   const edit = editLink(draft.slug, draft.key!)
   const [note, setNote] = useState('')
   const names = draft.content.couple.join(' & ')
+  const left = leftovers(draft.content)
   const mail = `mailto:?subject=${encodeURIComponent('Our wedding website: edit link')}&body=${encodeURIComponent(`Our wedding website: ${live}\n\nSecret edit link (keep it private, anyone with it can change the site):\n${edit}`)}`
   return (
     <div className={`space-y-4 rounded-md p-5 ring-1 ${fresh ? 'bg-paper ring-zari' : 'bg-paper/70 ring-wine/10'}`}>
@@ -748,7 +777,7 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
       <div className={fresh ? 'rounded-md bg-zari/15 p-4' : ''}>
         <span className="text-[13px] text-ink/65">Your secret edit link</span>
         <p className="mt-1 break-all text-[15px]">{edit}</p>
-        <p className="mt-1 text-[13px] text-ink/60">There is no password. Anyone with this link can change your site, and we can't send it again, so email it to yourself now.</p>
+        <p className="mt-1 text-[13px] text-ink/60">There is no password. Anyone with this link can change your site. Add your email below and we'll send it to you, so you can always find it.</p>
         <div className="mt-2 flex flex-wrap gap-2">
           <a href={mail} className={small}>
             <Mail className="size-4" aria-hidden /> Email it to me
@@ -758,6 +787,30 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
           </button>
         </div>
       </div>
+      <Contact slug={draft.slug} edit={draft.key!} />
+      {left.length > 0 && (
+        <p className="rounded-md bg-wine/5 p-3 text-[14px] text-wine">
+          Still the design's sample words: {left.join(', ')}. Change them below and press Save changes.
+        </p>
+      )}
+      {fresh && (
+        <div className="space-y-1 text-[14px] text-ink/75">
+          <p>
+            Sharing it on Instagram? Tag{' '}
+            <a href="https://instagram.com/shaaditemplate" target="_blank" rel="noreferrer" onClick={() => track('site_instagram_click')} className="text-wine underline underline-offset-4">
+              @shaaditemplate
+            </a>{' '}
+            and we may feature your site.
+          </p>
+          <p>
+            Need invitation cards to match?{' '}
+            <a href="/" onClick={() => track('site_cards_click')} className="text-wine underline underline-offset-4">
+              Make one free
+            </a>
+            , ready to send on WhatsApp or print.
+          </p>
+        </div>
+      )}
       {keepUntil(draft.content.events) && (
         <p className="text-[13px] text-ink/65">
           Your website stays up until <span className="font-medium text-ink">{keepUntil(draft.content.events)}</span>, 30 days after your last function. Then it is deleted with its photos, replies and blessings, so download your guest replies before that.
@@ -766,6 +819,66 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
       <p className="text-[13px] text-wine" aria-live="polite">
         {note}
       </p>
+    </div>
+  )
+}
+
+// How to reach the couple (both optional): a new email gets the edit link, a daily note of replies and a reminder
+// before the site is deleted. News of new designs only with the box ticked, which starts unticked.
+function Contact({ slug, edit }: { slug: string; edit: string }) {
+  const [form, setForm] = useState({ email: '', phone: '', marketing: false })
+  const [state, setState] = useState<'loading' | 'idle' | 'saving'>('loading')
+  const [note, setNote] = useState('')
+  useEffect(() => {
+    api<typeof form>(`sites/${slug}/contact`, { key: edit }).then(
+      (c) => (setForm(c), setState('idle')),
+      () => setState('idle'),
+    )
+  }, [slug, edit])
+  const save = async () => {
+    setState('saving')
+    setNote('')
+    try {
+      const r = await api<{ sent: boolean }>(`sites/${slug}/contact`, { method: 'PUT', key: edit, body: form })
+      setNote(r.sent ? `Saved. We've emailed your edit link to ${form.email}.` : form.email || form.phone ? "Saved. We'll use it only for your website." : 'Removed.')
+      track('site_contact', { email: !!form.email, phone: !!form.phone, marketing: form.marketing })
+    } catch (err) {
+      setNote((err as Error).message)
+    } finally {
+      setState('idle')
+    }
+  }
+  const set = (k: 'email' | 'phone') => (e: ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  if (state === 'loading') return null
+  return (
+    // Its own little form inside the site's form: Enter here saves the contact, not the site.
+    <div className="space-y-3 rounded-md border border-wine/15 p-4" onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), save())}>
+      <div>
+        <p className="font-medium">Where should we send your edit link?</p>
+        <p className="mt-0.5 text-[13px] text-ink/65">Optional. We'll also tell you when guests reply, and remind you before your site is deleted.</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-[13px] text-ink/65">
+          Email
+          <input type="email" autoComplete="email" maxLength={120} value={form.email} onChange={set('email')} className={inputCls} />
+        </label>
+        <label className="block text-[13px] text-ink/65">
+          WhatsApp number
+          <input type="tel" autoComplete="tel" maxLength={30} placeholder="+91" value={form.phone} onChange={set('phone')} className={inputCls} />
+        </label>
+      </div>
+      <label className="flex items-start gap-2 text-[14px] text-ink/75 pointer-coarse:min-h-11">
+        <input type="checkbox" checked={form.marketing} onChange={(e) => setForm((f) => ({ ...f, marketing: e.target.checked }))} className="mt-1 size-4 accent-wine" />
+        Also send me new designs and offers now and then.
+      </label>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={save} disabled={state === 'saving'} className={small}>
+          {state === 'saving' && <Loader2 className="size-4 animate-spin" aria-hidden />} Save
+        </button>
+        <span className="text-[13px] text-wine" aria-live="polite">
+          {note}
+        </span>
+      </div>
     </div>
   )
 }

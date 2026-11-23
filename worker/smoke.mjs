@@ -82,6 +82,18 @@ assert.equal((await call('DELETE', `/api/sites/${slug}/blessings/${list.data[0].
 assert.equal((await call('GET', `/api/sites/${slug}/blessings`)).data.length, 0)
 assert.equal((await call('POST', `/api/sites/${slug}/blessings`, { name: 'Asha', text: 'Two people who really deserve each other. May Maa Durga and Ganesh ji bless you.' })).status, 201)
 assert.equal((await call('POST', `/api/sites/${slug}/report`, { reason: 'spam' })).status, 201)
+
+// Contact: owner only, checked, and removed with the site (kept only with the news box ticked).
+assert.equal((await call('GET', `/api/sites/${slug}/contact`)).status, 403)
+assert.deepEqual((await call('GET', `/api/sites/${slug}/contact`, undefined, key)).data, { email: '', phone: '', marketing: false })
+assert.equal((await call('PUT', `/api/sites/${slug}/contact`, { email: 'not-an-email' }, key)).status, 400)
+assert.equal((await call('PUT', `/api/sites/${slug}/contact`, { phone: '12' }, key)).status, 400)
+const saved = await call('PUT', `/api/sites/${slug}/contact`, { email: 'Asha@Example.com', phone: '+91 98765 43210', marketing: true }, key)
+assert.equal(saved.status, 200, JSON.stringify(saved.data))
+assert.equal(saved.data.sent, false) // no RESEND_API_KEY locally
+assert.deepEqual((await call('GET', `/api/sites/${slug}/contact`, undefined, key)).data, { email: 'asha@example.com', phone: '+919876543210', marketing: true })
+assert.equal((await call('PUT', `/api/sites/${slug}/contact`, { email: '', phone: '' }, key)).status, 200)
+assert.deepEqual((await call('GET', `/api/sites/${slug}/contact`, undefined, key)).data, { email: '', phone: '', marketing: false })
 assert.equal((await call('GET', '/api/sites/no-such-site')).status, 404)
 assert.equal((await call('DELETE', `/api/sites/${slug}`, undefined, 'wrong')).status, 403)
 assert.equal((await call('DELETE', `/api/sites/${slug}`, undefined, key)).status, 200)

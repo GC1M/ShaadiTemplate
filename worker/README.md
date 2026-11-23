@@ -30,11 +30,33 @@ Run these from the `worker/` folder.
 
 Run step 5 again after changing anything in `worker/`.
 
+## Couples' contact details and emails
+
+After publishing, the editor asks (optionally) for an email and a WhatsApp number, with a separate unticked box for news of new designs. They land in the `contacts` table. An email gets:
+
+- the edit link, as soon as it is saved (at most 5 such emails per site, so an edit key can't be used to mail strangers);
+- a daily note of new RSVPs and blessings (the 3 am cron);
+- one reminder 7 days before the site is deleted.
+
+WhatsApp numbers are only stored; nothing sends to them yet. When a site is deleted its contact goes too, unless they ticked the news box.
+
+Email goes out through [Resend](https://resend.com) (free: 3,000 a month, 100 a day). One-time setup:
+
+1. Create a Resend account, add the domain `shaaditemplate.com`, and add the DNS records it shows at the domain's DNS host. Wait until Resend says the domain is verified.
+2. Create an API key with "Sending access" and store it: `npx wrangler secret put RESEND_API_KEY`.
+3. The sender is `MAIL_FROM` in `wrangler.toml` (`hello@shaaditemplate.com`); change it if you like.
+
+Until the key is set nothing is sent: contacts are still saved and the editor says the email could not be sent. People who asked for news:
+
+```sql
+SELECT email, phone, datetime(at / 1000, 'unixepoch') FROM contacts WHERE marketing = 1;
+```
+
 ## Sites are deleted 30 days after their last event
 
 A daily Cron Trigger (`wrangler.toml`, 3 am India time) deletes every site whose latest event date is more than 30 days ago, with its photos, RSVPs and blessings (`expire()` in `src/index.ts`, up to 50 sites a run). The editor shows couples the date and lets them download their guest replies as a spreadsheet. This keeps photo storage inside the free 10 GB. To change the 30 days, change `KEEP_DAYS` in `src/index.ts`, `keepUntil` in `src/site/SiteEditor.tsx`, and the wording in `public/privacy.html` and `public/terms.html`.
 
-Run it locally: with `npm run dev` going, open `http://localhost:8787/__scheduled`.
+Run it locally: with `npm run dev` going, run `curl http://localhost:8787/cdn-cgi/local/scheduled`.
 
 ## Moderation
 

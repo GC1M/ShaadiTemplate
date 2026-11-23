@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Emblem } from '../card/motifs'
 import { designByPath, designPath, designTitle, DESIGNS, mainOf, type Design } from './designs'
+import { track } from '../analytics'
 import { api, API } from './api'
 import { Backdrop, Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion, useLenis, useTitle } from './shared'
 import './organza.css'
@@ -793,6 +794,15 @@ export function SiteFooter({ d, mode, slug }: SiteProps) {
             <div className="mx-auto max-w-3xl">
               <SeeAlso d={d} />
             </div>
+          )}
+          {/* Every guest is a cousin or friend with a wedding of their own coming. */}
+          {mode === 'hosted' && (
+            <p className="mb-3 text-base">
+              Planning a wedding too?{' '}
+              <a href="/websites/" onClick={() => track('site_ref_click')} className="underline underline-offset-4 hover:text-(--ov-zari)">
+                Make your own website, free
+              </a>
+            </p>
           )}
           <p className={mode === 'demo' ? 'mt-8' : undefined}>
             Made with ❤️ by{' '}
