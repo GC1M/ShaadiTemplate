@@ -93,11 +93,18 @@ export function Showcase() {
               <h3 className="mt-5 text-center font-display text-[22px]">{d.name}</h3>
               <p className="mt-1 text-center text-sm text-rose/70">{d.tradition}</p>
             </a>
+            {API && (
+              <div className="mt-4 text-center">
+                <a href={`${designPath(d)}edit/`} className="zari-button inline-flex min-h-11 items-center rounded-full px-5 text-sm font-medium text-wine-deep">
+                  Make yours free
+                </a>
+              </div>
+            )}
           </li>
         ))}
       </ul>
       <div className="mt-10 text-center">
-        <a href="/websites/" className="zari-button inline-flex min-h-12 items-center rounded-full px-8 text-[15px] font-medium text-wine-deep">
+        <a href="/websites/" className="inline-flex min-h-12 items-center rounded-full border border-zari px-8 text-[15px] text-zari hover:bg-zari hover:text-wine-deep">
           See all {DESIGNS.length} website designs
         </a>
       </div>

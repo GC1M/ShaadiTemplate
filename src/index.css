@@ -93,7 +93,7 @@ button:not(:disabled) { cursor: pointer; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zari-button, .event-tab::after, .design-card, .design > div, .hero-phone { transition: none !important; }
+  .zari-button, .event-tab::after, .design-card, .design > div, .hero-phone, .slim-header { transition: none !important; }
 }
 
 /* Velvet: two soft pools of light on wine, with a fine grain so large areas don't look flat. */
@@ -148,7 +148,7 @@ button:not(:disabled) { cursor: pointer; }
 .design:focus-visible { outline: none; }
 
 /* index.html's static info and footer show only on the gallery. */
-html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) {
+html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-closing, #site-footer) {
   display: none;
 }
 
@@ -271,6 +271,15 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
 }
 .scene-gate:hover .hero-phone { translate: 0 -6px; }
 
+/* The slim header slides in once the hero is out of view. */
+.slim-header { transition: translate .3s cubic-bezier(.2,.7,.2,1); }
+.slim-hidden { translate: 0 -110%; }
+
+/* The guide topics on the home page open like the FAQ: a plus that turns into a cross. */
+.info-topic summary::-webkit-details-marker { display: none; }
+.info-plus { transition: rotate .3s; }
+.info-topic[open] .info-plus { rotate: 45deg; }
+
 /* A light sweep across the main button every few seconds. */
 .shine::after {
   content: '';
@@ -283,13 +292,6 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
 @keyframes shine {
   0%, 60% { translate: -120% 0; }
   100% { translate: 120% 0; }
-}
-
-/* Greeting ribbon: two identical runs, so sliding by half loops seamlessly. */
-.ribbon { animation: ribbon 40s linear infinite; }
-.ribbon:hover { animation-play-state: paused; }
-@keyframes ribbon {
-  to { translate: -50% 0; }
 }
 
 /* Thin zari bar at the top showing how far down the page you are. */
@@ -315,6 +317,6 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
 
 @media (prefers-reduced-motion: reduce) {
   .review-in,
-  .intro, .hero-card-swap, .mandap :is(path, circle), .mandap .flame, .shine::after, .ribbon, .scroll-progress { animation: none; }
+  .intro, .hero-card-swap, .mandap :is(path, circle), .mandap .flame, .shine::after, .scroll-progress { animation: none; }
   .scroll-progress, .mandap .petals { display: none; }
 }

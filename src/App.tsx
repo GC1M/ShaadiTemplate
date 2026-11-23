@@ -4,7 +4,7 @@ import Editor from './Editor'
 import { EVENTS, LANGS, SYMBOLS } from './i18n'
 import { carryDetails, isEdited, liveId, loadDrafts, newInvite, saveDrafts, templateById, TEMPLATES, type Template } from './templates'
 import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang, type SymbolId } from './types'
-import { Hero, HERO_CARD, HERO_LANGS, HeroDemo, preview } from './Hero'
+import { Hero, HERO_CARD, HERO_LANGS, HeroDemo, preview, Wordmark } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
 import { track } from './analytics'
 import { land, sitePath, siteView } from './siteRoutes'
@@ -161,7 +161,7 @@ function Numbers() {
 
 // The hero's card, drawn live so its words can change script. It moves to the next language every few seconds
 // until the visitor picks one (or never, under reduced motion).
-function LiveCard({ onOpen }: { onOpen: (t: Template, lang?: Lang) => void }) {
+function LiveCard({ onOpen, onPick }: { onOpen: (t: Template, lang?: Lang) => void; onPick: (l: Lang) => void }) {
   const t = templateById(HERO_CARD)
   const [lang, setLang] = useState<string>('gu')
   const [picked, setPicked] = useState(false)
@@ -175,6 +175,7 @@ function LiveCard({ onOpen }: { onOpen: (t: Template, lang?: Lang) => void }) {
     setPicked(true)
     setLang(l)
     track('hero_language', { lang: l })
+    onPick(l as Lang) // the gallery's cards follow the language the visitor chose
   }
   return (
     <HeroDemo
@@ -198,7 +199,88 @@ const STEPS: [string, string][] = [
   ['Send it', 'Download the card for WhatsApp or as a print PDF, or publish your website and share one link.'],
 ]
 
-const GREETINGS = ['Shubh Vivah', 'शुभ विवाह', 'શુભ લગ્ન', 'ਸ਼ੁਭ ਵਿਆਹ', 'சுப முகூர்த்தம்', 'शुभमंगल सावधान', 'Save the Date']
+// A slim bar with both products (and the way back to a card under way) once the hero's own header has scrolled
+// away, so neither product is ever more than one tap off on a long page.
+function SlimHeader({ draftName }: { draftName?: string | null }) {
+  const [show, setShow] = useState(false)
+  useEffect(() => {
+    const hero = document.querySelector('.hero')
+    if (!hero) return
+    const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting))
+    io.observe(hero)
+    return () => io.disconnect()
+  }, [])
+  const link = 'text-rose/85 underline-offset-[6px] hover:text-rose hover:underline'
+  return (
+    <div className={`slim-header velvet fixed inset-x-0 top-0 z-30 text-rose shadow-lg ${show ? '' : 'slim-hidden'}`} inert={!show}>
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <a href="/" aria-label="ShaadiTemplate home" className="-mr-10 origin-left scale-[.8] sm:mr-0 sm:scale-90">
+          <Wordmark />
+        </a>
+        <nav className="flex items-center gap-x-4 text-[14px] sm:gap-x-6 sm:text-[15px]">
+          <a href="#templates" className={link}>
+            <span className="sm:hidden">Cards</span>
+            <span className="hidden sm:inline">Invitation cards</span>
+          </a>
+          <a href="/websites/" className={link}>
+            <span className="sm:hidden">Websites</span>
+            <span className="hidden sm:inline">Wedding websites</span>
+          </a>
+          {draftName && (
+            <a href="#edit" title={`Continue ${draftName}`} className="zari-button hidden min-h-9 items-center rounded-full px-4 text-wine-deep md:inline-flex">
+              Continue your card
+            </a>
+          )}
+        </nav>
+      </div>
+    </div>
+  )
+}
+
+// Step 3 as the family sees it: the card and the website link arriving in a WhatsApp family group, and a reply.
+// An illustration in WhatsApp's own chat colours, so it reads at a glance; not a screenshot of a real chat.
+function SentOnWhatsApp() {
+  const time = 'text-[10px] text-black/45'
+  return (
+    <figure aria-label="The card and the website link sent in a WhatsApp family group" className="mx-auto w-full max-w-[360px] overflow-hidden rounded-[22px] border-[6px] border-[#120b0e] bg-[#efe7dd] shadow-2xl">
+      <div className="flex items-center gap-3 bg-[#075e54] px-4 py-3 text-white">
+        <span className="grid size-9 place-items-center rounded-full bg-white/20 font-display text-lg">S</span>
+        <span className="leading-tight">
+          <span className="block text-[15px] font-medium">Sharma Parivar</span>
+          <span className="block text-xs text-white/75">Mummy, Papa, Bua, Chachu and 42 others</span>
+        </span>
+      </div>
+      <div className="space-y-2 px-3 py-4 text-[14px] leading-snug text-[#111b21]">
+        <div className="ml-auto w-[78%] rounded-lg rounded-tr-none bg-[#d9fdd3] p-1.5 shadow-sm">
+          <img src={preview('sandhya-kankotri')} width={540} height={960} loading="lazy" alt="" className="aspect-[9/12] w-full rounded object-cover object-top" />
+          <p className="px-1.5 pt-1.5">Shaadi ka card. Aap sab ko zaroor aana hai 🙏</p>
+          <p className={`px-1.5 text-right ${time}`}>7:42 pm ✓✓</p>
+        </div>
+        <div className="ml-auto w-[78%] rounded-lg bg-[#d9fdd3] p-1.5 shadow-sm">
+          <div className="flex overflow-hidden rounded bg-black/5">
+            <img src="/site-art/mahal/cover.webp" alt="" loading="lazy" className="h-16 w-12 object-cover" />
+            <span className="px-2 py-1.5 text-[12px] leading-tight">
+              <span className="block font-medium">Mrinalini and Advait</span>
+              <span className="block text-black/55">Every function, the venue map and RSVP</span>
+            </span>
+          </div>
+          <p className="px-1.5 pt-1.5 text-[#027eb5]">shaaditemplate.com/w/mrinalini-advait</p>
+          <p className={`px-1.5 text-right ${time}`}>7:42 pm ✓✓</p>
+        </div>
+        <div className="w-[70%] rounded-lg rounded-tl-none bg-white p-2 shadow-sm">
+          <p className="text-[12px] font-medium text-[#c2185b]">Bua</p>
+          <p>Zaroor aayenge! Card bahut sundar hai 💐</p>
+          <p className={`text-right ${time}`}>7:45 pm</p>
+        </div>
+      </div>
+    </figure>
+  )
+}
+
+// The first eight cards on the home page: featured designs only, alternating ceremonies (wedding kankotri, chandla
+// vidhi, simant, English engagement) so the first rows show the range. The rest follow, featured first.
+const FIRST = ['sandhya-kankotri', 'neel-sagar-chandla', 'gulabi-mamta-simant', 'meadow-vows-engagement', 'raj-mahel-kankotri', 'kamal-saath-chandla', 'hindolo-simant', 'rose-arch-engagement']
+const rank = (t: Template) => (FIRST.includes(t.id) ? FIRST.indexOf(t.id) : FIRST.length + Number(!t.featured))
 
 function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang) => void; draft: Invite | null; drafts: Invite[] }) {
   const [lang, setLang] = useState<Lang | 'all'>('all')
@@ -208,12 +290,13 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
   const [elapsed] = useState(() => performance.now())
   // Every design can be made in every language, so the language filter picks the card's language instead of hiding designs.
   const bySymbol = TEMPLATES.filter((t) => symbol === 'all' || t.symbol === symbol || !!t.also?.includes(symbol))
-  const shown = bySymbol.filter((t) => event === 'all' || t.event === event).sort((a, b) => Number(!!b.featured) - Number(!!a.featured))
+  const shown = bySymbol.filter((t) => event === 'all' || t.event === event).sort((a, b) => rank(a) - rank(b))
   const count = (e: EventType | 'all') => bySymbol.filter((t) => e === 'all' || t.event === e).length
   const filtered = lang !== 'all' || symbol !== 'all' || event !== 'all'
-  // The home page opens on the first eight (featured first); every card stays in the page for crawlers.
+  // The home page opens on the first eight (FIRST); every card stays in the page for crawlers.
   const [all, setAll] = useState(false)
-  const short = !all && !filtered && shown.length > 8
+  // A language choice keeps the short view: it changes the cards' words, not which cards show.
+  const short = !all && symbol === 'all' && event === 'all' && shown.length > 8
   const clear = () => {
     setLang('all')
     setSymbol('all')
@@ -238,27 +321,14 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
   return (
     <div className="min-h-screen">
       <div className="scroll-progress" aria-hidden />
-      <Hero draftName={draftName} elapsed={elapsed} demo={<LiveCard onOpen={onOpen} />} />
+      <SlimHeader draftName={draftName} />
+      <Hero draftName={draftName} elapsed={elapsed} demo={<LiveCard onOpen={onOpen} onPick={setLang} />} />
       <ZariBorder />
       <Numbers />
 
-      {/* A slow ribbon of the greeting in every script the maker supports. */}
-      <div className="overflow-hidden border-b border-wine/10 py-5" aria-hidden>
-        <div className="ribbon flex w-max whitespace-nowrap font-display text-[26px] italic text-wine/70 sm:text-[32px]">
-          {[0, 1].map((k) =>
-            GREETINGS.map((g, i) => (
-              <span key={`${k}-${i}`} className="flex items-center gap-10 pr-10">
-                {g}
-                <span className="text-[18px] not-italic text-zari">✦</span>
-              </span>
-            )),
-          )}
-        </div>
-      </div>
-
       <section id="templates" className="mx-auto max-w-6xl scroll-mt-2 px-4 pb-24 pt-16 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-6">
-          <h2 className="reveal font-display text-[40px] leading-none tracking-[-0.015em] sm:text-[56px]">Choose your design</h2>
+          <h2 className="reveal font-display text-[40px] leading-none tracking-[-0.015em] sm:text-[56px]">Invitation cards</h2>
           <div className="grid w-full grid-cols-2 items-center gap-3 sm:flex sm:w-auto sm:flex-wrap">
             <select aria-label="Language" value={lang} onChange={(e) => setLang(e.target.value as Lang | 'all')} className={select}>
               <option value="all">Any language</option>
@@ -300,7 +370,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
 
         {/* The event is the first thing people know, so it leads and stays in reach while scrolling. */}
         <div ref={top} className="mt-8" />
-        <div className="sticky top-0 z-20 -mx-4 bg-rose/90 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
+        <div className="sticky top-14 z-20 -mx-4 bg-rose/90 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
           <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
             <div className="flex min-w-max gap-1 border-b border-wine/15 pt-3" role="group" aria-label="Invitation type">
               {(['all', ...EVENT_IDS] as const).map((e) => (
@@ -352,7 +422,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
                     {EVENTS[t.event]}, {LANGS[cardLang(t)].native}
                   </p>
                   <span className="mt-2.5 text-sm font-medium text-wine underline decoration-zari underline-offset-[6px] group-hover:decoration-wine">
-                    Customize
+                    Make this card
                   </span>
                 </a>
               )
@@ -382,36 +452,26 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
       </section>
       <ZariBorder />
 
-      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <h2 className="font-display text-[34px] leading-tight sm:text-[44px]">Three steps to your guests' phones</h2>
-        <ol className="mt-10 grid gap-10 sm:grid-cols-3">
-          {STEPS.map(([title, text], i) => (
-            <li key={title} className="border-t border-zari/60 pt-5">
-              <span className="font-display text-[48px] leading-none text-gold">{i + 1}</span>
-              <h3 className="mt-3 font-display text-[24px]">{title}</h3>
-              <p className="mt-2 max-w-[34ch] text-ink/75">{text}</p>
-            </li>
-          ))}
-        </ol>
+      <section className="mx-auto grid max-w-6xl items-center gap-x-16 gap-y-12 px-4 py-20 sm:px-6 md:grid-cols-[1fr_360px]">
+        <div>
+          <h2 className="font-display text-[34px] leading-tight sm:text-[44px]">Three steps to your guests' phones</h2>
+          <ol className="mt-10 space-y-8">
+            {STEPS.map(([title, text], i) => (
+              <li key={title} className="grid grid-cols-[3rem_1fr] gap-x-4 border-t border-zari/60 pt-5">
+                <span className="font-display text-[44px] leading-none text-gold">{i + 1}</span>
+                <span>
+                  <h3 className="font-display text-[24px]">{title}</h3>
+                  <p className="mt-1.5 max-w-[48ch] text-ink/75">{text}</p>
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+        <SentOnWhatsApp />
       </section>
 
       <Reviews />
 
-      {/* The two doors again, for whoever scrolled all the way down. */}
-      <section className="velvet text-rose">
-        <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
-          <h2 className="font-display text-[36px] leading-tight sm:text-[48px]">Haan ji, hum tayaar hain</h2>
-          <p className="mt-4 text-[17px] text-rose/80">Start with the card or the website. Both are free, and you can make the other one later.</p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <a href="#templates" className="zari-button inline-flex min-h-12 items-center rounded-full px-8 text-[15px] font-medium text-wine-deep">
-              Make the card
-            </a>
-            <a href="/websites/" className="inline-flex min-h-12 items-center rounded-full border border-zari px-8 text-[15px] text-zari hover:bg-zari hover:text-wine-deep">
-              Make the website
-            </a>
-          </div>
-        </div>
-      </section>
     </div>
   )
 }
