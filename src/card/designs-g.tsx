@@ -345,7 +345,6 @@ export const templates: Template[] = [
     symbol: 'ganesha',
     also: ['ranchhodrai'],
     ...simant,
-    featured: true,
     tr: trHaryali,
     pages: [
       {
