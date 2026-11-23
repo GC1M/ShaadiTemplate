@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Emblem } from '../card/motifs'
 import { designByPath, designPath, designTitle, DESIGNS, mainOf, type Design } from './designs'
 import { api, API } from './api'
@@ -718,7 +718,7 @@ export default function WeddingSite() {
 }
 
 // "Report this site", at the foot of every published site.
-function Report({ slug }: { slug: string }) {
+export function Report({ slug }: { slug: string }) {
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [error, setError] = useState('')
   const send = async (e: FormEvent<HTMLFormElement>) => {
@@ -752,7 +752,20 @@ function Report({ slug }: { slug: string }) {
   )
 }
 
-export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | 'preview'; slug?: string }) {
+export type SiteProps = { d: Design; mode: 'demo' | 'hosted' | 'preview'; slug?: string }
+const BESPOKE = { mahal: lazy(() => import('./bespoke/Mahal')), aangan: lazy(() => import('./bespoke/Aangan')) }
+
+export function Site(p: SiteProps) {
+  const Bespoke = p.d.bespoke && BESPOKE[p.d.bespoke]
+  if (!Bespoke) return <Shared {...p} />
+  return (
+    <Suspense fallback={<div className="min-h-svh" style={{ background: p.d.theme.bg }} />}>
+      <Bespoke {...p} />
+    </Suspense>
+  )
+}
+
+function Shared({ d, mode, slug }: SiteProps) {
   useLenis()
   const [open, setOpen] = useState(false)
   useEffect(() => {

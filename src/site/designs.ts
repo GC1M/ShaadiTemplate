@@ -32,6 +32,10 @@ export type Look = {
   emblem?: SymbolId
   // A save-the-date the guest reveals with a tap.
   dateReveal?: boolean
+  // A design with its own painted scenes, drawn by its own component in site/bespoke/ instead of the shared
+  // sections; cover is its opening screen for the designs page (public/site-art/<id>/cover.webp).
+  bespoke?: 'mahal' | 'aangan'
+  cover?: string
   demo: Content
 }
 
@@ -421,6 +425,90 @@ export const LOOKS: Look[] = [
         { name: 'Dinner', date: '2028-02-26', time: '19:30', where: '7:30 pm', note: 'Long tables, short speeches. We promise.', photo: SHOTS.sunsetTree },
       ],
       photos: { hero: SHOTS.lodhi, venue: SHOTS.lodhi, rsvp: SHOTS.sunsetTree, bless: SHOTS.embrace, gallery: [SHOTS.embrace, SHOTS.silhouette, SHOTS.sunsetTree, SHOTS.ring] },
+    },
+  },
+  {
+    id: 'mahal',
+    name: 'Mahal at Dusk',
+    blurb: 'A painted palace at dusk, elephants and a curtain the couple pull open.',
+    tradition: 'Royal palace wedding · Udaipur',
+    layout: 'veil',
+    bespoke: 'mahal',
+    cover: '/site-art/mahal/cover.webp',
+    theme: { bg: '#f6e7dc', raised: '#efd9cb', accent: '#8a5d22', text: '#3d1e2e', soft: '#a84e66', display: '"Bodoni Moda", Didot, serif', script: CORMORANT },
+    demo: {
+      invocation: 'श्री गणेशाय नमः',
+      couple: ['Mrinalini', 'Advait'],
+      nativeNames: 'मृणालिनी संग अद्वैत',
+      families: ['The Chundawat family', 'The Mehta family'],
+      parents: ['Daughter of Smt. Shailja and Shri Jaswant Singh Chundawat, granddaughter of Rani Padmavati Chundawat', 'Son of Smt. Revati and Shri Nikhil Mehta, grandson of Smt. Kamla and Late Shri Bhanu Prakash Mehta'],
+      compliments: ['Shri Hemant Singh and family (Kaka-Kaki)', 'Smt. Usha Bhandari and family (Bua)', 'Shri Rajeev Mehta and family (Tauji-Taiji)'],
+      note: 'We met in this city, fell for it a second time together, and could not imagine saying yes anywhere else. Come early, stay late, and dance with us by the lake.',
+      notes: ['Boats to Jagmandir leave from the Bansi Ghat jetty, every twenty minutes from 6 pm.', 'Valet parking is at the City Palace main gate on Badi Pol.', 'Udaipur evenings turn cool in November. Bring a shawl for the boat ride.'],
+      city: 'Udaipur',
+      venue: 'City Palace, Udaipur',
+      invite: 'With the blessings of Shri Ganesh and our elders, the Chundawat and Mehta families invite you to the wedding of their children.',
+      rsvpBy: '15 October',
+      story: [
+        { year: '2018', title: 'Rain at Saheliyon ki Bari', body: 'A monsoon afternoon at Saheliyon ki Bari, one umbrella between two strangers, and a long walk to find a rickshaw.', photo: SHOTS.silhouette },
+        { year: '2021', title: 'Letters across two cities', body: 'Her in Jaipur, him in Pune, and a postcard every Sunday that both families pretended not to read.', photo: SHOTS.sunsetTree },
+        { year: '2026', title: 'On the palace steps', body: 'He asked on the ghat below the City Palace as the lamps came on, with her grandmother watching from a boat.', photo: SHOTS.ring },
+      ],
+      mainEvent: 4,
+      events: [
+        { name: 'Haldi', date: '2027-11-26', time: '10:00', where: '10 am, in the Zenana Mahal courtyard', note: 'Turmeric, marigolds and every cousin in yellow.', photo: SHOTS.marigold },
+        { name: 'Mehendi', date: '2027-11-26', time: '15:00', where: '3 pm, on the Fateh Prakash lawns', note: 'Henna, folk songs from Mewar and chai that never runs out.', photo: SHOTS.henna },
+        { name: 'Sangeet', date: '2027-11-26', time: '20:00', where: '8 pm, in the Durbar Hall, Fateh Prakash', note: 'Two families, one stage and many rehearsed steps.', photo: SHOTS.diyaLedge },
+        { name: 'Sagan', date: '2027-11-27', time: '11:00', where: '11 am, in the Manek Chowk', note: 'The elders bless the couple before the evening begins.', photo: SHOTS.diyas },
+        { name: 'Shaadi', date: '2027-11-27', time: '18:30', where: '6:30 pm baraat, pheras by the lake', note: 'The baraat, the varmala and seven pheras as the sun sets over Pichola.', photo: SHOTS.lakePalace },
+        { name: 'Reception', date: '2027-11-28', time: '19:30', where: '7:30 pm, at Jagmandir island', note: 'Dinner on the island, music on the water, and the boats home under the stars.', photo: SHOTS.lakePalace },
+      ],
+      photos: { hero: SHOTS.lakePalace, venue: SHOTS.lakePalace, rsvp: SHOTS.lakePalace, bless: SHOTS.sunsetTree, gallery: [SHOTS.twirl, SHOTS.embrace, SHOTS.bazaar, SHOTS.lodhi] },
+    },
+  },
+  {
+    id: 'aangan',
+    name: 'Diya Aangan',
+    blurb: 'Pull the rope and a dark haveli courtyard lights up with diyas.',
+    tradition: 'Haveli courtyard wedding · Jaipur',
+    layout: 'veil',
+    bespoke: 'aangan',
+    cover: '/site-art/aangan/cover.webp',
+    theme: { bg: '#14100c', raised: '#21190f', accent: '#d8a957', text: '#f7eedc', soft: '#eab0b8', display: CORMORANT, script: GREAT_VIBES },
+    demo: {
+      couple: ['Naina', 'Dev'],
+      nativeNames: 'नैना संग देव',
+      families: ['Naina’s family', 'Dev’s family'],
+      parents: ['Daughter of Smt. Rekha and Shri Alok Mathur, granddaughter of Late Shri Har Prasad Mathur', 'Son of Smt. Usha and Shri Vinod Bhandari, grandson of Smt. Shanti Devi Bhandari'],
+      compliments: ['Shri Pramod Mathur and family (Tauji-Taiji)', 'Smt. Lata Saxena and family (Mausi)', 'Shri Rakesh Bhandari and family (Chacha-Chachi)'],
+      notes: [
+        'Wear colour. The courtyard is lit with diyas, and jewel tones glow in it.',
+        'Cars drop guests at the Gangapole gate; the last few steps through the bazaar are on foot.',
+        'Every meal is Rajasthani and vegetarian, with dal baati at the Sangeet.',
+        'February nights in Jaipur turn cold after sunset. Bring a shawl for the pheras.',
+        'Children are welcome at every function, and there is a puppet show for them at the Mehendi.',
+      ],
+      city: 'Jaipur',
+      venue: 'Samode Haveli, Gangapole, Jaipur',
+      stay: 'Rooms for out-of-town guests are held at the haveli and at Alsisar Haveli nearby until 1 January 2028.',
+      invite: 'With the blessings of our elders, our two families invite you to light the diyas with us at our wedding.',
+      note: 'The courtyard is only full once you are in it. Come early, stay late, and dance with our grandmothers.',
+      rsvpBy: '10 January',
+      story: [
+        { year: '2022', title: 'The wrong train', body: 'He boarded the Ajmer Shatabdi by mistake, she had the seat he thought was his, and neither of them got off at the right station.', photo: SHOTS.silhouette },
+        { year: '2024', title: 'Kite season', body: 'Two Makar Sankrantis on her family’s terrace in the walled city, and he still cannot fly a patang.', photo: SHOTS.embrace },
+        { year: '2026', title: 'At Panna Meena', body: 'He asked on the stepwell steps at Amer at sunrise, with his sister filming from behind a pillar.', photo: SHOTS.ring },
+      ],
+      mainEvent: 3,
+      events: [
+        { name: 'Mehendi', date: '2028-02-10', time: '16:00', where: '4 pm, in the haveli courtyard', note: 'Henna, Langa singers and too much chai. Wear green.', photo: SHOTS.bazaar },
+        { name: 'Haldi', date: '2028-02-11', time: '10:00', where: '10 am, by the pool', note: 'Turmeric gets everywhere, so wear yellow you won’t miss.', photo: SHOTS.embrace },
+        { name: 'Sangeet', date: '2028-02-11', time: '19:30', where: '7:30 pm, in the Sheesh Mahal', note: 'Both families have rehearsed. Nobody is ready.', photo: SHOTS.twirl },
+        { name: 'Shaadi', date: '2028-02-12', time: '18:30', where: '6:30 pm baraat, pheras by the courtyard fire', note: 'The baraat sets out from the Gangapole gate. Seven pheras under the stars.', photo: SHOTS.ring },
+        { name: 'Reception', date: '2028-02-13', time: '19:30', where: '7:30 pm, on the terrace lawns', note: 'Dinner by lamplight, then the dance floor.', photo: SHOTS.silhouette },
+        { name: 'Vidaai', date: '2028-02-14', time: '10:00', where: '10 am, at the haveli gate', note: 'Come and see Naina off. Bring tissues.', photo: SHOTS.diyaLedge },
+      ],
+      photos: { hero: SHOTS.twirl, venue: SHOTS.amerCourt, rsvp: SHOTS.diyaLedge, bless: SHOTS.diyaLedge, gallery: [SHOTS.embrace, SHOTS.bazaar, SHOTS.silhouette, SHOTS.ring] },
     },
   },
 ]
