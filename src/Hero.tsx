@@ -1,4 +1,5 @@
 import { Fragment, type CSSProperties, type ReactNode } from 'react'
+import { SHOTS } from './site/photos'
 
 // The gallery's header and hero. vite.config.ts also renders this into index.html at build time, so crawlers get
 // the H1 and the page doesn't jump when React mounts. Keep it free of browser-only code.
@@ -129,16 +130,15 @@ function Mandap() {
   )
 }
 
-// The site header. The last link swaps between the two products: the invitation cards page links to wedding
-// websites, and the wedding websites page links back to the cards.
-export function SiteHeader({ swap = ['Wedding websites', '/websites/'] }: { swap?: [string, string] }) {
+// The site header: both products, then the guides, on every page.
+export function SiteHeader() {
   return (
   <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-5 sm:px-6">
     <a href="/" aria-label="ShaadiTemplate home">
       <Wordmark />
     </a>
     <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-[15px]">
-      {[['Designs', '/templates/'], ['Guides', '/guides/'], swap].map(([label, href]) => (
+      {[['Invitation cards', '/#templates'], ['Wedding websites', '/websites/'], ['Guides', '/guides/']].map(([label, href]) => (
         <a key={href} href={href} className="text-rose/80 underline-offset-[6px] hover:text-rose hover:underline">
           {label}
         </a>
@@ -186,23 +186,30 @@ export function Hero({ draftName, elapsed = 0 }: { draftName?: string | null; el
               </Fragment>
             ))}
           </p>
-          <p className="intro intro-2 mx-auto mt-6 max-w-md text-[17px] leading-relaxed text-rose/85">
-            Type your families' names in English or your own script, then download images for WhatsApp or a PDF for the press.
-          </p>
-          <div className="intro intro-3 mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
-            <a href="#templates" className="zari-button shine relative inline-block overflow-hidden rounded-full px-8 py-4 text-[15px] font-medium text-wine-deep">
-              Choose a design
+          {/* The two products, side by side: a card on paper, a website on a phone. */}
+          <div className="intro intro-2 mx-auto mt-8 grid max-w-[600px] grid-cols-2 gap-3 sm:gap-5">
+            <a href="#templates" className="door group">
+              <img src={preview('sandhya-kankotri')} width={54} height={96} alt="" className="h-24 w-[54px] rounded-[2px] object-cover shadow-lg" />
+              <span className="door-copy">
+                <span className="font-display text-[20px] leading-tight sm:whitespace-nowrap sm:text-[22px]">Invitation card</span>
+                <span className="mt-1 block text-[13px] leading-snug text-rose/70 sm:text-sm">Images for WhatsApp, PDF for print</span>
+              </span>
             </a>
-            {draftName && (
-              <a href="#edit" className="text-[15px] text-rose underline decoration-zari/70 underline-offset-[6px] hover:decoration-zari">
-                Continue {draftName}
-              </a>
-            )}
+            <a href="/websites/" className="door group">
+              <span className="relative block h-24 w-[50px] shrink-0 overflow-hidden rounded-[9px] border-[3px] border-[#120b0e] shadow-lg">
+                <img src={SHOTS.mubarakMahal.small} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: SHOTS.mubarakMahal.pos }} />
+              </span>
+              <span className="door-copy">
+                <span className="font-display text-[20px] leading-tight sm:whitespace-nowrap sm:text-[22px]">Wedding website</span>
+                <span className="mt-1 block text-[13px] leading-snug text-rose/70 sm:text-sm">Functions, map, RSVPs on one link</span>
+              </span>
+            </a>
           </div>
-          <p className="intro intro-4 mt-6 text-sm text-rose/60">
-            Free, with no login. English, <span lang="hi">हिन्दी</span>, <span lang="mr">मराठी</span>, <span lang="gu">ગુજરાતી</span>,{' '}
-            <span lang="pa">ਪੰਜਾਬੀ</span> and <span lang="ta">தமிழ்</span>.
-          </p>
+          {draftName && (
+            <a href="#edit" className="intro intro-3 mt-5 inline-block text-[15px] text-rose underline decoration-zari/70 underline-offset-[6px] hover:decoration-zari">
+              Continue {draftName}
+            </a>
+          )}
         </div>
       </section>
     </div>

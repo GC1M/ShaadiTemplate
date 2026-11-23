@@ -93,7 +93,7 @@ button:not(:disabled) { cursor: pointer; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zari-button, .event-tab::after, .design-card, .design > div { transition: none !important; }
+  .zari-button, .event-tab::after, .design-card, .design > div, .door, .door img, .door > span:first-child { transition: none !important; }
 }
 
 /* Velvet: two soft pools of light on wine, with a fine grain so large areas don't look flat. */
@@ -252,6 +252,25 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
   .mandap-hero { height: auto; padding-bottom: 56px; }
   .mandap { position: relative; left: auto; translate: none; width: 100%; height: auto; }
   .mandap-hero .hero-copy { position: relative; inset: auto; margin-top: 8px; }
+}
+
+/* The hero's two product doors: a thumbnail of the thing you get, its name and what it does. */
+.door {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--color-zari) 45%, transparent);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-wine-deep) 70%, transparent);
+  text-align: left;
+  transition: border-color .3s, background-color .3s;
+}
+.door:hover { border-color: var(--color-zari); background: var(--color-wine-deep); }
+.door img, .door > span:first-child { transition: translate .4s cubic-bezier(.2,.7,.2,1); }
+.door:hover img, .door:hover > span:first-child { translate: 0 -3px; }
+@media (max-width: 479px) {
+  .door { flex-direction: column; text-align: center; gap: 10px; }
 }
 
 /* A light sweep across the main button every few seconds. */

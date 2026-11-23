@@ -12,6 +12,7 @@
 //   POST   /api/sites/:slug/rsvps        {name, side, events, party, note}
 //   POST   /api/sites/:slug/report       {reason}
 //   GET    /api/photo/:slug/:file
+//   GET    /api/stats                                           -> {sites} live (not hidden) sites, for the home page
 //
 // Once a day (the cron in wrangler.toml) sites whose last event was more than KEEP_DAYS ago are deleted.
 
@@ -93,6 +94,7 @@ async function route(req: Request, env: Env): Promise<Response> {
   const m = req.method
   if (api !== 'api') fail(404, 'Not found.')
   if (kind === 'photo' && m === 'GET' && slug && sub) return photo(env, slug, sub)
+  if (kind === 'stats' && m === 'GET' && !slug) return json({ sites: await count(env, 'SELECT COUNT(*) AS n FROM sites WHERE hidden = 0') })
   if (kind !== 'sites') fail(404, 'Not found.')
   if (!slug && m === 'POST') return create(req, env, url.origin)
   if (!slug) fail(404, 'Not found.')

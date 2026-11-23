@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type SetStateAction } from 'react'
 import { CardPage, SIZES } from './card/Card'
 import Editor from './Editor'
 import { EVENTS, LANGS, SYMBOLS } from './i18n'
@@ -8,7 +8,11 @@ import { Hero, preview } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
 import { track } from './analytics'
 import { land, sitePath, siteView } from './siteRoutes'
-import Reviews from './Reviews'
+import Reviews, { reviewsOnce } from './Reviews'
+import { API } from './site/api'
+
+// The wedding websites row is drawn by the website pages' own code, fetched once the page is up.
+const Showcase = lazy(() => import('./site/Websites').then((m) => ({ default: m.Showcase })))
 
 // Routes: #edit (the card editor) on the home page, the wedding website pages (siteRoutes.ts, loaded on demand to
 // keep this bundle small), else the gallery.
@@ -119,6 +123,48 @@ function Preview({ t }: { t: Template }) {
   return <img src={preview(t.id)} width={540} height={960} loading="lazy" alt={`${t.name}, ${EVENTS[t.event]} invitation card`} onError={() => setLive(true)} className="design-card h-auto w-full" />
 }
 
+// Plain facts about the maker. Downloads and live websites are the owner's real totals on 2026-11-22 (Google
+// Analytics download events, the sites table), rounded down; raise them as they grow. Once the worker's live count
+// (/api/stats) passes the floor it shows instead. The rating is the visitors' own (Reviews.tsx). Never invented numbers.
+const DOWNLOADS = '9,000+'
+const SITES_FLOOR = 100
+const MIN_REVIEWS = 5
+function Numbers() {
+  const [sites, setSites] = useState(0)
+  const [rating, setRating] = useState<[avg: number, n: number] | null>(null)
+  useEffect(() => {
+    reviewsOnce().then((r) => r.length >= MIN_REVIEWS && setRating([r.reduce((s, x) => s + x.stars, 0) / r.length, r.length]), () => {})
+    if (API)
+      fetch(`${API}/api/stats`)
+        .then((r) => r.json())
+        .then((d) => setSites(d.sites ?? 0), () => {})
+  }, [])
+  const items: [string, string][] = [
+    [DOWNLOADS, 'cards downloaded'],
+    [sites > SITES_FLOOR ? sites.toLocaleString('en-IN') : `${SITES_FLOOR}+`, 'wedding websites live'],
+    ...(rating ? [[`${rating[0].toFixed(1)}★`, `from ${rating[1]} families' reviews`] as [string, string]] : []),
+    [String(TEMPLATES.length), 'card designs'],
+    [String(LANG_IDS.length), 'languages, typed in English'],
+    ['₹0', 'no login, no watermark'],
+  ]
+  return (
+    <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-y-8 px-4 py-12 sm:flex sm:flex-wrap sm:justify-between sm:gap-x-10 sm:px-6">
+      {items.map(([n, label]) => (
+        <div key={label} className="flex flex-col-reverse">
+          <dt className="mt-1 max-w-[16ch] text-sm leading-snug text-ink/65">{label}</dt>
+          <dd className="font-display text-[40px] leading-none text-wine sm:text-[48px]">{n}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+const STEPS: [string, string][] = [
+  ['Pick a design', 'A card or a website, by ceremony, language, or the god or sacred symbol your family uses.'],
+  ['Add your details', 'Type names in English and see them in Gujarati, Hindi, Marathi, Punjabi or Tamil. No Indian keyboard needed.'],
+  ['Send it', 'Download the card for WhatsApp or as a print PDF, or publish your website and share one link.'],
+]
+
 const GREETINGS = ['Shubh Vivah', 'शुभ विवाह', 'શુભ લગ્ન', 'ਸ਼ੁਭ ਵਿਆਹ', 'சுப முகூர்த்தம்', 'शुभमंगल सावधान', 'Save the Date']
 
 function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang) => void; draft: Invite | null; drafts: Invite[] }) {
@@ -132,6 +178,9 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
   const shown = bySymbol.filter((t) => event === 'all' || t.event === event).sort((a, b) => Number(!!b.featured) - Number(!!a.featured))
   const count = (e: EventType | 'all') => bySymbol.filter((t) => e === 'all' || t.event === e).length
   const filtered = lang !== 'all' || symbol !== 'all' || event !== 'all'
+  // The home page opens on the first eight (featured first); every card stays in the page for crawlers.
+  const [all, setAll] = useState(false)
+  const short = !all && !filtered && shown.length > 8
   const clear = () => {
     setLang('all')
     setSymbol('all')
@@ -158,6 +207,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
       <div className="scroll-progress" aria-hidden />
       <Hero draftName={draftName} elapsed={elapsed} />
       <ZariBorder />
+      <Numbers />
 
       {/* A slow ribbon of the greeting in every script the maker supports. */}
       <div className="overflow-hidden border-b border-wine/10 py-5" aria-hidden>
@@ -245,7 +295,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
           </div>
         ) : (
           <div ref={grid} className="mt-12 grid grid-cols-2 gap-x-5 gap-y-14 sm:gap-x-10 md:grid-cols-3 lg:grid-cols-4">
-            {shown.map((t) => {
+            {shown.map((t, i) => {
               return (
                 // A link to the design's own page, so crawlers reach every design from the homepage; a plain click opens the editor.
                 <a
@@ -256,7 +306,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
                     e.preventDefault()
                     onOpen(t, lang === 'all' ? undefined : lang)
                   }}
-                  className="design group flex min-w-0 flex-col text-left"
+                  className={`design group ${short && i >= 8 ? 'hidden' : 'flex'} min-w-0 flex-col text-left`}
                 >
                   <div className="pointer-events-none relative w-full transition-transform duration-500 ease-out group-hover:-translate-y-1.5">
                     {t.featured && (
@@ -276,11 +326,59 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
             })}
           </div>
         )}
+        {short && (
+          <div className="mt-14 text-center">
+            <button onClick={() => setAll(true)} className="rounded-full bg-wine px-8 py-3.5 text-[15px] text-rose hover:bg-wine-deep">
+              Show all {shown.length} card designs
+            </button>
+          </div>
+        )}
+      </section>
+
+      <ZariBorder />
+      <section id="websites" className="velvet scroll-mt-2 text-rose">
+        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+          <h2 className="font-display text-[40px] leading-none tracking-[-0.015em] sm:text-[56px]">Wedding websites</h2>
+          <p className="mt-5 max-w-[52ch] text-[17px] leading-relaxed text-rose/80">
+            One link for every guest: your story, each function with its time and venue map, RSVPs and blessings. Free, and it comes down 30 days after your last function.
+          </p>
+          <Suspense fallback={<div className="mt-12 h-[640px]" />}>
+            <Showcase />
+          </Suspense>
+        </div>
+      </section>
+      <ZariBorder />
+
+      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <h2 className="font-display text-[34px] leading-tight sm:text-[44px]">Three steps to your guests' phones</h2>
+        <ol className="mt-10 grid gap-10 sm:grid-cols-3">
+          {STEPS.map(([title, text], i) => (
+            <li key={title} className="border-t border-zari/60 pt-5">
+              <span className="font-display text-[48px] leading-none text-gold">{i + 1}</span>
+              <h3 className="mt-3 font-display text-[24px]">{title}</h3>
+              <p className="mt-2 max-w-[34ch] text-ink/75">{text}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
       <Reviews />
 
-      <ZariBorder />
+      {/* The two doors again, for whoever scrolled all the way down. */}
+      <section className="velvet text-rose">
+        <div className="mx-auto max-w-3xl px-4 py-20 text-center sm:px-6">
+          <h2 className="font-display text-[36px] leading-tight sm:text-[48px]">Haan ji, hum tayaar hain</h2>
+          <p className="mt-4 text-[17px] text-rose/80">Start with the card or the website. Both are free, and you can make the other one later.</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <a href="#templates" className="zari-button inline-flex min-h-12 items-center rounded-full px-8 text-[15px] font-medium text-wine-deep">
+              Make the card
+            </a>
+            <a href="/websites/" className="inline-flex min-h-12 items-center rounded-full border border-zari px-8 text-[15px] text-zari hover:bg-zari hover:text-wine-deep">
+              Make the website
+            </a>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

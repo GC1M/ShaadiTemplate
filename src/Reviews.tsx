@@ -10,6 +10,10 @@ const SENT = 'review-sent'
 type Review = { stars: number; name: string; text: string; created: string }
 type Doc = { document?: { fields: { stars: { integerValue: string }; name: { stringValue: string }; text: { stringValue: string }; created: { timestampValue: string } } } }
 
+// One request per visit, shared with the home page's numbers strip (App.tsx); a new review refetches.
+let once: Promise<Review[]> | undefined
+export const reviewsOnce = () => (once ??= loadReviews())
+
 async function loadReviews(): Promise<Review[]> {
   const res = await fetch(`${DB}:runQuery?key=${KEY}`, {
     method: 'POST',
@@ -67,7 +71,7 @@ export default function Reviews() {
   })
 
   useEffect(() => {
-    loadReviews().then(setReviews, () => setReviews([]))
+    reviewsOnce().then(setReviews, () => setReviews([]))
   }, [])
 
   const pool = reviews?.filter((r) => r.stars >= 4 && r.text).length ?? 0
@@ -103,7 +107,8 @@ export default function Reviews() {
       /* private mode: the review is still saved */
     }
     setState('sent')
-    loadReviews().then(setReviews, () => {})
+    once = loadReviews()
+    once.then(setReviews, () => {})
   }
 
   const total = reviews?.length ?? 0
