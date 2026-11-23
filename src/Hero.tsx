@@ -176,7 +176,7 @@ export function Hero({ draftName, elapsed = 0 }: { draftName?: string | null; el
           <h1 className="intro text-[13px] font-medium uppercase tracking-[0.22em] text-zari" style={{ animationDelay: 'calc(700ms + var(--t0, 0ms))' }}>
             Free Indian wedding invitation maker
           </h1>
-          <p className="mt-4 font-display text-[40px] leading-[1.04] tracking-[-0.02em] [text-wrap:balance] sm:text-[56px] lg:text-[64px]">
+          <p className="mt-4 font-display text-[40px] leading-[1.04] tracking-[-0.02em] [text-wrap:balance] sm:text-[56px]">
             {'Invitations as grand as the wedding'.split(' ').map((w, i) => (
               <Fragment key={i}>
                 {i > 0 && ' '}
@@ -186,30 +186,37 @@ export function Hero({ draftName, elapsed = 0 }: { draftName?: string | null; el
               </Fragment>
             ))}
           </p>
-          {/* The two products, side by side: a card on paper, a website on a phone. */}
-          <div className="intro intro-2 mx-auto mt-8 grid max-w-[600px] grid-cols-2 gap-3 sm:gap-5">
-            <a href="#templates" className="door group">
-              <img src={preview('sandhya-kankotri')} width={54} height={96} alt="" className="h-24 w-[54px] rounded-[2px] object-cover shadow-lg" />
-              <span className="door-copy">
-                <span className="font-display text-[20px] leading-tight sm:whitespace-nowrap sm:text-[22px]">Invitation card</span>
-                <span className="mt-1 block text-[13px] leading-snug text-rose/70 sm:text-sm">Images for WhatsApp, PDF for print</span>
-              </span>
-            </a>
-            <a href="/websites/" className="door group">
-              <span className="relative block h-24 w-[50px] shrink-0 overflow-hidden rounded-[9px] border-[3px] border-[#120b0e] shadow-lg">
-                <img src={SHOTS.mubarakMahal.small} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: SHOTS.mubarakMahal.pos }} />
-              </span>
-              <span className="door-copy">
-                <span className="font-display text-[20px] leading-tight sm:whitespace-nowrap sm:text-[22px]">Wedding website</span>
-                <span className="mt-1 block text-[13px] leading-snug text-rose/70 sm:text-sm">Functions, map, RSVPs on one link</span>
-              </span>
+        </div>
+        {/* The two products stand at the vedi like the couple, leaning toward each other: a printed card and a
+            phone open on a wedding website. Each one, with its name beside it, is the way in. */}
+        <div className="stage intro intro-2">
+          {/* Not one link like the website: a family with a card under way also gets the way back to it. */}
+          <div className="stage-item">
+            <span className="stage-label">
+              <a href="#templates" className="block font-display text-[22px] leading-tight sm:text-[26px]">Invitation card</a>
+              <span className="mt-1 block text-sm leading-snug text-rose/70">Images for WhatsApp, PDF for the press</span>
+              {draftName && (
+                <a href="#edit" className="mt-3 inline-block text-sm text-rose underline decoration-zari/70 underline-offset-[5px] hover:decoration-zari">
+                  Continue {draftName}
+                </a>
+              )}
+            </span>
+            <a href="#templates" tabIndex={-1} aria-hidden className="shrink-0 self-stretch">
+              <img src={preview('sandhya-kankotri')} width={540} height={960} alt="" className="stage-card" />
             </a>
           </div>
-          {draftName && (
-            <a href="#edit" className="intro intro-3 mt-5 inline-block text-[15px] text-rose underline decoration-zari/70 underline-offset-[6px] hover:decoration-zari">
-              Continue {draftName}
-            </a>
-          )}
+          <a href="/websites/" className="stage-item group">
+            <span className="stage-phone">
+              <img src={SHOTS.mubarakMahal.small} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: SHOTS.mubarakMahal.pos }} />
+              <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-1 pb-[14%] pt-[40%] text-center font-display text-[clamp(11px,1.1vw,14px)] leading-tight text-white">
+                Aditi &amp; Vihaan
+              </span>
+            </span>
+            <span className="stage-label">
+              <span className="block font-display text-[22px] leading-tight sm:text-[26px]">Wedding website</span>
+              <span className="mt-1 block text-sm leading-snug text-rose/70">Every function, the venue map and RSVPs on one link</span>
+            </span>
+          </a>
         </div>
       </section>
     </div>

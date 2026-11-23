@@ -93,7 +93,7 @@ button:not(:disabled) { cursor: pointer; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zari-button, .event-tab::after, .design-card, .design > div, .door, .door img, .door > span:first-child { transition: none !important; }
+  .zari-button, .event-tab::after, .design-card, .design > div, .stage-card, .stage-phone, .stage-label > * { transition: none !important; }
 }
 
 /* Velvet: two soft pools of light on wine, with a fine grain so large areas don't look flat. */
@@ -185,7 +185,7 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
    length 1 sliding from offset 1 to 0 reveals it. Technique from apex-ape's landmark drawing. */
 .mandap-hero {
   position: relative;
-  height: clamp(640px, 88vh, 880px);
+  height: clamp(720px, 92vh, 900px);
   overflow: hidden;
 }
 .mandap {
@@ -254,23 +254,48 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
   .mandap-hero .hero-copy { position: relative; inset: auto; margin-top: 8px; }
 }
 
-/* The hero's two product doors: a thumbnail of the thing you get, its name and what it does. */
-.door {
+/* The hero's two products, standing on the mandap's platform (its top edge is 60/820 of the drawing up from the
+   bottom) and leaning toward each other. Their names sit on the outside, so the pair reads as one centred group. */
+.stage {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% * 60 / 820);
+  height: 23%;
+  translate: -50% 0;
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border: 1px solid color-mix(in srgb, var(--color-zari) 45%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--color-wine-deep) 70%, transparent);
-  text-align: left;
-  transition: border-color .3s, background-color .3s;
+  align-items: flex-end;
+  gap: clamp(18px, 2.4vw, 34px);
 }
-.door:hover { border-color: var(--color-zari); background: var(--color-wine-deep); }
-.door img, .door > span:first-child { transition: translate .4s cubic-bezier(.2,.7,.2,1); }
-.door:hover img, .door:hover > span:first-child { translate: 0 -3px; }
-@media (max-width: 479px) {
-  .door { flex-direction: column; text-align: center; gap: 10px; }
+.stage-item { display: flex; align-items: flex-end; gap: clamp(16px, 2vw, 28px); height: 100%; }
+.stage-item:first-child { text-align: right; }
+.stage-label { width: 15rem; align-self: flex-start; padding-top: clamp(24px, 4.5vh, 48px); }
+.stage-label > :first-child { text-decoration: underline transparent; text-underline-offset: 6px; text-decoration-thickness: 1px; transition: text-decoration-color .3s; }
+.stage-item:hover .stage-label > :first-child { text-decoration-color: var(--color-zari); }
+.stage-card, .stage-phone {
+  height: 100%;
+  flex-shrink: 0;
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, .6);
+  transition: rotate .5s cubic-bezier(.2,.7,.2,1), translate .5s cubic-bezier(.2,.7,.2,1);
+}
+.stage-card { aspect-ratio: 9 / 16; width: auto; border-radius: 2px; rotate: -5deg; transform-origin: bottom right; }
+.stage-phone {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 2;
+  overflow: hidden;
+  border: 4px solid #120b0e;
+  border-radius: 14px;
+  rotate: 5deg;
+  transform-origin: bottom left;
+}
+.stage-item:hover :is(.stage-card, .stage-phone) { rotate: 0deg; translate: 0 -6px; }
+@media (max-width: 767px) {
+  .stage { position: relative; left: auto; bottom: auto; translate: none; height: auto; margin-top: 36px; justify-content: center; align-items: flex-start; gap: 20px; padding-inline: 16px; }
+  .stage-item { flex-direction: column; align-items: center; gap: 18px; height: auto; text-align: center; width: 50%; }
+  .stage-item:first-child { flex-direction: column-reverse; text-align: center; }
+  .stage-card, .stage-phone { height: 170px; }
+  .stage-item > a:has(.stage-card) { align-self: center; }
+  .stage-label { width: auto; padding-top: 0; }
 }
 
 /* A light sweep across the main button every few seconds. */
