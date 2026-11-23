@@ -1,5 +1,6 @@
 import { ArrowLeft, ArrowUp, Copy, Download, ExternalLink, Loader2, Mail, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { track } from '../analytics'
 import { Wordmark } from '../Hero'
 import { api, editKey, editLink, lean, liveLink } from './api'
 import { go, LOOKS, lookById, type Content, type Look } from './designs'
@@ -244,6 +245,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
         setDraft((d) => ({ ...d, content: stored(d.content, r.content), key: r.key }))
         setDirty(false)
         setJustPublished(true)
+        track('site_publish', { design: draft.look })
       }
     } catch (err) {
       setError((err as Error).message)

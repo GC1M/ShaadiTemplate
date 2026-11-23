@@ -45,7 +45,7 @@ export default function App() {
       if ((a.pathname !== '/' && !sitePath(a.pathname)) || (a.pathname === location.pathname && a.hash)) return
       e.preventDefault()
       history.pushState(null, '', a.href)
-      sync()
+      dispatchEvent(new PopStateEvent('popstate')) // runs sync, and lets analytics count the page (analytics.ts)
     }
     addEventListener('hashchange', sync)
     addEventListener('popstate', sync)

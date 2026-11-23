@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useState } from 'react'
+import { track } from './analytics'
 import { land, sitePath, siteView } from './siteRoutes'
 
 // The app for wedding website pages only (main.tsx picks it by address). Links between website pages change the
@@ -18,7 +19,7 @@ export default function SiteApp() {
       if (!sitePath(a.pathname) || (a.pathname === location.pathname && a.hash)) return
       e.preventDefault()
       history.pushState(null, '', a.href)
-      sync()
+      dispatchEvent(new PopStateEvent('popstate')) // runs sync, and lets analytics count the page (analytics.ts)
     }
     document.documentElement.dataset.view = 'site'
     addEventListener('popstate', sync)
@@ -30,6 +31,9 @@ export default function SiteApp() {
   }, [])
   useEffect(() => {
     scrollTo(0, 0)
+    // Which design a visitor opened and which they began to make their own; SiteEditor.tsx sends site_publish.
+    const [, design, edit] = path.match(/^\/websites\/(?!preview)([\w-]+)(\/edit)?$/) ?? []
+    if (design) track(edit ? 'site_edit_start' : 'site_design_open', { design })
   }, [path])
   const Site = siteView(path)
   return (

@@ -92,7 +92,7 @@ export const LOOKS: Look[] = [
     id: 'rajwada',
     name: 'Rajwada Rose',
     blurb: 'Maroon doors, gold scrolls and ivory walls, for a royal Rajasthani wedding.',
-    tradition: 'Hindu wedding · Jaipur',
+    tradition: 'Royal Rajasthani wedding · Jaipur',
     layout: 'veil',
     theme: { bg: '#f8f2e9', raised: '#efe5d5', accent: '#b8862f', text: '#4a1020', soft: '#8c2a3c', display: CORMORANT, script: PINYON, panel: '#6d1426', panelText: '#fbf1e2' },
     elephants: true,
@@ -209,7 +209,7 @@ export const LOOKS: Look[] = [
     id: 'neel-kamal',
     name: 'Neel Kamal',
     blurb: 'Indigo night and lamp gold by the Ganga, with a tap-to-reveal date and a timeline.',
-    tradition: 'Hindu wedding · Varanasi',
+    tradition: 'Banarasi wedding · Varanasi',
     layout: 'veil',
     theme: { bg: '#141a33', raised: '#1d2546', accent: '#e2b04a', text: '#f2ecdf', soft: '#a9b6e0', display: '"Marcellus", Georgia, serif', script: GREAT_VIBES },
     storyStyle: 'carousel',
@@ -249,7 +249,7 @@ export const LOOKS: Look[] = [
     id: 'pichola',
     name: 'Pichola Nights',
     blurb: 'Kohl and zari gold over the lake at night, for a palace wedding.',
-    tradition: 'Hindu wedding · Udaipur',
+    tradition: 'Palace wedding · Udaipur',
     layout: 'veil',
     theme: { bg: '#1e1519', raised: '#2a1f24', accent: '#c9a15b', text: '#f3ece3', soft: '#d7a79e', display: CORMORANT, script: CORMORANT },
     demo: {
@@ -398,7 +398,7 @@ export const LOOKS: Look[] = [
     id: 'ink-linen',
     name: 'Ink and Linen',
     blurb: 'Black ink on white linen. Quiet, modern, and all about the photos.',
-    tradition: 'Garden wedding · New Delhi',
+    tradition: 'Modern minimal wedding · New Delhi',
     layout: 'split',
     theme: { bg: '#fafaf7', raised: '#efefe9', accent: '#1d1d1b', text: '#1d1d1b', soft: '#6e6e66', display: '"Gloock", Georgia, serif', script: '"Gloock", Georgia, serif' },
     demo: {
@@ -493,7 +493,7 @@ export function designIntro(d: Pick<Design, 'name' | 'tradition' | 'blurb' | 'co
     body: `${d.blurb} The live sample is ${d.couple[0]} and ${d.couple[1]}'s site: their story, ${list} with times and add to calendar, the venue in ${d.city} on a map, RSVP and guest blessings. Make it yours with your own names, functions and photos, then send one link to every guest on WhatsApp. It is free, and stays online until 30 days after your last function.`,
   }
 }
-export const designTitle = (d: { name: string; tradition: string }) => `${d.name}: Free ${designKind(d).replace('wedding', 'Wedding')} Website`
+export const designTitle = (d: { name: string; tradition: string }) => `${d.name}: Free ${designKind(d).replace(/\b[a-z]/g, (c) => c.toUpperCase())} Website`
 export const designByPath = (path: string) => DESIGNS.find((d) => d.id === path.split('/')[2])
 // Go to another page of the app without loading it again (App.tsx listens for popstate).
 export const go = (path: string) => {
