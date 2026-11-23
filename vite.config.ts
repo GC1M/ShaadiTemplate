@@ -33,7 +33,7 @@ function sitePages(): Plugin {
     enforce: 'post', // after Vite has written index.html into the bundle
     async generateBundle(_, bundle) {
       const load = <T,>(file: string) => runnerImport<T>(file, { configFile: false, logLevel: 'error' }).then((r) => r.module)
-      const { DESIGNS, WEBSITES_TITLE, designKind, designPath, designTitle } = await load<typeof import('./src/site/designs')>('/src/site/designs.ts')
+      const { DESIGNS, WEBSITES_TITLE, designIntro, designKind, designPath, designTitle } = await load<typeof import('./src/site/designs')>('/src/site/designs.ts')
       const { default: sitemap } = await load<{ default: string }>('/public/sitemap.xml?raw')
       const index = bundle['index.html']
       if (index?.type !== 'asset') throw new Error('index.html is not in the bundle')
@@ -49,8 +49,15 @@ function sitePages(): Plugin {
         '@type': 'BreadcrumbList',
         itemListElement: [{ name: 'Home', url: `${SITE}/` }, ...items].map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: c.url })),
       })
+      // Plain text and links inside #root (React replaces it on mount), so crawlers see words and the other designs
+      // without running the app.
+      const links = DESIGNS.map((d) => `<li><a href="${designPath(d)}">${esc(d.name)}</a>: ${esc(d.blurb)}</li>`).join('')
+      const text = (h1: string, p: string) =>
+        `<main class="mx-auto max-w-3xl px-4 py-16"><h1>${esc(h1)}</h1><p>${esc(p)}</p>` +
+        `<h2>Wedding website designs</h2><ul>${links}</ul>` +
+        `<p><a href="/websites/">All wedding website designs</a> | <a href="/">Invitation cards</a> | <a href="/guides/">Guides</a></p></main>`
       // desc and seo only for pages meant to be found: they get a canonical, a share image and structured data.
-      const write = (path: string, title: string, desc?: string, seo?: { image: string; alt: string; graph: object[] }) => {
+      const write = (path: string, title: string, desc?: string, seo?: { image: string; alt: string; graph: object[]; body: string }) => {
         const url = `${SITE}${path}`
         if (desc && !sitemap.includes(`<loc>${url}</loc>`)) throw new Error(`${url} is not in public/sitemap.xml: run python3 scripts/seo.py`)
         if (title.length > 60 || (desc?.length ?? 0) > 160) throw new Error(`${path}: title over 60 or description over 160 characters`)
@@ -66,6 +73,7 @@ function sitePages(): Plugin {
             .replace(/(property="og:image" content=")[^"]*/, (_: string, a: string) => a + esc(seo.image))
             .replace(/(property="og:image:alt" content=")[^"]*/, (_: string, a: string) => a + esc(seo.alt))
             .replace('<!-- /seo -->', `<script type="application/ld+json">${ld}</script>\n    <!-- /seo -->`)
+            .replace('<div id="root">', () => `<div id="root">${seo.body}`)
         }
         this.emitFile({ type: 'asset', fileName: `${path.slice(1)}index.html`, source: page })
       }
@@ -80,6 +88,7 @@ function sitePages(): Plugin {
               itemListElement: DESIGNS.map((d, i) => ({ '@type': 'ListItem', position: i + 1, item: { '@type': 'CreativeWork', name: `${d.name} wedding website`, url: `${SITE}${designPath(d)}`, image: og(d) } })) } },
           crumbs(hub),
         ],
+        body: text('Free wedding website designs', `${hubDesc} Pick a design, add your names, functions and photos, and send one link to every guest.`),
       })
       write('/websites/preview/', edit)
       for (const d of DESIGNS) {
@@ -92,6 +101,7 @@ function sitePages(): Plugin {
             { '@type': 'CreativeWork', name: `${d.name} wedding website`, url, description: desc, image: og(d), inLanguage: 'en', isAccessibleForFree: true, publisher: org, isPartOf: { '@type': 'CollectionPage', url: hub.url } },
             crumbs(hub, { name: d.name, url }),
           ],
+          body: text(designIntro(d).heading, designIntro(d).body),
         })
         write(`${designPath(d)}edit/`, edit)
       }
