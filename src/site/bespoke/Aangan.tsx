@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState, type CSSProperties, type MouseEvent, type PointerEvent } from 'react'
-import { API } from '../api'
-import { designPath, mainOf, type Design, type WeddingEvent } from '../designs'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { mainOf, type Design, type WeddingEvent } from '../designs'
 import type { Photo } from '../photos'
-import { Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion } from '../shared'
-import { Report, themeVars, type SiteProps } from '../WeddingSite'
+import { Blessings, RsvpForm, downloadIcs, jump, reducedMotion, useLenis } from '../shared'
+import { SiteFooter, SiteNav, themeVars, type SiteProps } from '../WeddingSite'
 import '../organza.css'
 import '../site.css'
 import './aangan.css'
@@ -64,6 +63,8 @@ function Intro({ d, stage, light, skip }: { d: Design; stage: number; light: () 
   const [entering, setEntering] = useState(false)
   const lotus = useRef<HTMLButtonElement>(null)
   const keyed = useRef(false)
+  const entry = useRef(0)
+  useEffect(() => () => clearTimeout(entry.current), [])
   // A keyboard guest who lit the rope (which then goes away) lands on the lotus.
   useEffect(() => {
     if (stage === 5 && keyed.current) lotus.current?.focus({ preventScroll: true })
@@ -105,7 +106,7 @@ function Intro({ d, stage, light, skip }: { d: Design; stage: number; light: () 
   }
   const enter = () => {
     setEntering(true)
-    setTimeout(() => document.getElementById('ag-invite')?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth' }), reducedMotion() ? 0 : 900)
+    entry.current = window.setTimeout(() => document.getElementById('ag-invite')?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth' }), reducedMotion() ? 0 : 900)
   }
 
   const on = (n: number) => (stage >= n ? ' on' : '')
@@ -238,7 +239,7 @@ function Invite({ d }: { d: Design }) {
 
 /* ---------- Functions: one scroll per function, unrolling as it comes into view ---------- */
 
-function Events({ d, maps }: { d: Design; maps: string }) {
+function Events({ d }: { d: Design }) {
   if (!d.events.length) return null
   const main = mainOf(d)
   return (
@@ -275,9 +276,6 @@ function Events({ d, maps }: { d: Design; maps: string }) {
                     <button type="button" className="ag-chip" onClick={() => downloadIcs(e, d)} aria-label={`Add ${e.name} to your calendar`}>
                       Add to calendar
                     </button>
-                    <a className="ag-chip" href={maps} target="_blank" rel="noreferrer" aria-label={`${d.venue} on Google Maps`}>
-                      Map
-                    </a>
                   </div>
                 </div>
               </div>
@@ -467,6 +465,7 @@ function Know({ d, maps, stay }: { d: Design; maps: string; stay: string }) {
 /* ---------- The page ---------- */
 
 export default function Aangan({ d, mode, slug }: SiteProps) {
+  useLenis()
   // Under reduced motion the courtyard opens already lit.
   const [stage, setStage] = useState(() => (reducedMotion() ? 5 : 0))
   const timers = useRef<number[]>([])
@@ -522,36 +521,11 @@ export default function Aangan({ d, mode, slug }: SiteProps) {
 
   return (
     <div ref={root} className="ov ag" style={themeVars(d)}>
-      <nav aria-label="Sections" className="st-nav ag-nav" data-show={stage > 0 || undefined}>
-        {mode === 'demo' ? (
-          <a href="/websites/" className="st-back min-w-11" aria-label="All designs">
-            ←<span className="ml-1.5 hidden sm:inline">All designs</span>
-          </a>
-        ) : (
-          <span className="st-back ov-display">{d.couple.join(' & ')}</span>
-        )}
-        <div className="st-links">
-          {links.map(([id, label]) => (
-            <a key={id} href={`#${id}`} onClick={(e: MouseEvent) => jump(e, id)}>
-              {label}
-            </a>
-          ))}
-        </div>
-        {mode === 'demo' && (
-          <div className="flex items-center gap-2">
-            {API && (
-              <a href={`${designPath(d)}edit/`} className="st-use">
-                Make yours free
-              </a>
-            )}
-            <PageSwitch d={d} />
-          </div>
-        )}
-      </nav>
+      <SiteNav d={d} mode={mode} links={links} show={stage > 0} className="ag-nav" />
 
       <Intro d={d} stage={stage} light={light} skip={skip} />
       <Invite d={d} />
-      <Events d={d} maps={maps} />
+      <Events d={d} />
       <Couple d={d} />
       <Gallery d={d} />
       <Know d={d} maps={maps} stay={stay} />
@@ -594,19 +568,7 @@ export default function Aangan({ d, mode, slug }: SiteProps) {
       </section>
 
       <footer className="ag-footer">
-        {mode === 'demo' && (
-          <div className="mx-auto max-w-3xl">
-            <SeeAlso d={d} />
-          </div>
-        )}
-        <p className={mode === 'demo' ? 'mt-8' : undefined}>
-          Made with ❤️ by{' '}
-          <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
-            ShaadiTemplate
-          </a>
-        </p>
-        {mode === 'hosted' && slug && <Report slug={slug} />}
-        <PhotoCredits d={d} />
+        <SiteFooter d={d} mode={mode} slug={slug} />
       </footer>
     </div>
   )

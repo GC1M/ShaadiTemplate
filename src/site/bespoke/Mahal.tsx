@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { designPath, mainOf, type Design } from '../designs'
-import { API } from '../api'
-import { Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion, useLenis } from '../shared'
-import { Report, themeVars, type SiteProps } from '../WeddingSite'
+import { mainOf, type Design } from '../designs'
+import { Blessings, RsvpForm, downloadIcs, jump, reducedMotion, useLenis } from '../shared'
+import { istDate, SiteFooter, SiteNav, themeVars, type SiteProps } from '../WeddingSite'
 import '../organza.css'
 import '../site.css'
 import './mahal.css'
@@ -13,7 +12,6 @@ import './mahal.css'
 
 const art = (p: string) => `/site-art/mahal/${p}.webp`
 const clamp = (n: number) => Math.min(1, Math.max(0, n))
-const istDate = (t: string) => new Date(t.replace(/(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)/, '$1-$2-$3T$4:$5:$6+05:30'))
 
 // The painted icon for a function, by its name; anything unknown gets the diya.
 const ICONS: [RegExp, string][] = [
@@ -254,7 +252,7 @@ function Invite({ d }: { d: Design }) {
 
 /* ---------- Events: painted icons bobbing in a zigzag, each with its time, calendar and map ---------- */
 
-function Events({ d, maps }: { d: Design; maps: string }) {
+function Events({ d }: { d: Design }) {
   if (!d.events.length) return null
   const main = mainOf(d)
   return (
@@ -276,9 +274,6 @@ function Events({ d, maps }: { d: Design; maps: string }) {
               <button type="button" onClick={() => downloadIcs(e, d)}>
                 Add to calendar
               </button>
-              <a href={maps} target="_blank" rel="noreferrer">
-                Map
-              </a>
             </p>
           </li>
         ))}
@@ -290,6 +285,7 @@ function Events({ d, maps }: { d: Design; maps: string }) {
 /* ---------- Story: the bride and groom pull a curtain open on the couple, then the chapters ---------- */
 
 function Story({ d }: { d: Design }) {
+  const meet = d.meet?.filter((m) => m.bio.trim()) ?? []
   const stage = useRef<HTMLDivElement>(null)
   const left = useRef<HTMLDivElement>(null)
   const right = useRef<HTMLDivElement>(null)
@@ -372,9 +368,9 @@ function Story({ d }: { d: Design }) {
         </div>
       </div>
 
-      {d.meet && d.meet.length > 0 && (
+      {meet.length > 0 && (
         <div className="mh-meet">
-          {d.meet.map((m, i) => (
+          {meet.map((m, i) => (
             <article key={i} className="mh-glass mh-in" style={{ '--sd': `${i * 0.12}s` } as CSSProperties}>
               <img src={m.photo.small} alt={m.photo.alt} loading="lazy" style={{ objectPosition: m.photo.pos }} />
               <h3>{m.name}</h3>
@@ -483,36 +479,11 @@ export default function Mahal({ d, mode, slug }: SiteProps) {
 
   return (
     <div ref={root} className="ov mh" style={themeVars(d)}>
-      <nav aria-label="Sections" className="st-nav mh-nav" data-show>
-        {mode === 'demo' ? (
-          <a href="/websites/" className="st-back min-w-11" aria-label="All designs">
-            ←<span className="ml-1.5 hidden sm:inline">All designs</span>
-          </a>
-        ) : (
-          <span className="st-back mh-nav-names">{d.couple.join(' & ')}</span>
-        )}
-        <div className="st-links">
-          {links.map(([id, label]) => (
-            <a key={id} href={`#${id}`} onClick={(e) => jump(e, id, -64)}>
-              {label}
-            </a>
-          ))}
-        </div>
-        {mode === 'demo' && (
-          <div className="flex items-center gap-2">
-            {API && (
-              <a href={`${designPath(d)}edit/`} className="st-use">
-                Make yours free
-              </a>
-            )}
-            <PageSwitch d={d} />
-          </div>
-        )}
-      </nav>
+      <SiteNav d={d} mode={mode} links={links} show className="mh-nav" namesClass="mh-nav-names" />
 
       <Hero d={d} />
       <Invite d={d} />
-      <Events d={d} maps={maps} />
+      <Events d={d} />
       <Story d={d} />
       <Gallery d={d} />
       <Things d={d} maps={maps} />
@@ -531,19 +502,9 @@ export default function Mahal({ d, mode, slug }: SiteProps) {
         </p>
         <div className="mh-ft-rule" />
         <p className="mh-ft-date">{[main?.date.split(', ').pop(), d.venue].filter(Boolean).join(' · ')}</p>
-        {mode === 'demo' && (
-          <div className="mx-auto mt-12 max-w-3xl">
-            <SeeAlso d={d} />
-          </div>
-        )}
-        <p className="mt-10">
-          Made with ❤️ by{' '}
-          <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
-            ShaadiTemplate
-          </a>
-        </p>
-        {mode === 'hosted' && slug && <Report slug={slug} />}
-        <PhotoCredits d={d} />
+        <div className="mt-12">
+          <SiteFooter d={d} mode={mode} slug={slug} />
+        </div>
       </footer>
     </div>
   )
