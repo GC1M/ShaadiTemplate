@@ -4,7 +4,7 @@ import Editor from './Editor'
 import { EVENTS, LANGS, SYMBOLS } from './i18n'
 import { carryDetails, isEdited, liveId, loadDrafts, newInvite, saveDrafts, templateById, TEMPLATES, type Template } from './templates'
 import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang, type SymbolId } from './types'
-import { Hero, preview } from './Hero'
+import { Hero, HERO_CARD, HERO_LANGS, HeroDemo, preview } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
 import { track } from './analytics'
 import { land, sitePath, siteView } from './siteRoutes'
@@ -159,6 +159,39 @@ function Numbers() {
   )
 }
 
+// The hero's card, drawn live so its words can change script. It moves to the next language every few seconds
+// until the visitor picks one (or never, under reduced motion).
+function LiveCard({ onOpen }: { onOpen: (t: Template, lang?: Lang) => void }) {
+  const t = templateById(HERO_CARD)
+  const [lang, setLang] = useState<string>('gu')
+  const [picked, setPicked] = useState(false)
+  const inv = useMemo(() => newInvite(t, lang as Lang), [t, lang])
+  useEffect(() => {
+    if (picked || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const id = setInterval(() => setLang((l) => HERO_LANGS[(HERO_LANGS.findIndex(([x]) => x === l) + 1) % HERO_LANGS.length][0]), 3500)
+    return () => clearInterval(id)
+  }, [picked])
+  const pick = (l: string) => {
+    setPicked(true)
+    setLang(l)
+    track('hero_language', { lang: l })
+  }
+  return (
+    <HeroDemo
+      lang={lang}
+      onLang={pick}
+      card={
+        <a href={`templates/${t.id}.html`} onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return; e.preventDefault(); onOpen(t, lang as Lang) }} aria-label={`Make ${t.name} in this language`} className="block">
+          <div key={lang} className="hero-card-swap">
+            <ScaledCard w={SIZES.story.w} h={SIZES.story.h} className="">
+              <CardPage invite={inv} page={inv.pages[0]} />
+            </ScaledCard>
+          </div>
+        </a>
+      }
+    />
+  )
+}
 const STEPS: [string, string][] = [
   ['Pick a design', 'A card or a website, by ceremony, language, or the god or sacred symbol your family uses.'],
   ['Add your details', 'Type names in English and see them in Gujarati, Hindi, Marathi, Punjabi or Tamil. No Indian keyboard needed.'],
@@ -205,7 +238,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
   return (
     <div className="min-h-screen">
       <div className="scroll-progress" aria-hidden />
-      <Hero draftName={draftName} elapsed={elapsed} />
+      <Hero draftName={draftName} elapsed={elapsed} demo={<LiveCard onOpen={onOpen} />} />
       <ZariBorder />
       <Numbers />
 

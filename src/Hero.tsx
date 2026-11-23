@@ -1,4 +1,4 @@
-import { Fragment, type CSSProperties, type ReactNode } from 'react'
+import { type CSSProperties, type ReactNode } from 'react'
 import { SHOTS } from './site/photos'
 
 // The gallery's header and hero. vite.config.ts also renders this into index.html at build time, so crawlers get
@@ -15,120 +15,6 @@ export const Wordmark = () => (
 )
 
 export const preview = (id: string) => `templates/previews/${id}.webp`
-
-// Gold line-art mandap, viewBox 1200x820, drawn in stages: platform, pillars, beam, crown, drapes, then the side
-// ornaments and diyas.
-const g = (d: number, dur = 1.6) => ({ '--d': `${d}s`, '--dur': `${dur}s` }) as CSSProperties
-const cusps = (n: number, w: number, h: number) => Array(n).fill(`q${w / 2} ${h} ${w} 0`).join(' ')
-const each = (n: number, f: (i: number) => string) => Array.from({ length: n }, (_, i) => f(i)).join('')
-const P = ({ d }: { d: string }) => <path d={d} pathLength={1} />
-// Left-hand parts drawn once and mirrored onto the right pillar.
-const Both = ({ children }: { children: ReactNode }) => (
-  <>
-    {children}
-    <g transform="matrix(-1 0 0 1 1200 0)">{children}</g>
-  </>
-)
-
-// Rajasthani crown: onion dome and chhatris, scalloped valance with tassels, marigold strings.
-const Chhatri = () => (
-  <>
-    <g style={g(1, 1.4)}>
-      <P d={`M264 314${cusps(8, 84, 34)}`} />
-      <P d={each(7, (i) => `M${348 + i * 84} 314v12m-4 0h8l-4 10z`)} />
-    </g>
-    <g style={g(1.5, 1.8)}>
-      <P d={`M420 288V268H780V288M430 268${cusps(10, 34, -16)}`} />
-      <P d="M462 268C440 206 500 168 600 120C700 168 760 206 738 268" />
-      <P d="M434 268C404 196 480 150 600 92C720 150 796 196 766 268M600 92C556 150 532 210 540 268M600 92C644 150 668 210 660 268M600 92V78M586 78Q600 58 614 78ZM600 58V40" />
-      <circle cx="600" cy="34" r="6" pathLength={1} />
-    </g>
-    <g style={g(2)}>
-      <P d="M264 330Q432 398 600 330Q768 398 936 330" />
-    </g>
-    <Both>
-      <g style={g(1.5, 1.8)}>
-        <P d="M182 288V274H278V288M188 274C178 238 206 214 230 188C254 214 282 238 272 274M230 188V172" />
-        <circle cx="230" cy="166" r="4" pathLength={1} />
-      </g>
-      <g style={g(2.5, 1.2)}>
-        <P d="M158 314V500M176 314V440" />
-        {[...Array(9)].map((_, i) => <circle key={`a${i}`} cx="158" cy={334 + i * 20} r="6" pathLength={1} />)}
-        {[...Array(6)].map((_, i) => <circle key={`b${i}`} cx="176" cy={334 + i * 20} r="5" pathLength={1} />)}
-      </g>
-    </Both>
-  </>
-)
-
-// [x, delay after the drawing finishes, fall time, rose?] outside the left pillar; mirrored on the right.
-const FLOWERS: [number, number, number, boolean][] = [
-  [30, 0, 7, false], [70, 2.6, 8, true], [110, 1.2, 6.5, false], [150, 4.1, 7.5, true],
-  [50, 5.2, 8.5, false], [130, 3.3, 7, true], [90, 6.4, 6.5, false],
-]
-// Flowers have five petals around a centre.
-const FLOWER_PETALS = [0, 72, 144, 216, 288]
-
-function Mandap() {
-  return (
-    <svg className="mandap" viewBox="0 0 1200 820" aria-hidden>
-      <g style={g(0, 1.4)}>
-        <P d="M120 760H1080M90 760H1110V786H90ZM60 786H1140V812H60Z" />
-        <P d={each(25, (i) => `M${114 + i * 40} 773l6-6 6 6-6 6z`)} />
-      </g>
-      <g style={g(1, 1.4)}>
-        <P d="M140 314H1060M140 300H1060V314M140 300V314M128 300V288H1072V300" />
-      </g>
-      <Both>
-        <g style={g(0.4)}>
-          <P d="M196 760V732H264V760M204 732V718H256V732" />
-          <P d="M212 718V344M248 718V344M212 650H248M212 570H248M212 490H248M212 410H248" />
-          <P d="M230 600l9 10-9 10-9-10zM230 520l9 10-9 10-9-10zM230 440l9 10-9 10-9-10z" />
-          <P d="M212 344Q212 332 202 328H258Q248 332 248 344M194 328V314H266V328" />
-        </g>
-        <g style={g(2)}>
-          <P d="M266 330C318 392 296 470 262 520C296 566 300 640 276 704M282 336C322 400 304 470 270 516" />
-          <circle cx="263" cy="520" r="6" pathLength={1} />
-        </g>
-        <g style={g(2.5, 1.2)}>
-          <P d="M130 748Q150 768 170 748Z" />
-          <path className="flame" d="M150 744Q142 730 150 712Q158 730 150 744Z" />
-        </g>
-      </Both>
-      <Chhatri />
-      {/* Guests outside the pillars, each tossing flowers. */}
-      <g>
-        <Both>
-          <g style={g(2.5, 1.4)}>
-            <P d="M82 604Q76 650 74 700Q72 740 68 758H124Q120 730 116 690Q114 640 110 604ZM110 606Q94 640 76 690M110 608L128 592L136 568" />
-            <circle cx="96" cy="586" r="11" pathLength={1} />
-            <circle cx="85" cy="580" r="5" pathLength={1} />
-            <circle cx="137" cy="564" r="3" pathLength={1} />
-            <P d="M25 608H51L55 700H21ZM27 700L25 758M49 700L51 758M51 612L66 596L72 578M27 590Q27 572 38 570Q50 570 50 588M48 576Q58 572 56 562" />
-            <circle cx="38" cy="592" r="10" pathLength={1} />
-          </g>
-        </Both>
-      </g>
-      {/* Marigold and rose flowers drifting down outside the pillars once the mandap is drawn, clear of the text. */}
-      <g className="petals">
-        <Both>
-          {FLOWERS.map(([x, delay, dur, rose], i) => (
-            <g key={i} transform={`translate(${x} 0)`}>
-              <g
-                className={rose ? 'petal rose' : 'petal'}
-                style={{ '--delay': `${delay}s`, '--fall': `${dur}s` } as CSSProperties}
-              >
-                {FLOWER_PETALS.map((r) => (
-                  <ellipse key={r} cx="0" cy="-6" rx="4" ry="5.5" transform={`rotate(${r})`} />
-                ))}
-                <circle className="eye" r="3.2" />
-              </g>
-            </g>
-          ))}
-        </Both>
-      </g>
-    </svg>
-  )
-}
 
 // The site header: both products, then the guides, on every page.
 export function SiteHeader() {
@@ -162,63 +48,170 @@ export function SiteHeader() {
   )
 }
 
-// The intro (mandap drawing, headline) runs on the prerendered copy. When React replaces it, `elapsed` (ms since
-// navigation) shifts every delay back so the animation carries on from the same point instead of restarting.
-export function Hero({ draftName, elapsed = 0 }: { draftName?: string | null; elapsed?: number }) {
+// A tall gold line-art mandap, viewBox 600x900, that draws itself on load (platform, pillars, beam, dome, drapes,
+// then the diyas and garlands) around the hero card, which stands on its platform like the couple at the vedi.
+// Every stroke has pathLength=1, so one dash sliding from offset 1 to 0 reveals it (index.css).
+const g = (d: number, dur = 1.6) => ({ '--d': `${d}s`, '--dur': `${dur}s` }) as CSSProperties
+const cusps = (n: number, w: number, h: number) => Array(n).fill(`q${w / 2} ${h} ${w} 0`).join(' ')
+const each = (n: number, f: (i: number) => string) => Array.from({ length: n }, (_, i) => f(i)).join('')
+const P = ({ d }: { d: string }) => <path d={d} pathLength={1} />
+// Left-hand parts drawn once and mirrored onto the right.
+const Both = ({ children }: { children: ReactNode }) => (
+  <>
+    {children}
+    <g transform="matrix(-1 0 0 1 600 0)">{children}</g>
+  </>
+)
+// [x, delay after the drawing finishes, fall time, rose?] beside the left pillar; mirrored on the right.
+const FLOWERS: [number, number, number, boolean][] = [
+  [18, 0, 7, false], [40, 2.6, 8, true], [22, 4.4, 6.5, false], [36, 1.3, 7.5, true],
+]
+const FLOWER_PETALS = [0, 72, 144, 216, 288]
+
+function Mandap() {
+  return (
+    <svg className="mandap" viewBox="0 0 600 900" aria-hidden>
+      <g style={g(0, 1.4)}>
+        <P d="M20 840H580V866H20ZM0 866H600V892H0Z" />
+        <P d={each(13, (i) => `M${54 + i * 41} 847l6-6 6 6-6 6z`)} />
+      </g>
+      <Both>
+        <g style={g(0.4)}>
+          <P d="M66 840V812H134V840M74 812V798H126V812" />
+          <P d="M84 798V300M116 798V300M84 720H116M84 620H116M84 520H116M84 420H116" />
+          <P d="M100 662l8 9-8 9-8-9zM100 562l8 9-8 9-8-9zM100 462l8 9-8 9-8-9z" />
+          <P d="M84 300Q84 288 74 284H126Q116 288 116 300M66 284V270H134V284" />
+        </g>
+        <g style={g(1.5, 1.6)}>
+          <P d="M70 244V232H130V244M76 232C68 204 86 186 100 166C114 186 132 204 124 232M100 166V152" />
+          <circle cx="100" cy="146" r="4" pathLength={1} />
+        </g>
+        <g style={g(2)}>
+          <P d="M136 278C178 338 162 404 140 446C162 482 166 560 146 640M150 284C184 342 170 404 148 442" />
+          <circle cx="141" cy="446" r="5" pathLength={1} />
+        </g>
+        <g style={g(2.5, 1.2)}>
+          <P d="M52 290V470" />
+          {[...Array(9)].map((_, i) => <circle key={i} cx="52" cy={302 + i * 20} r="6" pathLength={1} />)}
+          <P d="M14 834Q30 850 46 834Z" />
+          <path className="flame" d="M30 830Q23 816 30 800Q37 816 30 830Z" />
+        </g>
+      </Both>
+      <g style={g(1, 1.4)}>
+        <P d="M56 270H544M56 256H544V270M56 256V270M44 256V244H556V256" />
+        <P d={`M136 270${cusps(8, 41, 18)}`} />
+        <P d={each(7, (i) => `M${177 + i * 41} 270v9m-3 0h6l-3 8z`)} />
+      </g>
+      <g style={g(1.5, 1.8)}>
+        <P d="M196 244V226H404V244" />
+        <P d="M212 226C194 168 238 128 300 82C362 128 406 168 388 226M300 82C274 128 262 178 266 226M300 82C326 128 338 178 334 226" />
+        <P d="M300 82V68M290 68Q300 50 310 68ZM300 50V38" />
+        <circle cx="300" cy="32" r="5" pathLength={1} />
+      </g>
+      <g className="petals">
+        <Both>
+          {FLOWERS.map(([x, delay, dur, rose], i) => (
+            <g key={i} transform={`translate(${x} 0)`}>
+              <g className={rose ? 'petal rose' : 'petal'} style={{ '--delay': `${delay}s`, '--fall': `${dur}s` } as CSSProperties}>
+                {FLOWER_PETALS.map((r) => (
+                  <ellipse key={r} cx="0" cy="-5" rx="3.4" ry="4.6" transform={`rotate(${r})`} />
+                ))}
+                <circle className="eye" r="2.7" />
+              </g>
+            </g>
+          ))}
+        </Both>
+      </g>
+    </svg>
+  )
+}
+
+// The languages the hero card speaks, in the order it cycles through them; the card's own sample (Gujarati) first.
+// No Punjabi: its sample wording is for an Anand Karaj, which is wrong under this card's Shiv-Parvati art.
+export const HERO_LANGS = [
+  ['gu', 'ગુજરાતી'],
+  ['hi', 'हिन्दी'],
+  ['mr', 'मराठी'],
+  ['ta', 'தமிழ்'],
+  ['en', 'English'],
+] as const
+export const HERO_CARD = 'sandhya-kankotri'
+
+// The hero opens on the product itself: a real painted card whose words change script while its art stays put,
+// which is the thing no printer's catalogue does. Both products are named in the headline copy and the buttons;
+// the phone beside the card is the website. `demo` is the live card (App.tsx); the prerendered copy shows its
+// cover image in the same box, so nothing moves when React takes over.
+export function Hero({ draftName, elapsed = 0, demo }: { draftName?: string | null; elapsed?: number; demo?: ReactNode }) {
   return (
     <div className="velvet text-rose" style={{ '--t0': `${-Math.round(elapsed)}ms` } as CSSProperties}>
       <SiteHeader />
-
-      {/* A gold mandap draws itself, and the headline stands in its opening. */}
-      <section className="hero mandap-hero">
-        <Mandap />
+      <section className="hero hero-grid mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 md:pb-20 md:pt-10">
         <div className="hero-copy">
-          <h1 className="intro text-[13px] font-medium uppercase tracking-[0.22em] text-zari" style={{ animationDelay: 'calc(700ms + var(--t0, 0ms))' }}>
-            Free Indian wedding invitation maker
+          <h1 className="intro font-display text-[42px] leading-[1.04] tracking-[-0.02em] [text-wrap:balance] sm:text-[60px] lg:text-[68px]" style={{ animationDelay: 'calc(200ms + var(--t0, 0ms))' }}>
+            Indian wedding invitations in your family's language
           </h1>
-          <p className="mt-4 font-display text-[40px] leading-[1.04] tracking-[-0.02em] [text-wrap:balance] sm:text-[56px]">
-            {'Invitations as grand as the wedding'.split(' ').map((w, i) => (
-              <Fragment key={i}>
-                {i > 0 && ' '}
-                <span className="intro inline-block" style={{ animationDelay: `calc(${900 + i * 70}ms + var(--t0, 0ms))` }}>
-                  {w}
-                </span>
-              </Fragment>
-            ))}
+          <p className="intro mt-6 max-w-[46ch] text-[18px] leading-relaxed text-rose/80" style={{ animationDelay: 'calc(350ms + var(--t0, 0ms))' }}>
+            Make the card for WhatsApp and the printing press, and a wedding website with every function, the venue map and RSVPs. Free, with no login.
           </p>
-        </div>
-        {/* The two products stand at the vedi like the couple, leaning toward each other: a printed card and a
-            phone open on a wedding website. Each one, with its name beside it, is the way in. */}
-        <div className="stage intro intro-2">
-          {/* Not one link like the website: a family with a card under way also gets the way back to it. */}
-          <div className="stage-item">
-            <span className="stage-label">
-              <a href="#templates" className="block font-display text-[22px] leading-tight sm:text-[26px]">Invitation card</a>
-              <span className="mt-1 block text-sm leading-snug text-rose/70">Images for WhatsApp, PDF for the press</span>
-              {draftName && (
-                <a href="#edit" className="mt-3 inline-block text-sm text-rose underline decoration-zari/70 underline-offset-[5px] hover:decoration-zari">
-                  Continue {draftName}
-                </a>
-              )}
-            </span>
-            <a href="#templates" tabIndex={-1} aria-hidden className="shrink-0 self-stretch">
-              <img src={preview('sandhya-kankotri')} width={540} height={960} alt="" className="stage-card" />
+          <div className="intro mt-9 flex flex-wrap items-center gap-x-6 gap-y-4" style={{ animationDelay: 'calc(500ms + var(--t0, 0ms))' }}>
+            <a href="#templates" className="zari-button shine relative inline-flex min-h-13 items-center overflow-hidden rounded-full px-8 text-[16px] font-medium text-wine-deep">
+              Make your invitation card
+            </a>
+            <a href="/websites/" className="inline-flex min-h-13 items-center rounded-full border border-zari/70 px-7 text-[16px] text-rose hover:border-zari hover:bg-zari/10">
+              Make a wedding website
             </a>
           </div>
-          <a href="/websites/" className="stage-item group">
-            <span className="stage-phone">
-              <img src={SHOTS.mubarakMahal.small} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: SHOTS.mubarakMahal.pos }} />
-              <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/80 to-transparent px-1 pb-[14%] pt-[40%] text-center font-display text-[clamp(11px,1.1vw,14px)] leading-tight text-white">
-                Aditi &amp; Vihaan
-              </span>
-            </span>
-            <span className="stage-label">
-              <span className="block font-display text-[22px] leading-tight sm:text-[26px]">Wedding website</span>
-              <span className="mt-1 block text-sm leading-snug text-rose/70">Every function, the venue map and RSVPs on one link</span>
-            </span>
-          </a>
+          {draftName && (
+            <p className="intro mt-6 text-[15px] text-rose/70" style={{ animationDelay: 'calc(600ms + var(--t0, 0ms))' }}>
+              Your card is saved on this phone.{' '}
+              <a href="#edit" className="text-rose underline decoration-zari/70 underline-offset-[6px] hover:decoration-zari">
+                Continue {draftName}
+              </a>
+            </p>
+          )}
         </div>
+        {demo ?? <HeroDemo lang="gu" />}
       </section>
     </div>
+  )
+}
+
+// The mandap with the card standing in it and the website phone at its foot, and the language tabs. `card` is the
+// live card; without it (the prerendered page) the card's cover image stands in. The tabs sit with the copy on wide
+// screens (grid areas in index.css) and under the mandap on phones.
+export function HeroDemo({ lang, onLang, card }: { lang: string; onLang?: (l: string) => void; card?: ReactNode }) {
+  return (
+    <>
+      <div className="hero-stage mx-auto w-full max-w-[460px]">
+        <Mandap />
+        <div className="hero-card intro">
+          {card ?? <img src={preview(HERO_CARD)} width={540} height={960} alt="Sandhya kankotri, a painted Gujarati wedding card" className="h-full w-full" />}
+        </div>
+        <a href="/websites/" className="hero-phone intro" aria-label="Wedding website designs">
+          <img src={SHOTS.mubarakMahal.small} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: SHOTS.mubarakMahal.pos }} />
+          <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 to-transparent px-1 pb-[16%] pt-[50%] text-center font-display text-[11px] leading-tight text-white">
+            Aditi &amp; Vihaan
+          </span>
+        </a>
+      </div>
+      <div className="hero-langs intro" style={{ animationDelay: 'calc(650ms + var(--t0, 0ms))' }}>
+        <p className="text-sm text-rose/65">See this card in</p>
+        <div role="group" aria-label="Card language" className="mt-2 flex flex-wrap gap-1">
+          {HERO_LANGS.map(([id, name]) => (
+            <button
+              key={id}
+              type="button"
+              lang={id}
+              aria-pressed={lang === id}
+              onClick={() => onLang?.(id)}
+              className={`rounded-full px-3.5 py-1.5 text-[15px] transition-colors ${lang === id ? 'bg-zari text-wine-deep' : 'text-rose/75 ring-1 ring-zari/30 hover:text-rose hover:ring-zari/70'}`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 text-sm text-rose/55">Same card, same art. Only the words change.</p>
+      </div>
+    </>
   )
 }
