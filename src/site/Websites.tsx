@@ -74,6 +74,9 @@ function Phone({ d }: { d: Design }) {
   )
 }
 
+// The painted designs lead the page; the rest keep the order of designs.ts.
+const SHOWN = [...DESIGNS.filter((d) => d.bespoke), ...DESIGNS.filter((d) => !d.bespoke)]
+
 export default function Websites() {
   useTitle(WEBSITES_TITLE)
   return (
@@ -90,7 +93,7 @@ export default function Websites() {
           ))}
         </ul>
         <ul className="mt-14 grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
-          {DESIGNS.map((d) => (
+          {SHOWN.map((d) => (
             <li key={d.id}>
               <a href={designPath(d)} className="group block">
                 <div className="transition-transform duration-500 group-hover:-translate-y-1.5">
