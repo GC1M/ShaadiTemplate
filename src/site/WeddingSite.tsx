@@ -902,18 +902,13 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
             <SeeAlso d={d} />
           </div>
         )}
-        {mode === 'hosted' && slug && (
-          <>
-            <p>
-              Made with{' '}
-              <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
-                ShaadiTemplate
-              </a>
-              , free wedding websites and invitation cards.
-            </p>
-            <Report slug={slug} />
-          </>
-        )}
+        <p className={mode === 'demo' ? 'mt-8' : undefined}>
+          Made with ❤️ by{' '}
+          <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
+            ShaadiTemplate
+          </a>
+        </p>
+        {mode === 'hosted' && slug && <Report slug={slug} />}
         <PhotoCredits d={d} />
       </footer>
     </div>
