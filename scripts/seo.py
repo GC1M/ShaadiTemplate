@@ -132,12 +132,14 @@ def website_images():
             y += 76
         d.text((64, y + 14), sub, font=font('bodoni-moda/files/bodoni-moda-latin-400-normal.woff', 30), fill=ZARI)
         small = font('bodoni-moda/files/bodoni-moda-latin-400-normal.woff', 18)
-        d.text((64, 600), 'Free wedding website · RSVP · One link for every guest', font=small, fill=ZARI)
         credit = f'Photo: {by}, {licence}, Wikimedia Commons'
         # Photographers' names can need Latin Extended letters (Hałun), which the latin subset file lacks.
         ext = font('bodoni-moda/files/bodoni-moda-latin-ext-400-normal.woff', 18)
         pick = lambda ch: ext if ord(ch) > 0xff else small
         x = 1136 - sum(d.textlength(ch, font=pick(ch)) for ch in credit)
+        tagline = 'Free wedding website · RSVP · One link for every guest'
+        if 64 + d.textlength(tagline, font=small) + 32 <= x:  # a long credit needs the whole strip
+            d.text((64, 600), tagline, font=small, fill=ZARI)
         for ch in credit:
             d.text((x, 600), ch, font=pick(ch), fill=ROSE)
             x += d.textlength(ch, font=pick(ch))

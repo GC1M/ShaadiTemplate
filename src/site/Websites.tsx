@@ -38,8 +38,16 @@ function Phone({ d }: { d: Design }) {
       <p className="ov-meta mt-3 text-[0.5rem] uppercase">{d.city}</p>
     </div>
   )
+  const frame = 'ov relative mx-auto h-[500px] w-[250px] overflow-hidden rounded-[2rem] border-[6px] border-[#120b0e] shadow-2xl'
+  // A design with its own painted opening shows a still of it.
+  if (d.cover)
+    return (
+      <div className={frame}>
+        <img src={d.cover} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+      </div>
+    )
   return (
-    <div className="ov relative mx-auto h-[500px] w-[250px] overflow-hidden rounded-[2rem] border-[6px] border-[#120b0e] shadow-2xl" style={themeVars(d)} onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)}>
+    <div className={frame} style={themeVars(d)} onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)}>
       {d.layout === 'veil' && (
         <>
           {photo}
@@ -66,14 +74,17 @@ function Phone({ d }: { d: Design }) {
   )
 }
 
-// The home page's websites section (App.tsx, loaded on demand): four designs from different traditions, then
-// the way to the rest. Scrolls sideways on phones, where four phone frames don't fit across.
-const SHOWCASE = ['rajwada', 'gulabi-bagh', 'phulkari', 'noor']
+// The painted designs lead the page; the rest keep the order of designs.ts.
+const SHOWN = [...DESIGNS.filter((d) => d.bespoke), ...DESIGNS.filter((d) => !d.bespoke)]
+
+// The home page's websites section (App.tsx, loaded on demand): the two painted designs first, as on this page,
+// then two from other traditions, then the way to the rest. Scrolls sideways on phones, where four phone frames don't fit across.
+const SHOWCASE = ['mahal', 'aangan', 'phulkari', 'noor']
 export function Showcase() {
   return (
     <>
       <ul className="-mx-4 mt-12 flex snap-x snap-mandatory gap-6 overflow-x-auto px-4 pb-4 lg:mx-0 lg:grid lg:grid-cols-4 lg:overflow-visible lg:px-0">
-        {DESIGNS.filter((d) => SHOWCASE.includes(d.id)).map((d) => (
+        {SHOWCASE.map((id) => DESIGNS.find((d) => d.id === id)!).map((d) => (
           <li key={d.id} className="w-[250px] shrink-0 snap-center lg:w-auto">
             <a href={designPath(d)} className="group block">
               <div className="transition-transform duration-500 group-hover:-translate-y-1.5">
@@ -110,7 +121,7 @@ export default function Websites() {
           ))}
         </ul>
         <ul className="mt-14 grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
-          {DESIGNS.map((d) => (
+          {SHOWN.map((d) => (
             <li key={d.id}>
               <a href={designPath(d)} className="group block">
                 <div className="transition-transform duration-500 group-hover:-translate-y-1.5">
