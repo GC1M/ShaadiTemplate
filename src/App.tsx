@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type SetStateActi
 import { CardPage, SIZES } from './card/Card'
 import Editor from './Editor'
 import { EVENTS, LANGS, SYMBOLS } from './i18n'
-import { carryDetails, CUSTOM, isEdited, liveId, loadDrafts, newInvite, saveDrafts, templateById, TEMPLATES, type Template } from './templates'
+import { carryDetails, CUSTOM, isEdited, liveId, loadDrafts, newInvite, saveDrafts, templateById, templateOf, TEMPLATES, type Template } from './templates'
 import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang, type SymbolId } from './types'
 import { Hero, HERO_CARD, HERO_LANGS, HeroDemo, preview, Wordmark } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
@@ -319,7 +319,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
   const shown = bySymbol.filter((t) => event === 'all' || t.event === event).sort((a, b) => rank(a) - rank(b))
   const count = (e: EventType | 'all') => bySymbol.filter((t) => e === 'all' || t.event === e).length
   const filtered = lang !== 'all' || symbol !== 'all' || event !== 'all'
-  // The home page opens on the first eight (ORDER); every card stays in the page for crawlers.
+  // The home page opens on Make your own and the first seven (ORDER), two rows; every card stays in the page for crawlers.
   const [all, setAll] = useState(false)
   // A language choice keeps the short view: it changes the cards' words, not which cards show.
   const short = !all && symbol === 'all' && event === 'all' && shown.length > 7
@@ -384,7 +384,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
           <nav aria-label="Your cards" className="mt-8 flex flex-wrap items-center gap-2 text-[15px]">
             <span className="mr-1 text-ink/60">Your cards:</span>
             {mine.map((d) => {
-              const t = templateById(d.templateId)
+              const t = templateOf(d)
               return (
                 <button key={t.id} onClick={() => onOpen(t)} className="rounded-full border border-wine/25 bg-paper px-4 py-1.5 text-wine hover:border-wine/60">
                   {t.name} <span className="text-ink/50">· {EVENTS[t.event]}</span>

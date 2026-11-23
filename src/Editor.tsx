@@ -7,7 +7,7 @@ import { DESIGNS } from './card/designs'
 import { FOIL_SWATCH, FOILS, FONTS, BORDERS, FRAMES, PALETTES, PATTERNS, SACRED, SCENES, TOPS, Thumb, styled } from './card/style'
 import { DATE_FORMATS, formatDate, type DateFormat } from './dates'
 import { EVENTS, LANGS, SAMPLES, SYMBOLS } from './i18n'
-import { CUSTOM, keepEdits, samplePages, sectionsPage, stripIds, templateOf } from './templates'
+import { carryDetails, CUSTOM, keepEdits, samplePages, sectionsPage, stripIds, templateOf } from './templates'
 import { TransliterateInput } from './transliterate'
 import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type CardStyle, type EventType, type SymbolId, type CoverPage, type FontScale, type Format, type Invite, type Lang, type Page, type Photo, type SectionsPage } from './types'
 import { ScaledCard, Segmented, useSplit } from './ui'
@@ -89,17 +89,17 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
     set({ lang, pages })
     if (kept) setToast(`Switched the wording to ${LANGS[lang].name}. Your names and details are kept as you typed them.`)
   }
-  // Make your own: a new occasion brings that occasion's sample pages; a new symbol re-fills an untouched sample.
+  // Make your own: a new occasion brings that occasion's pages, keeping the names, venue and phone typed; a new
+  // symbol swaps the invocation and shlok, keeping everything typed (as on a language switch).
   const rebuild = (patch: { event?: EventType; symbol?: SymbolId }) => {
     // A sacred part (Harmandir Sahib, the rose window's cross) stays only on a card for that faith.
     const off = (['top', 'scene', 'border'] as const).filter((k) => patch.symbol && SACRED[invite.style?.[k] ?? ''] && SACRED[invite.style![k]!] !== patch.symbol)
     const style = off.length ? { ...invite.style, ...Object.fromEntries(off.map((k) => [k, 'none'])) } : invite.style
-    const untouched = stripIds(invite.pages) === stripIds(samplePages(t, invite.lang))
-    if (untouched || (patch.event && confirm('Replace your text with the sample text for this occasion?'))) {
-      const pages = samplePages(templateOf({ ...invite, ...patch }), invite.lang)
-      set({ ...patch, style, pages })
-      setCurrent(pages[0].id)
-    } else if (patch.symbol) set({ ...patch, style })
+    const was = samplePages(t, invite.lang)
+    const next = samplePages(templateOf({ ...invite, ...patch }), invite.lang)
+    const pages = patch.event ? (carryDetails(invite, { ...invite, pages: next })?.pages ?? next) : keepEdits(invite.pages, was, next)
+    set({ ...patch, style, pages })
+    if (patch.event) setCurrent(pages[0].id)
   }
   const reset = () => {
     if (!confirm('Replace every page with the sample text?')) return
