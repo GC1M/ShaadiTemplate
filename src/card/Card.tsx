@@ -1,9 +1,10 @@
 import { createContext, useContext, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react'
 import { LANGS } from '../i18n'
-import { templateById } from '../templates'
+import { templateOf } from '../templates'
 import type { CoverPage, Format, Invite, Lang, Page, Photo, SectionsPage, SymbolId } from '../types'
 import { DESIGNS, type Design, type Ornaments } from './designs'
 import { Emblem, Flourish } from './motifs'
+import { styled } from './style'
 
 // Where a photo sits in its frame until the couple moves it: centred, near the top so heads are not cut.
 export const PHOTO_FIT: Photo = { x: 50, y: 0, zoom: 1 }
@@ -323,8 +324,8 @@ function Sections({ x, p, head, cols }: { x: Look; p: SectionsPage; head: boolea
 }
 
 export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
-  const t = templateById(invite.templateId)
-  const base0 = DESIGNS[t.design]
+  const t = templateOf(invite)
+  const base0 = styled(DESIGNS[t.design], invite.style).d
   const { w, h } = SIZES[invite.format]
   // Painted templates: each page has its own artwork and its own text band, scaled from story px.
   const own = base0.pages?.[Math.max(0, invite.pages.indexOf(page)) % base0.pages.length]
@@ -381,7 +382,7 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
       el?.removeEventListener('load', fit, true)
     }
     // Only pages whose content or look changed re-fit; untouched pages keep their object identity.
-  }, [page, base, invite.scale, invite.lang, invite.templateId, invite.format, own])
+  }, [page, base, invite.scale, invite.lang, invite.templateId, invite.format, own, invite.style])
 
   return (
     <div className="relative overflow-hidden" style={{ width: w, height: h, background: d.sky, color: d.colors.text, fontFamily: x.f.body, letterSpacing: d.tracking, textShadow: d.press, '--names': x.f.names } as CSSProperties}>

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type SetStateActi
 import { CardPage, SIZES } from './card/Card'
 import Editor from './Editor'
 import { EVENTS, LANGS, SYMBOLS } from './i18n'
-import { carryDetails, isEdited, liveId, loadDrafts, newInvite, saveDrafts, templateById, TEMPLATES, type Template } from './templates'
+import { carryDetails, CUSTOM, isEdited, liveId, loadDrafts, newInvite, saveDrafts, templateById, templateOf, TEMPLATES, type Template } from './templates'
 import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang, type SymbolId } from './types'
 import { Hero, HERO_CARD, HERO_LANGS, HeroDemo, preview, Wordmark } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
@@ -19,7 +19,7 @@ const Showcase = lazy(() => import('./site/Websites').then((m) => ({ default: m.
 const isEditor = () => location.hash === '#edit'
 const isSite = () => sitePath(location.pathname)
 // Static template pages link to #template/<id> to open that design. Consumed once, so StrictMode's re-run is a no-op.
-let linked = location.hash.startsWith('#template/') ? TEMPLATES.find((t) => t.id === liveId(location.hash.slice(10))) : undefined
+let linked = location.hash.startsWith('#template/') ? [...TEMPLATES, CUSTOM].find((t) => t.id === liveId(location.hash.slice(10))) : undefined
 
 export default function App() {
   // Every card the family has made, the one being edited first.
@@ -121,6 +121,24 @@ function Preview({ t }: { t: Template }) {
       </ScaledCard>
     )
   return <img src={preview(t.id)} width={540} height={960} loading="lazy" alt={`${t.name}, ${EVENTS[t.event]} invitation card`} onError={() => setLive(true)} className="design-card h-auto w-full" />
+}
+
+// The first tile: a blank luxe card the couple builds from parts (colours, foil, frame, pattern, decoration, scene).
+function MakeYourOwn({ onOpen }: { onOpen: () => void }) {
+  const inv = useMemo(() => newInvite(CUSTOM), [])
+  return (
+    <button type="button" onClick={onOpen} className="design group flex min-w-0 flex-col text-left">
+      <div className="pointer-events-none relative w-full transition-transform duration-500 ease-out group-hover:-translate-y-1.5">
+        <span className="zari-button absolute left-2 top-2 z-10 rounded-full px-2.5 py-1 text-xs font-medium text-wine-deep shadow">✦ New</span>
+        <ScaledCard w={SIZES.story.w} h={SIZES.story.h} className="design-card">
+          <CardPage invite={inv} page={inv.pages[0]} />
+        </ScaledCard>
+      </div>
+      <h3 className="mt-5 font-display text-[19px] leading-snug">Make your own</h3>
+      <p className="mt-1 text-sm text-ink/60">Choose colours, foil, frame, pattern and scene</p>
+      <span className="mt-2.5 text-sm font-medium text-wine underline decoration-zari underline-offset-[6px] group-hover:decoration-wine">Start designing</span>
+    </button>
+  )
 }
 
 // Plain facts about the maker. Downloads and live websites are the owner's real totals on 2026-11-22 (Google
@@ -301,10 +319,10 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
   const shown = bySymbol.filter((t) => event === 'all' || t.event === event).sort((a, b) => rank(a) - rank(b))
   const count = (e: EventType | 'all') => bySymbol.filter((t) => e === 'all' || t.event === e).length
   const filtered = lang !== 'all' || symbol !== 'all' || event !== 'all'
-  // The home page opens on the first eight (ORDER); every card stays in the page for crawlers.
+  // The home page opens on Make your own and the first seven (ORDER), two rows; every card stays in the page for crawlers.
   const [all, setAll] = useState(false)
   // A language choice keeps the short view: it changes the cards' words, not which cards show.
-  const short = !all && symbol === 'all' && event === 'all' && shown.length > 8
+  const short = !all && symbol === 'all' && event === 'all' && shown.length > 7
   const clear = () => {
     setLang('all')
     setSymbol('all')
@@ -313,7 +331,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
   // The language a card opens in: the family's own copy's, else the filter's, else the design's sample.
   const cardLang = (t: Template) => drafts.find((d) => d.templateId === t.id)?.lang ?? (lang === 'all' ? t.lang : lang)
   const mine = drafts.filter(isEdited)
-  const draftName = draft && TEMPLATES.find((t) => t.id === draft.templateId)?.name
+  const draftName = draft && [...TEMPLATES, CUSTOM].find((t) => t.id === draft.templateId)?.name
   // When a filter changes, bring the top of the grid back into view and fade the new set in.
   const top = useRef<HTMLDivElement>(null)
   const grid = useRef<HTMLDivElement>(null)
@@ -366,7 +384,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
           <nav aria-label="Your cards" className="mt-8 flex flex-wrap items-center gap-2 text-[15px]">
             <span className="mr-1 text-ink/60">Your cards:</span>
             {mine.map((d) => {
-              const t = templateById(d.templateId)
+              const t = templateOf(d)
               return (
                 <button key={t.id} onClick={() => onOpen(t)} className="rounded-full border border-wine/25 bg-paper px-4 py-1.5 text-wine hover:border-wine/60">
                   {t.name} <span className="text-ink/50">· {EVENTS[t.event]}</span>
@@ -406,6 +424,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
           </div>
         ) : (
           <div ref={grid} className="mt-12 grid grid-cols-2 gap-x-5 gap-y-14 sm:gap-x-10 md:grid-cols-3 lg:grid-cols-4">
+            <MakeYourOwn onOpen={() => onOpen(CUSTOM)} />
             {shown.map((t, i) => {
               return (
                 // A link to the design's own page, so crawlers reach every design from the homepage; a plain click opens the editor.
@@ -417,7 +436,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
                     e.preventDefault()
                     onOpen(t, lang === 'all' ? undefined : lang)
                   }}
-                  className={`design group ${short && i >= 8 ? 'hidden' : 'flex'} min-w-0 flex-col text-left`}
+                  className={`design group ${short && i >= 7 ? 'hidden' : 'flex'} min-w-0 flex-col text-left`}
                 >
                   <div className="pointer-events-none relative w-full transition-transform duration-500 ease-out group-hover:-translate-y-1.5">
                     {t.featured && (

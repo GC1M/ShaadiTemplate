@@ -69,7 +69,18 @@ type Box = { top: number; bottom: number; x: number }
 export type Ornament = { src: string; w: number; lang?: Lang; plain?: string; at?: 'below' | 'above' }
 export type Ornaments = Record<string, Ornament>
 
+// Make your own: a plain ground the couple dresses with a palette, frame, pattern, top decoration and scene (style.tsx).
+const custom: Design = {
+  id: 'custom',
+  sky: 'linear-gradient(180deg,#5a1424,#3a0a16 60%,#2a0710)',
+  colors: { title: '#ecd08a', heading: '#e9cf8f', text: '#f4e6cc', accent: '#f2b99c', muted: '#d8c0a2', names: '#f6dfa0' },
+  fonts: { title: '"Cinzel"', heading: '"Cinzel"', body: '"Cormorant Garamond", Georgia, serif', names: '"Pinyon Script"' },
+  Top: () => null,
+  Bottom: () => null,
+  safe: { story: { top: 170, bottom: 250, x: 34 }, print: { top: 128, bottom: 160, x: 28 } },
+}
+
 export const DESIGNS: Record<string, Design> = Object.fromEntries(
-  [...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK, ...batchL].map((d) => [d.id, d]),
+  [custom, ...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK, ...batchL].map((d) => [d.id, d]),
 )
 

@@ -57,6 +57,22 @@ export interface Invite {
   // Photo windows, by the index of the design page they belong to: the couple's own photo (src, a JPEG data URL;
   // none means the sample) and the part of it shown in the frame.
   photos?: Record<number, Photo>
+  // The couple's changes to a drawn design's look (frame, pattern, foil, palette, lettering); unset parts keep the design's own.
+  style?: Partial<CardStyle>
+  // Make your own: the occasion and god or symbol the couple chose (the blank template has none of its own).
+  event?: EventType
+  symbol?: SymbolId
+}
+
+export interface CardStyle {
+  frame: 'original' | 'filigree' | 'jharokha' | 'temple' | 'zari' | 'deco' | 'hairline'
+  pattern: 'none' | 'jaal' | 'buta' | 'bandhani' | 'scallop' | 'stars'
+  foil: 'gold' | 'rose' | 'silver' | 'copper'
+  palette: 'original' | 'maroon' | 'emerald' | 'sapphire' | 'noir' | 'ivory' | 'blush'
+  fonts: 'original' | 'regal' | 'romantic' | 'editorial' | 'heritage'
+  top?: string // another design whose top decoration (toran, garland, lanterns) to use, or 'none'
+  scene?: string // another design whose bottom scene (temple, palace, kalash) to use, or 'none'
+  border?: string // another design whose border art (side vines, mirror panels, painted frame) to use, or 'none'
 }
 
 // x, y: object-position in % (which part of the photo the frame shows); zoom: 1 fills the frame, up to 3.
