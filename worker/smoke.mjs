@@ -90,10 +90,12 @@ assert.equal((await call('PUT', `/api/sites/${slug}/contact`, { email: 'not-an-e
 assert.equal((await call('PUT', `/api/sites/${slug}/contact`, { phone: '12' }, key)).status, 400)
 const saved = await call('PUT', `/api/sites/${slug}/contact`, { email: 'Asha@Example.com', phone: '+91 98765 43210', marketing: true }, key)
 assert.equal(saved.status, 200, JSON.stringify(saved.data))
+assert.equal(saved.data.tried, true) // a new email address gets the edit link
 assert.equal(saved.data.sent, false) // no RESEND_API_KEY locally
 assert.deepEqual((await call('GET', `/api/sites/${slug}/contact`, undefined, key)).data, { email: 'asha@example.com', phone: '+919876543210', marketing: true })
 assert.equal((await call('PUT', `/api/sites/${slug}/contact`, { email: '', phone: '' }, key)).status, 200)
 assert.deepEqual((await call('GET', `/api/sites/${slug}/contact`, undefined, key)).data, { email: '', phone: '', marketing: false })
+assert.equal((await call('PUT', `/api/sites/${slug}/contact`, { email: 'asha@example.com' }, key)).data.tried, true) // cleared and re-added: still counted, below the cap
 assert.equal((await call('GET', '/api/sites/no-such-site')).status, 404)
 assert.equal((await call('DELETE', `/api/sites/${slug}`, undefined, 'wrong')).status, 403)
 assert.equal((await call('DELETE', `/api/sites/${slug}`, undefined, key)).status, 200)

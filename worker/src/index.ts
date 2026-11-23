@@ -12,7 +12,7 @@
 //   POST   /api/sites/:slug/rsvps        {name, side, events, party, note}
 //   POST   /api/sites/:slug/report       {reason}
 //   GET    /api/sites/:slug/contact      (Bearer key)           -> {email, phone, marketing}
-//   PUT    /api/sites/:slug/contact      (Bearer key) {email, phone, marketing} -> {ok, sent}; a new email gets the edit link
+//   PUT    /api/sites/:slug/contact      (Bearer key) {email, phone, marketing} -> {ok, tried, sent}; a new email gets the edit link
 //   GET    /api/photo/:slug/:file
 //   GET    /api/stats                                           -> {sites} live (not hidden) sites, for the home page
 //
@@ -446,23 +446,21 @@ async function contact(req: Request, env: Env, slug: string) {
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) fail(400, 'Check your email address.')
   if (phone && !/^\+?\d{8,15}$/.test(phone)) fail(400, 'Check your WhatsApp number. Use only digits, with the country code if you like.')
   const old = await env.DB.prepare('SELECT email, sent FROM contacts WHERE slug = ?').bind(slug).first<{ email: string; sent: number }>()
-  if (!email && !phone) {
-    await env.DB.prepare('DELETE FROM contacts WHERE slug = ?').bind(slug).run()
-    return json({ ok: true, sent: false })
-  }
+  // Clearing both blanks the row rather than deleting it, so the count of edit-link emails sent stays.
   const now = Date.now()
   await env.DB.prepare(
     'INSERT INTO contacts (slug, email, phone, marketing, at, notified) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (slug) DO UPDATE SET email = excluded.email, phone = excluded.phone, marketing = excluded.marketing, at = excluded.at',
   )
-    .bind(slug, email, phone, b?.marketing === true ? 1 : 0, now, now)
+    .bind(slug, email, phone, (email || phone) && b?.marketing === true ? 1 : 0, now, now)
     .run()
   let sent = false
-  if (email && email !== old?.email && (old?.sent ?? 0) < MAX_SENT) {
+  const tried = !!email && email !== old?.email && (old?.sent ?? 0) < MAX_SENT
+  if (tried) {
     const key = req.headers.get('Authorization')!.replace(/^Bearer /, '')
     const live = `${env.SITE_URL}/w/${slug}`
     const text = `Your wedding website is live: ${live}\n\nYour secret edit link (keep it private, anyone with it can change your site):\n${live}/edit#${key}\n\nOpen it to change your site and see who has replied. We will email you here once a day when guests reply, and once before your site is deleted.\n\nShaadiTemplate`
     sent = await mail(env, email, 'Your wedding website edit link', text)
     if (sent) await env.DB.prepare('UPDATE contacts SET sent = sent + 1 WHERE slug = ?').bind(slug).run()
   }
-  return json({ ok: true, sent })
+  return json({ ok: true, tried, sent })
 }

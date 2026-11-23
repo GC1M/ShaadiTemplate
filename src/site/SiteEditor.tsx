@@ -839,8 +839,16 @@ function Contact({ slug, edit }: { slug: string; edit: string }) {
     setState('saving')
     setNote('')
     try {
-      const r = await api<{ sent: boolean }>(`sites/${slug}/contact`, { method: 'PUT', key: edit, body: form })
-      setNote(r.sent ? `Saved. We've emailed your edit link to ${form.email}.` : form.email || form.phone ? "Saved. We'll use it only for your website." : 'Removed.')
+      const r = await api<{ tried: boolean; sent: boolean }>(`sites/${slug}/contact`, { method: 'PUT', key: edit, body: form })
+      setNote(
+        r.sent
+          ? `Saved. We've emailed your edit link to ${form.email}.`
+          : r.tried
+            ? "Saved, but we couldn't send the email just now. Copy your edit link above to keep it safe."
+            : form.email || form.phone
+              ? "Saved. We'll use it only for your website."
+              : 'Removed.',
+      )
       track('site_contact', { email: !!form.email, phone: !!form.phone, marketing: form.marketing })
     } catch (err) {
       setNote((err as Error).message)
