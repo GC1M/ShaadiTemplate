@@ -302,9 +302,18 @@ def main():
     # The wedding website pages come from the app, not from a file here: the build writes them (vite.config.ts) and
     # fails if a design in src/site/designs.ts is missing from the sitemap.
     designs = ROOT / 'src/site/designs.ts'
-    looks = re.findall(r"^    id: '([\w-]+)',$", designs.read_text(), re.M)
-    website_images()
-    entries += [(f'{SITE}/websites/{look}', last_changed(designs), []) for look in ['', *(f'{i}/' for i in looks)]]
+    looks = re.findall(r"^    id: '([\w-]+)',\n    name: '([^']+)',\n    blurb: '([^']+)',$", designs.read_text(), re.M)
+    assert len(looks) == len(re.findall(r"^    id: '", designs.read_text(), re.M)), 'a design in designs.ts is not id, name, blurb in that order'
+    shots = website_images()
+    entries += [(f'{SITE}/websites/', last_changed(designs), [shots['websites']])]
+    entries += [(f'{SITE}/websites/{i}/', last_changed(designs), [shots[f'websites-{i}']]) for i, _, _ in looks]
+    # Those pages have no content in their HTML until the app runs, so nothing static links to each design. List
+    # them between the <!-- websites --> marks, for crawlers to follow.
+    for path, base, cls in [(ROOT / 'index.html', '', ' class="text-wine underline underline-offset-4"'), (PUBLIC / 'templates/index.html', '../', '')]:
+        items = ['<!-- websites -->', *(f'<li><a{cls} href="{base}websites/{i}/">{html.escape(name)}</a>: {html.escape(blurb)}</li>' for i, name, blurb in looks), '<!-- /websites -->']
+        page, n = re.subn(r'([ \t]*)<!-- websites -->.*?<!-- /websites -->', lambda m: '\n'.join(m[1] + t for t in items), path.read_text(), flags=re.S)
+        assert n == 1, f'{path} has no <!-- websites --> marks'
+        path.write_text(page)
     entries.sort(key=lambda x: (x[0].count('/'), x[0]))
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">']
