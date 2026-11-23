@@ -5,6 +5,11 @@ name = "shaaditemplate-sites"
 main = "src/index.ts"
 compatibility_date = "2026-11-01"
 
+# Where emails point couples, and who they come from (the domain must be verified in Resend, see README.md).
+[vars]
+SITE_URL = "https://shaaditemplate.com"
+MAIL_FROM = "ShaadiTemplate <hello@shaaditemplate.com>"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "shaaditemplate-sites"

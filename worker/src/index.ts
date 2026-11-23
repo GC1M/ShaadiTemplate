@@ -11,15 +11,22 @@
 //   GET    /api/sites/:slug/rsvps        (Bearer key)           -> [{id, at, name, side, events, party, note}]
 //   POST   /api/sites/:slug/rsvps        {name, side, events, party, note}
 //   POST   /api/sites/:slug/report       {reason}
+//   GET    /api/sites/:slug/contact      (Bearer key)           -> {email, phone, marketing}
+//   PUT    /api/sites/:slug/contact      (Bearer key) {email, phone, marketing} -> {ok, tried, sent}; a new email gets the edit link
 //   GET    /api/photo/:slug/:file
 //   GET    /api/stats                                           -> {sites} live (not hidden) sites, for the home page
 //
-// Once a day (the cron in wrangler.toml) sites whose last event was more than KEEP_DAYS ago are deleted.
+// Once a day (the cron in wrangler.toml) couples who gave an email get a note of new replies and, a week before,
+// a reminder that their site is going; then sites whose last event was more than KEEP_DAYS ago are deleted.
 
 interface Env {
   DB: D1Database
   PHOTOS: R2Bucket
   IP_SALT?: string
+  // Email goes out through Resend (worker/README.md). Without the key nothing is sent and contacts are only stored.
+  RESEND_API_KEY?: string
+  MAIL_FROM: string
+  SITE_URL: string
 }
 
 const MAX_PHOTOS = 16
@@ -29,6 +36,10 @@ const HOUR = 36e5
 const DAY = 24 * HOUR
 // Days a site stays up after its last event. The editor says the same date (keepUntil in src/site/SiteEditor.tsx).
 const KEEP_DAYS = 30
+// The deletion reminder goes this many days before the site is deleted.
+const REMIND_DAYS = 7
+// Edit-link emails one site may send, so an edit key can't be used to mail strangers.
+const MAX_SENT = 5
 
 type Photo = { src: string; small: string; alt: string; pos: string }
 
@@ -64,26 +75,84 @@ export default {
     return res
   },
   async scheduled(_: ScheduledController, env: Env, ctx: ExecutionContext) {
-    ctx.waitUntil(expire(env))
+    ctx.waitUntil(daily(env))
   },
 }
 
-// Deletes sites whose latest event date is more than KEEP_DAYS ago. Dates are YYYY-MM-DD, so they compare as text.
+async function daily(env: Env) {
+  await remind(env)
+  await digest(env)
+  await expire(env)
+}
+
+// A site's latest event date. Dates are YYYY-MM-DD, so they compare as text.
+const LAST = `(SELECT MAX(json_extract(value, '$.date')) FROM json_each(s.data, '$.content.events') WHERE json_extract(value, '$.date') != '')`
+const daysAgo = (n: number) => new Date(Date.now() - n * DAY).toISOString().slice(0, 10)
+const deleteDay = (last: string) => {
+  const d = new Date(`${last}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() + KEEP_DAYS)
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
+}
+
+// Deletes sites whose latest event date is more than KEEP_DAYS ago.
 // ponytail: 50 sites a run keeps one run well inside the Worker's limits; any left over go the next day.
 async function expire(env: Env) {
-  const cutoff = new Date(Date.now() - KEEP_DAYS * DAY).toISOString().slice(0, 10)
-  const { results } = await env.DB.prepare(
-    `SELECT slug FROM sites WHERE (SELECT MAX(json_extract(value, '$.date')) FROM json_each(data, '$.content.events') WHERE json_extract(value, '$.date') != '') < ? LIMIT 50`,
-  )
-    .bind(cutoff)
-    .all<{ slug: string }>()
+  const { results } = await env.DB.prepare(`SELECT slug FROM sites s WHERE ${LAST} < ? LIMIT 50`).bind(daysAgo(KEEP_DAYS)).all<{ slug: string }>()
   for (const { slug } of results) await remove(env, slug)
   if (results.length) console.log(`expired ${results.length} sites`)
 }
 
-// Deletes a site, its photos, RSVPs and blessings.
+// Emails couples whose site goes within REMIND_DAYS, once.
+// ponytail: 10 reminders and 30 reply notes a run stay under the free plan's 50 outside requests; the rest go the next day.
+async function remind(env: Env) {
+  const { results } = await env.DB.prepare(
+    `SELECT c.slug, c.email, ${LAST} AS last FROM contacts c JOIN sites s ON s.slug = c.slug WHERE c.email != '' AND c.reminded = 0 AND s.hidden = 0 AND ${LAST} < ? LIMIT 10`,
+  )
+    .bind(daysAgo(KEEP_DAYS - REMIND_DAYS))
+    .all<{ slug: string; email: string; last: string }>()
+  for (const r of results) {
+    const text = `Your wedding website ${env.SITE_URL}/w/${r.slug} will be deleted on ${deleteDay(r.last)}, ${KEEP_DAYS} days after your last function, with its photos, guest replies and blessings.\n\nTo keep your guest list, open your secret edit link (it is in the first email we sent you) and press "Download replies".\n\nThank you for celebrating with ShaadiTemplate. Congratulations again!`
+    if (await mail(env, r.email, 'Your wedding website will be deleted soon', text)) await env.DB.prepare('UPDATE contacts SET reminded = 1 WHERE slug = ?').bind(r.slug).run()
+  }
+}
+
+// Emails couples a note of guests' replies and blessings since the last note. Runs once a day.
+async function digest(env: Env) {
+  const { results } = await env.DB.prepare(
+    `SELECT * FROM (SELECT c.slug, c.email, (SELECT COUNT(*) FROM rsvps r WHERE r.slug = c.slug AND r.at > c.notified) AS r, (SELECT COUNT(*) FROM blessings b WHERE b.slug = c.slug AND b.at > c.notified) AS b FROM contacts c JOIN sites s ON s.slug = c.slug WHERE c.email != '' AND s.hidden = 0) WHERE r > 0 OR b > 0 LIMIT 30`,
+  ).all<{ slug: string; email: string; r: number; b: number }>()
+  const now = Date.now()
+  for (const n of results) {
+    const what = [n.r && plural(n.r, 'new reply', 'new replies'), n.b && plural(n.b, 'new blessing', 'new blessings')].filter(Boolean).join(' and ')
+    const text = `Your wedding website has ${what} since our last note.\n\nOpen your secret edit link (it is in the first email we sent you) to see who is coming and download the list.\n\nYour website: ${env.SITE_URL}/w/${n.slug}`
+    if (await mail(env, n.email, `${what[0].toUpperCase()}${what.slice(1)} on your wedding website`, text))
+      await env.DB.prepare('UPDATE contacts SET notified = ? WHERE slug = ?').bind(now, n.slug).run()
+  }
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+// Sends a plain-text email. Returns false (and logs why) if it was not sent.
+async function mail(env: Env, to: string, subject: string, text: string) {
+  if (!env.RESEND_API_KEY) {
+    console.log(`mail not sent (no RESEND_API_KEY): ${subject}`)
+    return false
+  }
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: env.MAIL_FROM, to: [to], subject, text }),
+  })
+  if (!res.ok) console.error(`mail failed ${res.status}: ${await res.text()}`)
+  return res.ok
+}
+
+// Deletes a site, its photos, RSVPs, blessings and contact (kept only if they asked for news of new designs).
 async function remove(env: Env, slug: string) {
-  await env.DB.batch(['sites', 'blessings', 'rsvps'].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE slug = ?`).bind(slug)))
+  await env.DB.batch([
+    ...['sites', 'blessings', 'rsvps'].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE slug = ?`).bind(slug)),
+    env.DB.prepare('DELETE FROM contacts WHERE slug = ? AND marketing = 0').bind(slug),
+  ])
   const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
   if (listed.objects.length) await env.PHOTOS.delete(listed.objects.map((o) => o.key))
 }
@@ -126,6 +195,12 @@ async function route(req: Request, env: Env): Promise<Response> {
   }
   if (sub === 'rsvps' && m === 'POST') return rsvp(req, env, slug)
   if (sub === 'report' && m === 'POST') return report(req, env, slug)
+  if (sub === 'contact' && m === 'GET') {
+    await owner(req, env, slug)
+    const c = await env.DB.prepare('SELECT email, phone, marketing FROM contacts WHERE slug = ?').bind(slug).first<{ email: string; phone: string; marketing: number }>()
+    return json({ email: c?.email ?? '', phone: c?.phone ?? '', marketing: !!c?.marketing })
+  }
+  if (sub === 'contact' && m === 'PUT') return contact(req, env, slug)
   return fail(404, 'Not found.')
 }
 
@@ -360,4 +435,32 @@ async function report(req: Request, env: Env, slug: string) {
   if ((await count(env, 'SELECT COUNT(*) AS n FROM reports WHERE ip = ? AND at > ?', ip, Date.now() - DAY)) >= 5) fail(429, 'Thank you, we already have your reports.')
   await env.DB.prepare('INSERT INTO reports (slug, reason, ip, at) VALUES (?, ?, ?, ?)').bind(slug, reason, ip, Date.now()).run()
   return json({ ok: true }, 201)
+}
+
+// Saves how to reach the couple. A new email address gets the edit link, so a lost link can be found again.
+async function contact(req: Request, env: Env, slug: string) {
+  await owner(req, env, slug)
+  const b = await body(req)
+  const email = str(b?.email, 120).toLowerCase()
+  const phone = str(b?.phone, 30).replace(/[\s()-]/g, '')
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) fail(400, 'Check your email address.')
+  if (phone && !/^\+?\d{8,15}$/.test(phone)) fail(400, 'Check your WhatsApp number. Use only digits, with the country code if you like.')
+  const old = await env.DB.prepare('SELECT email, sent FROM contacts WHERE slug = ?').bind(slug).first<{ email: string; sent: number }>()
+  // Clearing both blanks the row rather than deleting it, so the count of edit-link emails sent stays.
+  const now = Date.now()
+  await env.DB.prepare(
+    'INSERT INTO contacts (slug, email, phone, marketing, at, notified) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (slug) DO UPDATE SET email = excluded.email, phone = excluded.phone, marketing = excluded.marketing, at = excluded.at',
+  )
+    .bind(slug, email, phone, (email || phone) && b?.marketing === true ? 1 : 0, now, now)
+    .run()
+  let sent = false
+  const tried = !!email && email !== old?.email && (old?.sent ?? 0) < MAX_SENT
+  if (tried) {
+    const key = req.headers.get('Authorization')!.replace(/^Bearer /, '')
+    const live = `${env.SITE_URL}/w/${slug}`
+    const text = `Your wedding website is live: ${live}\n\nYour secret edit link (keep it private, anyone with it can change your site):\n${live}/edit#${key}\n\nOpen it to change your site and see who has replied. We will email you here once a day when guests reply, and once before your site is deleted.\n\nShaadiTemplate`
+    sent = await mail(env, email, 'Your wedding website edit link', text)
+    if (sent) await env.DB.prepare('UPDATE contacts SET sent = sent + 1 WHERE slug = ?').bind(slug).run()
+  }
+  return json({ ok: true, tried, sent })
 }
