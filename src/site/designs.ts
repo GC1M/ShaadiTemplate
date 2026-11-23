@@ -32,6 +32,10 @@ export type Look = {
   emblem?: SymbolId
   // A save-the-date the guest reveals with a tap.
   dateReveal?: boolean
+  // A design with its own painted scenes, drawn by its own component in site/bespoke/ instead of the shared
+  // sections; cover is its opening screen for the designs page (public/site-art/<id>/cover.webp).
+  bespoke?: 'mahal' | 'aangan'
+  cover?: string
   demo: Content
 }
 
@@ -54,6 +58,8 @@ export type Content = {
   // Optional line of invocation on the opening screen, and a short personal note from the couple before the closing.
   invocation?: string
   note?: string
+  // Optional line under the venue: where to stay, how to get there.
+  stay?: string
   notes: string[]
   city: string
   venue: string
@@ -90,7 +96,7 @@ export const LOOKS: Look[] = [
     id: 'rajwada',
     name: 'Rajwada Rose',
     blurb: 'Maroon doors, gold scrolls and ivory walls, for a royal Rajasthani wedding.',
-    tradition: 'Hindu wedding · Jaipur',
+    tradition: 'Royal Rajasthani wedding · Jaipur',
     layout: 'veil',
     theme: { bg: '#f8f2e9', raised: '#efe5d5', accent: '#b8862f', text: '#4a1020', soft: '#8c2a3c', display: CORMORANT, script: PINYON, panel: '#6d1426', panelText: '#fbf1e2' },
     elephants: true,
@@ -207,7 +213,7 @@ export const LOOKS: Look[] = [
     id: 'neel-kamal',
     name: 'Neel Kamal',
     blurb: 'Indigo night and lamp gold by the Ganga, with a tap-to-reveal date and a timeline.',
-    tradition: 'Hindu wedding · Varanasi',
+    tradition: 'Banarasi wedding · Varanasi',
     layout: 'veil',
     theme: { bg: '#141a33', raised: '#1d2546', accent: '#e2b04a', text: '#f2ecdf', soft: '#a9b6e0', display: '"Marcellus", Georgia, serif', script: GREAT_VIBES },
     storyStyle: 'carousel',
@@ -247,7 +253,7 @@ export const LOOKS: Look[] = [
     id: 'pichola',
     name: 'Pichola Nights',
     blurb: 'Kohl and zari gold over the lake at night, for a palace wedding.',
-    tradition: 'Hindu wedding · Udaipur',
+    tradition: 'Palace wedding · Udaipur',
     layout: 'veil',
     theme: { bg: '#1e1519', raised: '#2a1f24', accent: '#c9a15b', text: '#f3ece3', soft: '#d7a79e', display: CORMORANT, script: CORMORANT },
     demo: {
@@ -396,7 +402,7 @@ export const LOOKS: Look[] = [
     id: 'ink-linen',
     name: 'Ink and Linen',
     blurb: 'Black ink on white linen. Quiet, modern, and all about the photos.',
-    tradition: 'Garden wedding · New Delhi',
+    tradition: 'Modern minimal wedding · New Delhi',
     layout: 'split',
     theme: { bg: '#fafaf7', raised: '#efefe9', accent: '#1d1d1b', text: '#1d1d1b', soft: '#6e6e66', display: '"Gloock", Georgia, serif', script: '"Gloock", Georgia, serif' },
     demo: {
@@ -419,6 +425,90 @@ export const LOOKS: Look[] = [
         { name: 'Dinner', date: '2028-02-26', time: '19:30', where: '7:30 pm', note: 'Long tables, short speeches. We promise.', photo: SHOTS.sunsetTree },
       ],
       photos: { hero: SHOTS.lodhi, venue: SHOTS.lodhi, rsvp: SHOTS.sunsetTree, bless: SHOTS.embrace, gallery: [SHOTS.embrace, SHOTS.silhouette, SHOTS.sunsetTree, SHOTS.ring] },
+    },
+  },
+  {
+    id: 'mahal',
+    name: 'Mahal at Dusk',
+    blurb: 'A painted palace at dusk, elephants and a curtain the couple pull open.',
+    tradition: 'Royal palace wedding · Udaipur',
+    layout: 'veil',
+    bespoke: 'mahal',
+    cover: '/site-art/mahal/cover.webp',
+    theme: { bg: '#f6e7dc', raised: '#efd9cb', accent: '#8a5d22', text: '#3d1e2e', soft: '#a84e66', display: '"Bodoni Moda", Didot, serif', script: CORMORANT },
+    demo: {
+      invocation: 'श्री गणेशाय नमः',
+      couple: ['Mrinalini', 'Advait'],
+      nativeNames: 'मृणालिनी संग अद्वैत',
+      families: ['The Chundawat family', 'The Mehta family'],
+      parents: ['Daughter of Smt. Shailja and Shri Jaswant Singh Chundawat, granddaughter of Rani Padmavati Chundawat', 'Son of Smt. Revati and Shri Nikhil Mehta, grandson of Smt. Kamla and Late Shri Bhanu Prakash Mehta'],
+      compliments: ['Shri Hemant Singh and family (Kaka-Kaki)', 'Smt. Usha Bhandari and family (Bua)', 'Shri Rajeev Mehta and family (Tauji-Taiji)'],
+      note: 'We met in this city, fell for it a second time together, and could not imagine saying yes anywhere else. Come early, stay late, and dance with us by the lake.',
+      notes: ['Boats to Jagmandir leave from the Bansi Ghat jetty, every twenty minutes from 6 pm.', 'Valet parking is at the City Palace main gate on Badi Pol.', 'Udaipur evenings turn cool in November. Bring a shawl for the boat ride.'],
+      city: 'Udaipur',
+      venue: 'City Palace, Udaipur',
+      invite: 'With the blessings of Shri Ganesh and our elders, the Chundawat and Mehta families invite you to the wedding of their children.',
+      rsvpBy: '15 October',
+      story: [
+        { year: '2018', title: 'Rain at Saheliyon ki Bari', body: 'A monsoon afternoon at Saheliyon ki Bari, one umbrella between two strangers, and a long walk to find a rickshaw.', photo: SHOTS.silhouette },
+        { year: '2021', title: 'Letters across two cities', body: 'Her in Jaipur, him in Pune, and a postcard every Sunday that both families pretended not to read.', photo: SHOTS.sunsetTree },
+        { year: '2026', title: 'On the palace steps', body: 'He asked on the ghat below the City Palace as the lamps came on, with her grandmother watching from a boat.', photo: SHOTS.ring },
+      ],
+      mainEvent: 4,
+      events: [
+        { name: 'Haldi', date: '2027-11-26', time: '10:00', where: '10 am, in the Zenana Mahal courtyard', note: 'Turmeric, marigolds and every cousin in yellow.', photo: SHOTS.marigold },
+        { name: 'Mehendi', date: '2027-11-26', time: '15:00', where: '3 pm, on the Fateh Prakash lawns', note: 'Henna, folk songs from Mewar and chai that never runs out.', photo: SHOTS.henna },
+        { name: 'Sangeet', date: '2027-11-26', time: '20:00', where: '8 pm, in the Durbar Hall, Fateh Prakash', note: 'Two families, one stage and many rehearsed steps.', photo: SHOTS.diyaLedge },
+        { name: 'Sagan', date: '2027-11-27', time: '11:00', where: '11 am, in the Manek Chowk', note: 'The elders bless the couple before the evening begins.', photo: SHOTS.diyas },
+        { name: 'Shaadi', date: '2027-11-27', time: '18:30', where: '6:30 pm baraat, pheras by the lake', note: 'The baraat, the varmala and seven pheras as the sun sets over Pichola.', photo: SHOTS.lakePalace },
+        { name: 'Reception', date: '2027-11-28', time: '19:30', where: '7:30 pm, at Jagmandir island', note: 'Dinner on the island, music on the water, and the boats home under the stars.', photo: SHOTS.lakePalace },
+      ],
+      photos: { hero: SHOTS.lakePalace, venue: SHOTS.lakePalace, rsvp: SHOTS.lakePalace, bless: SHOTS.sunsetTree, gallery: [SHOTS.twirl, SHOTS.embrace, SHOTS.bazaar, SHOTS.lodhi] },
+    },
+  },
+  {
+    id: 'aangan',
+    name: 'Diya Aangan',
+    blurb: 'Pull the rope and a dark haveli courtyard lights up with diyas.',
+    tradition: 'Haveli courtyard wedding · Jaipur',
+    layout: 'veil',
+    bespoke: 'aangan',
+    cover: '/site-art/aangan/cover.webp',
+    theme: { bg: '#14100c', raised: '#21190f', accent: '#d8a957', text: '#f7eedc', soft: '#eab0b8', display: CORMORANT, script: GREAT_VIBES },
+    demo: {
+      couple: ['Naina', 'Dev'],
+      nativeNames: 'नैना संग देव',
+      families: ['Naina’s family', 'Dev’s family'],
+      parents: ['Daughter of Smt. Rekha and Shri Alok Mathur, granddaughter of Late Shri Har Prasad Mathur', 'Son of Smt. Usha and Shri Vinod Bhandari, grandson of Smt. Shanti Devi Bhandari'],
+      compliments: ['Shri Pramod Mathur and family (Tauji-Taiji)', 'Smt. Lata Saxena and family (Mausi)', 'Shri Rakesh Bhandari and family (Chacha-Chachi)'],
+      notes: [
+        'Wear colour. The courtyard is lit with diyas, and jewel tones glow in it.',
+        'Cars drop guests at the Gangapole gate; the last few steps through the bazaar are on foot.',
+        'Every meal is Rajasthani and vegetarian, with dal baati at the Sangeet.',
+        'February nights in Jaipur turn cold after sunset. Bring a shawl for the pheras.',
+        'Children are welcome at every function, and there is a puppet show for them at the Mehendi.',
+      ],
+      city: 'Jaipur',
+      venue: 'Samode Haveli, Gangapole, Jaipur',
+      stay: 'Rooms for out-of-town guests are held at the haveli and at Alsisar Haveli nearby until 1 January 2028.',
+      invite: 'With the blessings of our elders, our two families invite you to light the diyas with us at our wedding.',
+      note: 'The courtyard is only full once you are in it. Come early, stay late, and dance with our grandmothers.',
+      rsvpBy: '10 January',
+      story: [
+        { year: '2022', title: 'The wrong train', body: 'He boarded the Ajmer Shatabdi by mistake, she had the seat he thought was his, and neither of them got off at the right station.', photo: SHOTS.silhouette },
+        { year: '2024', title: 'Kite season', body: 'Two Makar Sankrantis on her family’s terrace in the walled city, and he still cannot fly a patang.', photo: SHOTS.embrace },
+        { year: '2026', title: 'At Panna Meena', body: 'He asked on the stepwell steps at Amer at sunrise, with his sister filming from behind a pillar.', photo: SHOTS.ring },
+      ],
+      mainEvent: 3,
+      events: [
+        { name: 'Mehendi', date: '2028-02-10', time: '16:00', where: '4 pm, in the haveli courtyard', note: 'Henna, Langa singers and too much chai. Wear green.', photo: SHOTS.bazaar },
+        { name: 'Haldi', date: '2028-02-11', time: '10:00', where: '10 am, by the pool', note: 'Turmeric gets everywhere, so wear yellow you won’t miss.', photo: SHOTS.embrace },
+        { name: 'Sangeet', date: '2028-02-11', time: '19:30', where: '7:30 pm, in the Sheesh Mahal', note: 'Both families have rehearsed. Nobody is ready.', photo: SHOTS.twirl },
+        { name: 'Shaadi', date: '2028-02-12', time: '18:30', where: '6:30 pm baraat, pheras by the courtyard fire', note: 'The baraat sets out from the Gangapole gate. Seven pheras under the stars.', photo: SHOTS.ring },
+        { name: 'Reception', date: '2028-02-13', time: '19:30', where: '7:30 pm, on the terrace lawns', note: 'Dinner by lamplight, then the dance floor.', photo: SHOTS.silhouette },
+        { name: 'Vidaai', date: '2028-02-14', time: '10:00', where: '10 am, at the haveli gate', note: 'Come and see Naina off. Bring tissues.', photo: SHOTS.diyaLedge },
+      ],
+      photos: { hero: SHOTS.twirl, venue: SHOTS.amerCourt, rsvp: SHOTS.diyaLedge, bless: SHOTS.diyaLedge, gallery: [SHOTS.embrace, SHOTS.bazaar, SHOTS.silhouette, SHOTS.ring] },
     },
   },
 ]
@@ -450,6 +540,9 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
   return {
     ...rest,
     ...c,
+    // A blank family is named after its side, so the RSVP never offers an empty choice; no venue yet shows the city.
+    families: c.families.map((f, i) => f.trim() || `${c.couple[i]}’s family`) as [string, string],
+    venue: c.venue.trim() || c.city,
     meet: c.meet?.map((m, i) => ({ name: c.couple[i] ?? '', bio: m.bio, photo: m.photo ?? demo.meet?.[i]?.photo ?? at(demo.photos.gallery, i) })),
     story: c.story.map((s, i) => ({ ...s, photo: s.photo ?? at(demo.story, i).photo! })),
     events: c.events.map((e, i) => {
@@ -472,6 +565,23 @@ export const lookById = (id: string) => LOOKS.find((l) => l.id === id)
 export const DESIGNS = LOOKS.map((l) => toDesign(l))
 // Trailing slashes, as GitHub Pages serves each page from <path>/index.html (vite.config.ts writes them).
 export const designPath = (d: { id: string }) => `/websites/${d.id}/`
+// Page titles, shared by the app and the static copies the build writes (vite.config.ts), so search sees one title.
+export const WEBSITES_TITLE = 'Free Wedding Website Designs with RSVP | ShaadiTemplate'
+export const designKind = (d: { tradition: string }) => {
+  const t = d.tradition.split(' · ')[0]
+  return /wedding/i.test(t) ? t : `${t} wedding`
+}
+// The words a search engine reads on a sample design's page: the site itself is the fictional couple's, and its
+// own heading only appears once a guest opens the gate (WeddingSite.tsx).
+export function designIntro(d: Pick<Design, 'name' | 'tradition' | 'blurb' | 'couple' | 'city' | 'events'>) {
+  const names = d.events.map((e) => e.name)
+  const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]
+  return {
+    heading: `${d.name}: a free ${designKind(d)} website`,
+    body: `${d.blurb} The live sample is ${d.couple[0]} and ${d.couple[1]}'s site: their story, ${list} with times and add to calendar, the venue in ${d.city} on a map, RSVP and guest blessings. Make it yours with your own names, functions and photos, then send one link to every guest on WhatsApp. It is free, and stays online until 30 days after your last function.`,
+  }
+}
+export const designTitle = (d: { name: string; tradition: string }) => `${d.name}: Free ${designKind(d).replace(/\b[a-z]/g, (c) => c.toUpperCase())} Website`
 export const designByPath = (path: string) => DESIGNS.find((d) => d.id === path.split('/')[2])
 // Go to another page of the app without loading it again (App.tsx listens for popstate).
 export const go = (path: string) => {

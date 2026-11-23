@@ -13,6 +13,7 @@ import html
 import json
 import re
 import subprocess
+import urllib.request
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
@@ -33,6 +34,8 @@ HEADLINES = {
     'guides-gujarati-kankotri-lakhan': 'Gujarati kankotri wording (kankotri lakhan)',
     'guides-hindi-shadi-card-matter': 'Hindi shadi card matter',
     'guides-marathi-lagna-patrika': 'Marathi lagna patrika wording',
+    'guides-chandla-vidhi-card-wording': 'Chandla vidhi card wording in Gujarati',
+    'guides-simant-card-wording': 'Simant card wording in Gujarati',
 }
 
 
@@ -83,6 +86,68 @@ def share_image(path, headline, cards):
     img.save(path, quality=84, optimize=True)
 
 
+def website_images():
+    """Share images for the wedding website pages (vite.config.ts points their og:image here): each design's hero photo,
+    cropped to 1200x630 around its focal point, with the design's name and the photo's credit. The photos come from
+    Wikimedia Commons once and are kept in node_modules/.cache/og-src."""
+    designs = (ROOT / 'src/site/designs.ts').read_text()
+    shots = {name: args for name, args in re.findall(r"^  (\w+): commons\((.*)\),$", (ROOT / 'src/site/photos.ts').read_text(), re.M)}
+    cache = ROOT / 'node_modules/.cache/og-src'
+    cache.mkdir(parents=True, exist_ok=True)
+    looks = []
+    for block in re.split(r"^    id: '", designs, flags=re.M)[1:]:
+        look = re.match(r"[\w-]+", block).group(0)
+        name = re.search(r"^    name: '([^']+)'", block, re.M).group(1)
+        tradition = re.search(r"^    tradition: '([^']+)'", block, re.M).group(1).split(' · ')[0]
+        hero = re.search(r"photos: \{ hero: SHOTS\.(\w+)", block).group(1)
+        path, width, _alt, by, licence, *pos = [a.strip().strip("'") for a in re.findall(r"\s*('[^']*'|[^,]+)", shots[hero])]
+        looks.append((look, name, tradition if 'wedding' in tradition.lower() else f'{tradition} wedding', path, int(width), by, licence, (pos or ['center'])[0]))
+    out = {}
+    for slug, headline, sub, path, width, by, licence, pos in [('websites', 'Free wedding website designs', 'RSVP and every function on one link', *looks[0][3:])] + \
+            [(f'websites-{look}', name, f'A free {kind} website', *rest) for look, name, kind, *rest in looks]:
+        file = path.rsplit('/', 1)[1]
+        url = f'https://upload.wikimedia.org/wikipedia/commons/thumb/{path}/1280px-{file}' if width > 1280 else f'https://upload.wikimedia.org/wikipedia/commons/{path}'
+        src = cache / re.sub(r'[^\w.-]', '_', f'{path}-1280')
+        if not src.exists():
+            req = urllib.request.Request(url, headers={'User-Agent': 'ShaadiTemplateBuild/1.0 (https://shaaditemplate.com)'})
+            src.write_bytes(urllib.request.urlopen(req, timeout=60).read())
+        photo = Image.open(src).convert('RGB')
+        scale = max(1200 / photo.width, 630 / photo.height)
+        photo = photo.resize((round(photo.width * scale), round(photo.height * scale)), Image.LANCZOS)
+        fx, fy = ([float(p.rstrip('%')) / 100 for p in pos.split()] + [0.5, 0.5])[:2] if pos != 'center' else (0.5, 0.5)
+        left = min(max(round(fx * photo.width - 600), 0), photo.width - 1200)
+        top = min(max(round(fy * photo.height - 315), 0), photo.height - 630)
+        img = photo.crop((left, top, left + 1200, top + 630))
+        shade = Image.new('L', (1200, 1))  # wine shade behind the words on the left, clear on the right
+        shade.putdata([240 if x < 560 else max(0, 240 - (x - 560) * 240 // 380) for x in range(1200)])
+        img = Image.composite(Image.new('RGB', img.size, WINE_DEEP), img, shade.resize(img.size))
+        d = ImageDraw.Draw(img)
+        d.rectangle((0, 590, 1200, 630), fill=WINE_DEEP)
+        d.line((0, 590, 1200, 590), fill=ZARI, width=3)
+        d.text((64, 70), 'ShaadiTemplate', font=font('bodoni-moda/files/bodoni-moda-latin-400-italic.woff', 40), fill=ROSE)
+        big = font('bodoni-moda/files/bodoni-moda-latin-400-normal.woff', 64)
+        y = 190
+        for line in wrap(d, headline, big, 560)[:3]:
+            d.text((64, y), line, font=big, fill=ROSE)
+            y += 76
+        d.text((64, y + 14), sub, font=font('bodoni-moda/files/bodoni-moda-latin-400-normal.woff', 30), fill=ZARI)
+        small = font('bodoni-moda/files/bodoni-moda-latin-400-normal.woff', 18)
+        credit = f'Photo: {by}, {licence}, Wikimedia Commons'
+        # Photographers' names can need Latin Extended letters (Hałun), which the latin subset file lacks.
+        ext = font('bodoni-moda/files/bodoni-moda-latin-ext-400-normal.woff', 18)
+        pick = lambda ch: ext if ord(ch) > 0xff else small
+        x = 1136 - sum(d.textlength(ch, font=pick(ch)) for ch in credit)
+        tagline = 'Free wedding website · RSVP · One link for every guest'
+        if 64 + d.textlength(tagline, font=small) + 32 <= x:  # a long credit needs the whole strip
+            d.text((64, 600), tagline, font=small, fill=ZARI)
+        for ch in credit:
+            d.text((x, 600), ch, font=pick(ch), fill=ROSE)
+            x += d.textlength(ch, font=pick(ch))
+        img.save(PUBLIC / 'og' / f'{slug}.jpg', quality=84, optimize=True)
+        out[slug] = f'{SITE}/og/{slug}.jpg'
+    return out
+
+
 def meta(page, pattern):
     m = re.search(pattern, page, re.S)
     return html.unescape(m.group(1).strip()) if m else ''
@@ -129,7 +194,7 @@ def structured(path, page, url, title, desc, image, cards):
              'browserRequirements': 'Requires JavaScript', 'isAccessibleForFree': True, 'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'INR'},
              'inLanguage': ['en', 'hi', 'mr', 'gu', 'pa', 'ta'], 'image': image, 'publisher': ORG,
              'featureList': ['Invitations for Save the Date, Engagement (Ring Ceremony), Haldi, Mehendi, Sangeet, Wedding, Reception and Baby Shower (Simant)', 'English, Hindi, Marathi, Gujarati, Punjabi and Tamil',
-                             'Phonetic typing in Indian scripts', '1080x1920 image for WhatsApp', '5x7 inch print-ready PDF', 'No login']},
+                             'Phonetic typing in Indian scripts', '1080x1920 image for WhatsApp', '5x7 inch print-ready PDF', 'Free wedding website with RSVP', 'No login']},
         ]
     if rel in ('templates/index.html', 'guides/index.html'):
         return [{'@type': 'CollectionPage', 'name': h1, 'url': url, 'description': desc, 'inLanguage': lang, 'isPartOf': {'@id': f'{SITE}/#website'}},
@@ -239,8 +304,18 @@ def main():
     # The wedding website pages come from the app, not from a file here: the build writes them (vite.config.ts) and
     # fails if a design in src/site/designs.ts is missing from the sitemap.
     designs = ROOT / 'src/site/designs.ts'
-    looks = re.findall(r"^    id: '([\w-]+)',$", designs.read_text(), re.M)
-    entries += [(f'{SITE}/websites/{look}', last_changed(designs), []) for look in ['', *(f'{i}/' for i in looks)]]
+    looks = re.findall(r"^    id: '([\w-]+)',\n    name: '([^']+)',\n    blurb: '([^']+)',$", designs.read_text(), re.M)
+    assert len(looks) == len(re.findall(r"^    id: '", designs.read_text(), re.M)), 'a design in designs.ts is not id, name, blurb in that order'
+    shots = website_images()
+    entries += [(f'{SITE}/websites/', last_changed(designs), [shots['websites']])]
+    entries += [(f'{SITE}/websites/{i}/', last_changed(designs), [shots[f'websites-{i}']]) for i, _, _ in looks]
+    # Those pages have no content in their HTML until the app runs, so nothing static links to each design. List
+    # them between the <!-- websites --> marks, for crawlers to follow.
+    for path, base, cls in [(ROOT / 'index.html', '', ' class="text-wine underline underline-offset-4"'), (PUBLIC / 'templates/index.html', '../', '')]:
+        items = ['<!-- websites -->', *(f'<li><a{cls} href="{base}websites/{i}/">{html.escape(name)}</a>: {html.escape(blurb)}</li>' for i, name, blurb in looks), '<!-- /websites -->']
+        page, n = re.subn(r'([ \t]*)<!-- websites -->.*?<!-- /websites -->', lambda m: '\n'.join(m[1] + t for t in items), path.read_text(), flags=re.S)
+        assert n == 1, f'{path} has no <!-- websites --> marks'
+        path.write_text(page)
     entries.sort(key=lambda x: (x[0].count('/'), x[0]))
     out = ['<?xml version="1.0" encoding="UTF-8"?>',
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">']

@@ -12,6 +12,9 @@
 //   POST   /api/sites/:slug/rsvps        {name, side, events, party, note}
 //   POST   /api/sites/:slug/report       {reason}
 //   GET    /api/photo/:slug/:file
+//   GET    /api/stats                                           -> {sites} live (not hidden) sites, for the home page
+//
+// Once a day (the cron in wrangler.toml) sites whose last event was more than KEEP_DAYS ago are deleted.
 
 interface Env {
   DB: D1Database
@@ -24,6 +27,8 @@ const MAX_PHOTO_BYTES = 1_500_000
 const MAX_BODY = 25_000_000
 const HOUR = 36e5
 const DAY = 24 * HOUR
+// Days a site stays up after its last event. The editor says the same date (keepUntil in src/site/SiteEditor.tsx).
+const KEEP_DAYS = 30
 
 type Photo = { src: string; small: string; alt: string; pos: string }
 
@@ -58,6 +63,29 @@ export default {
     for (const [k, v] of Object.entries(cors)) res.headers.set(k, v)
     return res
   },
+  async scheduled(_: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(expire(env))
+  },
+}
+
+// Deletes sites whose latest event date is more than KEEP_DAYS ago. Dates are YYYY-MM-DD, so they compare as text.
+// ponytail: 50 sites a run keeps one run well inside the Worker's limits; any left over go the next day.
+async function expire(env: Env) {
+  const cutoff = new Date(Date.now() - KEEP_DAYS * DAY).toISOString().slice(0, 10)
+  const { results } = await env.DB.prepare(
+    `SELECT slug FROM sites WHERE (SELECT MAX(json_extract(value, '$.date')) FROM json_each(data, '$.content.events') WHERE json_extract(value, '$.date') != '') < ? LIMIT 50`,
+  )
+    .bind(cutoff)
+    .all<{ slug: string }>()
+  for (const { slug } of results) await remove(env, slug)
+  if (results.length) console.log(`expired ${results.length} sites`)
+}
+
+// Deletes a site, its photos, RSVPs and blessings.
+async function remove(env: Env, slug: string) {
+  await env.DB.batch(['sites', 'blessings', 'rsvps'].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE slug = ?`).bind(slug)))
+  const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
+  if (listed.objects.length) await env.PHOTOS.delete(listed.objects.map((o) => o.key))
 }
 
 async function route(req: Request, env: Env): Promise<Response> {
@@ -66,6 +94,7 @@ async function route(req: Request, env: Env): Promise<Response> {
   const m = req.method
   if (api !== 'api') fail(404, 'Not found.')
   if (kind === 'photo' && m === 'GET' && slug && sub) return photo(env, slug, sub)
+  if (kind === 'stats' && m === 'GET' && !slug) return json({ sites: await count(env, 'SELECT COUNT(*) AS n FROM sites WHERE hidden = 0') })
   if (kind !== 'sites') fail(404, 'Not found.')
   if (!slug && m === 'POST') return create(req, env, url.origin)
   if (!slug) fail(404, 'Not found.')
@@ -76,9 +105,7 @@ async function route(req: Request, env: Env): Promise<Response> {
   if (!sub && m === 'PUT') return update(req, env, slug, url.origin)
   if (!sub && m === 'DELETE') {
     await owner(req, env, slug)
-    await env.DB.batch(['sites', 'blessings', 'rsvps'].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE slug = ?`).bind(slug)))
-    const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
-    if (listed.objects.length) await env.PHOTOS.delete(listed.objects.map((o) => o.key))
+    await remove(env, slug)
     return json({ ok: true })
   }
   if (sub === 'blessings' && m === 'GET') {
@@ -181,6 +208,7 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
     nativeNames: str(c.nativeNames, 80) || undefined,
     invocation: str(c.invocation, 80) || undefined,
     note: str(c.note, 400) || undefined,
+    stay: str(c.stay, 300) || undefined,
     notes: arr(c.notes, 10, (x) => str(x, 300)).filter(Boolean),
     city: str(c.city, 60),
     venue: str(c.venue, 160),
@@ -201,6 +229,9 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
   }
   if (!content.couple[0] || !content.couple[1]) fail(400, 'Add both of your names.')
   if (!content.events.some((e) => e.date)) fail(400, 'Add the date of at least one event.')
+  // expire() would delete such a site the same night: most likely a mistyped year.
+  if (content.events.every((e) => e.date < new Date(Date.now() - KEEP_DAYS * DAY).toISOString().slice(0, 10)))
+    fail(400, `Your last event was more than ${KEEP_DAYS} days ago, so the site would be deleted tonight. Check the dates and the year.`)
   if (content.mainEvent !== undefined && content.mainEvent >= content.events.length) content.mainEvent = undefined
   if (new Set(photos.map((p) => p.src)).size > MAX_PHOTOS) fail(400, `A site can have up to ${MAX_PHOTOS} photos.`)
   return { content, photos }

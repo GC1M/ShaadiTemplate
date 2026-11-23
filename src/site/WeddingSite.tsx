@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Emblem } from '../card/motifs'
-import { designByPath, designPath, DESIGNS, mainOf, type Design } from './designs'
+import { designByPath, designPath, designTitle, DESIGNS, mainOf, type Design } from './designs'
 import { api, API } from './api'
 import { Backdrop, Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion, useLenis, useTitle } from './shared'
 import './organza.css'
@@ -15,7 +15,7 @@ export const themeVars = ({ theme: t }: Design) =>
   ({ '--ov-kohl': t.bg, '--ov-smoke': t.raised, '--ov-zari': t.accent, '--ov-zari-deep': t.accent, '--ov-mogra': t.text, '--ov-gulab': t.soft, '--font-serif': t.display, '--ov-script': t.script, '--st-panel': t.panel ?? t.raised, '--st-panel-text': t.panelText ?? t.text }) as CSSProperties
 
 // Event times are written in IST.
-const istDate = (t: string) => new Date(t.replace(/(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)/, '$1-$2-$3T$4:$5:$6+05:30'))
+export const istDate = (t: string) => new Date(t.replace(/(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)/, '$1-$2-$3T$4:$5:$6+05:30'))
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
 // True once the element has scrolled into view; it stays true so reveals play once.
@@ -65,9 +65,9 @@ export function Gate({ d, open, onOpen }: { d: Design; open: boolean; onOpen: ()
         <p className="ov-meta uppercase text-(--ov-zari)">You are invited</p>
         <button type="button" onClick={onOpen} className="st-seal ov-press" aria-label={`Open the invitation from ${d.couple.join(' and ')}`}>
           <span className="ov-display text-3xl">
-            {d.couple[0][0]}
+            {[...d.couple[0]][0]}
             <i className="st-amp text-2xl">&amp;</i>
-            {d.couple[1][0]}
+            {[...d.couple[1]][0]}
           </span>
         </button>
         <p className="ov-display mt-2 text-2xl italic">{d.couple.join(' & ')}</p>
@@ -143,6 +143,8 @@ function Countdown({ to }: { to: string }) {
     return () => clearInterval(t)
   }, [])
   const left = Math.max(0, istDate(to).getTime() - now)
+  // A site stays up for a month after the wedding: no row of zeros then.
+  if (!left) return <p className="ov-display mt-10 text-[clamp(1.6rem,4vw,2.6rem)] italic">The celebrations have begun</p>
   const parts: [number, string][] = [
     [Math.floor(left / 864e5), 'days'],
     [Math.floor(left / 36e5) % 24, 'hours'],
@@ -200,7 +202,7 @@ function Names({ d, open }: { d: Design; open: boolean }) {
       )}
       <div className="st-fade" style={{ animationDelay: '2200ms' }}>
         <p className="ov-meta mt-7 uppercase">
-          {main.date.split(', ')[1]} · {d.city}
+          {[main.date.split(', ')[1], d.city].filter(Boolean).join(' · ')}
         </p>
         <Countdown to={main.start} />
       </div>
@@ -445,7 +447,7 @@ function Meet({ d }: { d: Design }) {
         <Rule />
         <div className="grid gap-14 md:grid-cols-2">
           {d.meet.map((m, i) => (
-            <Reveal key={m.name} delay={i * 160}>
+            <Reveal key={i} delay={i * 160}>
               <div className="st-cusp relative mx-auto aspect-[4/5] w-[min(80vw,320px)]">
                 <img src={m.photo.small} alt={m.photo.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: m.photo.pos }} />
               </div>
@@ -552,6 +554,7 @@ function Carousel({ d }: { d: Design }) {
     const el = row.current
     if (el) el.scrollTo({ left: (el.scrollWidth / d.story.length) * i, behavior: 'smooth' })
   }
+  if (!d.story.length) return null
   return (
     <section id="story" className="bg-(--ov-smoke) py-[14svh]">
       <div className="px-6 text-center">
@@ -561,7 +564,7 @@ function Carousel({ d }: { d: Design }) {
       </div>
       <ul ref={row} onScroll={onScroll} className="st-carousel mt-12" aria-label="Our story">
         {d.story.map((s, i) => (
-          <li key={s.year} className="st-chapter" aria-current={i === at || undefined}>
+          <li key={i} className="st-chapter" aria-current={i === at || undefined}>
             <div className="st-cusp relative aspect-[4/5]">
               <img src={s.photo.small} alt={s.photo.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: s.photo.pos }} />
             </div>
@@ -575,7 +578,7 @@ function Carousel({ d }: { d: Design }) {
       </ul>
       <div className="mt-8 flex justify-center gap-1" role="group" aria-label="Chapters">
         {d.story.map((s, i) => (
-          <button key={s.year} type="button" onClick={() => go(i)} aria-label={`Chapter ${i + 1}`} aria-pressed={i === at} className="st-dot">
+          <button key={i} type="button" onClick={() => go(i)} aria-label={`Chapter ${i + 1}`} aria-pressed={i === at} className="st-dot">
             <span />
           </button>
         ))}
@@ -710,12 +713,12 @@ function Ceremonies({ d }: { d: Design }) {
 
 export default function WeddingSite() {
   const d = designByPath(location.pathname) ?? DESIGNS[0]
-  useTitle(`${d.couple.join(' and ')}: ${d.name} wedding website`)
+  useTitle(designTitle(d))
   return <Site d={d} mode="demo" />
 }
 
 // "Report this site", at the foot of every published site.
-function Report({ slug }: { slug: string }) {
+export function Report({ slug }: { slug: string }) {
   const [state, setState] = useState<'idle' | 'sending' | 'sent'>('idle')
   const [error, setError] = useState('')
   const send = async (e: FormEvent<HTMLFormElement>) => {
@@ -749,7 +752,74 @@ function Report({ slug }: { slug: string }) {
   )
 }
 
-export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | 'preview'; slug?: string }) {
+// The bar every design shares: back to the designs (or the couple's names on their own site), the section links,
+// and on a sample "Make yours free" and the design switcher. Bespoke designs pass their own links.
+export function SiteNav({ d, mode, links, show, className = '', namesClass = 'ov-display' }: Pick<SiteProps, 'd' | 'mode'> & { links: string[][]; show: boolean; className?: string; namesClass?: string }) {
+  return (
+    <nav aria-label="Sections" className={`st-nav ${className}`} data-show={show || undefined}>
+      {mode === 'demo' ? (
+        <a href="/websites/" className="st-back min-w-11" aria-label="All designs">
+          ←<span className="ml-1.5 hidden sm:inline">All designs</span>
+        </a>
+      ) : (
+        <span className={`st-back ${namesClass}`}>{d.couple.join(' & ')}</span>
+      )}
+      <div className="st-links">
+        {links.map(([id, label]) => (
+          <a key={id} href={`#${id}`} onClick={(e) => jump(e, id, -64)}>
+            {label}
+          </a>
+        ))}
+      </div>
+      {mode === 'demo' && (
+        <div className="flex items-center gap-2">
+          {API && (
+            <a href={`${designPath(d)}edit/`} className="st-use">
+              Make yours free
+            </a>
+          )}
+          <PageSwitch d={d} />
+        </div>
+      )}
+    </nav>
+  )
+}
+
+// The foot of every design: other designs on a sample, the credit line, the report form on a published site, photo credits.
+export function SiteFooter({ d, mode, slug }: SiteProps) {
+  return (
+    <>
+          {mode === 'demo' && (
+            <div className="mx-auto max-w-3xl">
+              <SeeAlso d={d} />
+            </div>
+          )}
+          <p className={mode === 'demo' ? 'mt-8' : undefined}>
+            Made with ❤️ by{' '}
+            <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
+              ShaadiTemplate
+            </a>
+          </p>
+          {mode === 'hosted' && slug && <Report slug={slug} />}
+          <PhotoCredits d={d} />
+    </>
+  )
+}
+
+export type SiteProps = { d: Design; mode: 'demo' | 'hosted' | 'preview'; slug?: string }
+const BESPOKE = { mahal: lazy(() => import('./bespoke/Mahal')), aangan: lazy(() => import('./bespoke/Aangan')) }
+
+export function Site(p: SiteProps) {
+  const Bespoke = p.d.bespoke && BESPOKE[p.d.bespoke]
+  if (!Bespoke) return <Shared {...p} />
+  return (
+    <Suspense fallback={<div className="min-h-svh" style={{ background: p.d.theme.bg }} />}>
+      <Bespoke {...p} />
+    </Suspense>
+  )
+}
+
+function Shared({ d, mode, slug }: SiteProps) {
   useLenis()
   const [open, setOpen] = useState(false)
   useEffect(() => {
@@ -760,42 +830,14 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
   const bg = d.theme.bg
   const raised = d.theme.raised
   const panel = d.theme.panel ?? raised
+  // The samples show a line about rooms; a couple's site shows only what they wrote.
+  const stay = d.stay ?? (mode === 'demo' ? 'Rooms are held for guests until a month before. Mention our names when you book, and tell us your arrival time in the RSVP.' : '')
 
   return (
     <div className="ov st" style={themeVars(d)}>
       <Gate d={d} open={open} onOpen={() => setOpen(true)} />
 
-      <nav aria-label="Sections" className="st-nav" data-show={open || undefined}>
-        {mode === 'demo' ? (
-          <a href="/websites/" className="st-back min-w-11" aria-label="All designs">
-            ←<span className="ml-1.5 hidden sm:inline">All designs</span>
-          </a>
-        ) : (
-          <span className="st-back ov-display">{d.couple.join(' & ')}</span>
-        )}
-        <div className="st-links">
-          {[
-            ['story', 'Story'],
-            ['celebrations', 'Ceremonies'],
-            ['venue', 'Venue'],
-            ['rsvp', 'RSVP'],
-          ].map(([id, label]) => (
-            <a key={id} href={`#${id}`} onClick={(e) => jump(e, id, -64)}>
-              {label}
-            </a>
-          ))}
-        </div>
-        {mode === 'demo' && (
-          <div className="flex items-center gap-2">
-            {API && (
-              <a href={`${designPath(d)}edit/`} className="st-use">
-                Make yours free
-              </a>
-            )}
-            <PageSwitch d={d} />
-          </div>
-        )}
-      </nav>
+      <SiteNav d={d} mode={mode} show={open} links={[['story', 'Story'], ['celebrations', 'Ceremonies'], ['venue', 'Venue'], ['rsvp', 'RSVP']]} />
 
       <Hero d={d} open={open} />
 
@@ -806,7 +848,7 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
         <Rule />
         <div className="mx-auto grid max-w-4xl gap-14 md:grid-cols-2 md:gap-24">
           {d.couple.map((name, i) => (
-            <Scroll key={name} title={name}>
+            <Scroll key={i} title={name}>
               <p className="opacity-85">{d.parents[i]}</p>
             </Scroll>
           ))}
@@ -830,7 +872,7 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
           <p className="ov-meta uppercase text-(--ov-gulab)">Where</p>
           <h2 className="ov-display st-foil mt-4 text-[clamp(2.4rem,6vw,4.5rem)] leading-none">{d.venue.split(',')[0]}</h2>
           <p className="mt-5 text-lg opacity-80">{d.venue.split(',').slice(1).join(',').trim() || d.city}</p>
-          <p className="mx-auto mt-6 max-w-[44ch] opacity-70">Rooms are held for guests until a month before. Mention our names when you book, and tell us your arrival time in the RSVP.</p>
+          {stay && <p className="mx-auto mt-6 max-w-[44ch] opacity-70">{stay}</p>}
           <a href={maps} target="_blank" rel="noreferrer" className="ov-press ov-btn-gold mt-10">
             OPEN IN MAPS
           </a>
@@ -840,21 +882,23 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
       <RsvpForm d={d} slug={slug} />
       <Blessings d={d} slug={slug} />
 
+      {(d.compliments || d.notes.length > 0) && (
       <section className="px-6 py-[14svh]" style={{ background: bg }}>
         <div className="mx-auto grid max-w-xl gap-16">
           {d.compliments && (
             <Scroll title="With best compliments from">
               <ul className="space-y-2 opacity-90">
-                {d.compliments.map((c) => (
-                  <li key={c}>{c}</li>
+                {d.compliments.map((c, i) => (
+                  <li key={i}>{c}</li>
                 ))}
               </ul>
             </Scroll>
           )}
+          {d.notes.length > 0 && (
           <Scroll title="Things to note">
             <ul className="space-y-3 text-left opacity-85">
-              {d.notes.map((n) => (
-                <li key={n} className="flex gap-3">
+              {d.notes.map((n, i) => (
+                <li key={i} className="flex gap-3">
                   <span className="text-(--ov-zari)" aria-hidden>
                     ✦
                   </span>
@@ -863,8 +907,10 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
               ))}
             </ul>
           </Scroll>
+          )}
         </div>
       </section>
+      )}
 
       <Note d={d} />
 
@@ -888,24 +934,7 @@ export function Site({ d, mode, slug }: { d: Design; mode: 'demo' | 'hosted' | '
       )}
 
       <footer className="px-6 py-16 text-center text-sm opacity-80">
-        {mode === 'demo' && (
-          <div className="mx-auto max-w-3xl">
-            <SeeAlso d={d} />
-          </div>
-        )}
-        {mode === 'hosted' && slug && (
-          <>
-            <p>
-              Made with{' '}
-              <a href="/websites/" className="underline underline-offset-4 hover:text-(--ov-zari)">
-                ShaadiTemplate
-              </a>
-              , free wedding websites and invitation cards.
-            </p>
-            <Report slug={slug} />
-          </>
-        )}
-        <PhotoCredits d={d} />
+        <SiteFooter d={d} mode={mode} slug={slug} />
       </footer>
     </div>
   )

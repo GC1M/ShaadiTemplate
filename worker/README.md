@@ -1,6 +1,6 @@
 # Wedding websites API
 
-A Cloudflare Worker that stores couples' wedding websites (D1), their photos (R2), guests' RSVPs and blessings, and "report this site" reports. The main site stays on GitHub Pages; the app calls this Worker on its `workers.dev` address, so no DNS change is needed. Everything here fits Cloudflare's free tier (Workers 100k requests a day, D1 5 GB and 100k writes a day, R2 10 GB).
+A Cloudflare Worker that stores couples' wedding websites (D1), their photos (R2), guests' RSVPs and blessings, and "report this site" reports. The main site stays on GitHub Pages; the app calls this Worker on its `workers.dev` address, so no DNS change is needed. Everything here fits Cloudflare's free tier (Workers 100k requests a day, D1 500 MB per database and 100k writes a day, R2 10 GB).
 
 Why D1 and not KV: KV's free tier allows 1,000 writes a day across the whole account, which one busy wedding's RSVPs would use up. D1 allows 100k.
 
@@ -29,6 +29,12 @@ Run these from the `worker/` folder.
 6. Put that address in `.env.production` as `VITE_SITES_API=...` and push, so the next GitHub Pages build points the app at it. Until then the "Make yours free" buttons stay hidden.
 
 Run step 5 again after changing anything in `worker/`.
+
+## Sites are deleted 30 days after their last event
+
+A daily Cron Trigger (`wrangler.toml`, 3 am India time) deletes every site whose latest event date is more than 30 days ago, with its photos, RSVPs and blessings (`expire()` in `src/index.ts`, up to 50 sites a run). The editor shows couples the date and lets them download their guest replies as a spreadsheet. This keeps photo storage inside the free 10 GB. To change the 30 days, change `KEEP_DAYS` in `src/index.ts`, `keepUntil` in `src/site/SiteEditor.tsx`, and the wording in `public/privacy.html` and `public/terms.html`.
+
+Run it locally: with `npm run dev` going, open `http://localhost:8787/__scheduled`.
 
 ## Moderation
 

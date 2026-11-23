@@ -1,18 +1,24 @@
 # ShaadiTemplate
 
-> Free online maker for Indian wedding invitation cards. Pick a design for Save the Date, Ring Ceremony, Haldi, Mehendi, Sangeet, the wedding or the reception, fill in the families' names in English, Hindi, Marathi, Gujarati, Punjabi or Tamil (phonetic typing, no Indian keyboard needed), and download a 1080x1920 image for WhatsApp or a 5x7 inch print-ready PDF. No login; drafts stay in the visitor's browser. Made in Surat, India.
+> Free online maker for Indian wedding invitation cards. Pick a design for Save the Date, Ring Ceremony, Haldi, Mehendi, Sangeet, the wedding, the reception or a baby shower (simant), fill in the families' names in English, Hindi, Marathi, Gujarati, Punjabi or Tamil (phonetic typing, no Indian keyboard needed), and download a 1080x1920 image for WhatsApp or a 5x7 inch print-ready PDF. No login; drafts stay in the visitor's browser. Couples can also publish a free wedding website with RSVP. Made in Surat, India.
 
 ## Designs
 
 - [Designs by ceremony and language](https://shaaditemplate.com/templates/): every design with a preview, and a link to each design's own page (all pages of the card, its sample wording, ceremony, language and God or sacred symbol)
-- By ceremony: [Save the Date](https://shaaditemplate.com/templates/save-the-date-invitations.html), [Ring Ceremony](https://shaaditemplate.com/templates/engagement-ring-ceremony-invitations.html), [Haldi](https://shaaditemplate.com/templates/haldi-invitations.html), [Mehendi](https://shaaditemplate.com/templates/mehendi-invitations.html), [Sangeet](https://shaaditemplate.com/templates/sangeet-invitations.html), [Reception](https://shaaditemplate.com/templates/reception-invitations.html)
+- By ceremony: [Save the Date](https://shaaditemplate.com/templates/save-the-date-invitations.html), [Ring Ceremony](https://shaaditemplate.com/templates/engagement-ring-ceremony-invitations.html), [Haldi](https://shaaditemplate.com/templates/haldi-invitations.html), [Mehendi](https://shaaditemplate.com/templates/mehendi-invitations.html), [Sangeet](https://shaaditemplate.com/templates/sangeet-invitations.html), [Reception](https://shaaditemplate.com/templates/reception-invitations.html), [Baby shower (simant)](https://shaaditemplate.com/templates/baby-shower-invitations.html)
 - [Wedding invitation cards](https://shaaditemplate.com/templates/wedding-invitations.html): kankotri, shaadi card, lagna patrika, Anand Karaj, Christian and more
 - [Gujarati invitations](https://shaaditemplate.com/templates/gujarati-invitations.html), [Hindi](https://shaaditemplate.com/templates/hindi-invitations.html), [Marathi](https://shaaditemplate.com/templates/marathi-invitations.html), [Punjabi](https://shaaditemplate.com/templates/punjabi-invitations.html), [Tamil](https://shaaditemplate.com/templates/tamil-invitations.html)
+
+## Wedding websites
+
+- [Wedding website designs](https://shaaditemplate.com/websites/): free wedding websites with the couple's story, every function, venue map, RSVP and guest blessings on one link; designs for Hindu, Gujarati, Sikh Anand Karaj, Tamil, Christian, Nikah and garden weddings, each with a live sample
 
 ## Guides
 
 - [Wedding invitation wording for every ceremony](https://shaaditemplate.com/guides/wedding-invitation-wording.html)
 - [Gujarati kankotri wording (કંકોત્રી લખાણ)](https://shaaditemplate.com/guides/gujarati-kankotri-lakhan.html) and [how a kankotri is laid out](https://shaaditemplate.com/guides/gujarati-kankotri.html)
+- [Engagement invitation wording](https://shaaditemplate.com/guides/engagement-invitation-wording.html) and [Gujarati chandla vidhi card wording (ચાંદલા વિધિ)](https://shaaditemplate.com/guides/chandla-vidhi-card-wording.html)
+- [Simant (baby shower) card wording in Gujarati (સીમંત સંસ્કાર)](https://shaaditemplate.com/guides/simant-card-wording.html)
 - [Hindi shadi card matter (शादी कार्ड मैटर)](https://shaaditemplate.com/guides/hindi-shadi-card-matter.html)
 - [Marathi lagna patrika wording (लग्न पत्रिका मजकूर)](https://shaaditemplate.com/guides/marathi-lagna-patrika.html)
 - [Nikah and Walima card wording](https://shaaditemplate.com/guides/nikah-walima-card-wording.html)

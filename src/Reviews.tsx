@@ -10,6 +10,10 @@ const SENT = 'review-sent'
 type Review = { stars: number; name: string; text: string; created: string }
 type Doc = { document?: { fields: { stars: { integerValue: string }; name: { stringValue: string }; text: { stringValue: string }; created: { timestampValue: string } } } }
 
+// One request per visit, shared with the home page's numbers strip (App.tsx); a new review refetches.
+let once: Promise<Review[]> | undefined
+export const reviewsOnce = () => (once ??= loadReviews())
+
 async function loadReviews(): Promise<Review[]> {
   const res = await fetch(`${DB}:runQuery?key=${KEY}`, {
     method: 'POST',
@@ -58,6 +62,8 @@ export default function Reviews() {
   const [text, setText] = useState('')
   const [start, setStart] = useState(0)
   const [paused, setPaused] = useState(false)
+  // The form waits behind a button: the page is for reading what families say; the few who finished a card open it.
+  const [writing, setWriting] = useState(false)
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error' | 'nostar'>(() => {
     try {
       return localStorage.getItem(SENT) ? 'sent' : 'idle'
@@ -67,7 +73,7 @@ export default function Reviews() {
   })
 
   useEffect(() => {
-    loadReviews().then(setReviews, () => setReviews([]))
+    reviewsOnce().then(setReviews, () => setReviews([]))
   }, [])
 
   const pool = reviews?.filter((r) => r.stars >= 4 && r.text).length ?? 0
@@ -103,13 +109,12 @@ export default function Reviews() {
       /* private mode: the review is still saved */
     }
     setState('sent')
-    loadReviews().then(setReviews, () => {})
+    once = loadReviews()
+    once.then(setReviews, () => {})
   }
 
   const total = reviews?.length ?? 0
   const avg = total ? reviews!.reduce((s, r) => s + r.stars, 0) / total : 0
-  const counts = [5, 4, 3, 2, 1].map((n) => ({ n, c: reviews?.filter((r) => r.stars === n).length ?? 0 }))
-  const top = Math.max(1, ...counts.map((x) => x.c))
   // Examples: only good reviews that say something.
   const good = reviews?.filter((r) => r.stars >= 4 && r.text).slice(0, 12) ?? []
   // Three at a time; with more than three, rotate one step every 6s (paused on hover or focus, off for reduced motion).
@@ -121,7 +126,7 @@ export default function Reviews() {
   }
 
   const form = (
-    <form onSubmit={submit} className="h-fit rounded-lg border border-zari/40 bg-white/80 p-5">
+    <form onSubmit={submit} className="mt-8 max-w-md rounded-lg border border-zari/40 bg-white/80 p-5">
       {state === 'sent' ? (
         <p className="text-ink/80">Thank you! Your review has been added.</p>
       ) : (
@@ -179,41 +184,25 @@ export default function Reviews() {
 
   return (
     <section id="reviews" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
-      <h2 className="font-display text-3xl tracking-tight text-wine sm:text-4xl">What families say</h2>
-
-      <div className="mt-8 grid gap-10 lg:grid-cols-[1fr_380px]">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div>
-          <div className="flex items-center gap-3">
-            <svg viewBox="0 0 24 24" width="40" height="40" className="text-zari" fill="currentColor" aria-hidden="true">
-              <path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z" />
-            </svg>
-            <p className="leading-tight">
-              <span className="text-3xl font-semibold text-ink">{total ? avg.toFixed(1) : '–'}</span>
-              <span className="text-lg text-ink/50">/5</span>
-              <span className="block text-sm text-ink/55">
-                {total} {total === 1 ? 'rating' : 'ratings'}
+          <h2 className="font-display text-3xl tracking-tight text-wine sm:text-4xl">What families say</h2>
+          {total > 0 && (
+            <p className="mt-3 flex items-center gap-2 text-ink/70">
+              <Stars n={avg} />
+              <span>
+                <span className="font-semibold text-ink">{avg.toFixed(1)}</span> from {total} {total === 1 ? 'family' : 'families'}
               </span>
             </p>
-          </div>
-          <dl className="mt-6 grid max-w-xl gap-2">
-            {counts.map(({ n, c }) => (
-              <div key={n} className="grid grid-cols-[3.5rem_1fr_6.5rem] items-center gap-3 text-sm">
-                <dt className="font-medium text-ink">{n} star{n > 1 ? 's' : ''}</dt>
-                <div className="h-3 rounded-full bg-ink/10">
-                  <div className="h-3 rounded-full bg-zari" style={{ width: `${(c / top) * 100}%` }} />
-                </div>
-                <dd className="text-ink/60">
-                  {total ? Math.round((c / total) * 100) : 0}% ({c})
-                </dd>
-              </div>
-            ))}
-          </dl>
-          {reviews?.length === 0 && <p className="mt-6 text-ink/60">No reviews yet. Be the first to tell us how your card turned out.</p>}
+          )}
+          {reviews?.length === 0 && <p className="mt-3 text-ink/60">No reviews yet. Be the first to tell us how your card turned out.</p>}
         </div>
-
-        {form}
+        {!writing && (
+          <button type="button" onClick={() => setWriting(true)} className="rounded-full border border-wine/30 px-5 py-2.5 text-[15px] text-wine hover:border-wine">
+            Rate ShaadiTemplate
+          </button>
+        )}
       </div>
-
       {good.length > 0 && (
         <div className="mt-10 grid gap-4 md:grid-cols-3" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)} onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
           {shown.map((r, i) => (
@@ -227,6 +216,7 @@ export default function Reviews() {
           ))}
         </div>
       )}
+      {(writing || reviews?.length === 0) && form}
     </section>
   )
 }
