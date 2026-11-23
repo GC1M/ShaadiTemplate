@@ -1,5 +1,4 @@
 import { type CSSProperties, type ReactNode } from 'react'
-import { SHOTS } from './site/photos'
 
 // The gallery's header and hero. vite.config.ts also renders this into index.html at build time, so crawlers get
 // the H1 and the page doesn't jump when React mounts. Keep it free of browser-only code.
@@ -266,10 +265,7 @@ export function HeroDemo({ lang, onLang, card }: { lang: string; onLang?: (l: st
         <div className="relative">
           <Gateway />
           <span className="hero-phone intro">
-            <img src={SHOTS.mubarakMahal.small} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: SHOTS.mubarakMahal.pos }} />
-            <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 to-transparent px-1 pb-[16%] pt-[50%] text-center font-display text-[12px] leading-tight text-white">
-              Aditi &amp; Vihaan
-            </span>
+            <img src="/site-art/mahal/cover.webp" alt="" className="absolute inset-0 h-full w-full object-cover" />
           </span>
         </div>
         <span className="intro mt-5 block text-center text-sm text-rose/65" style={{ animationDelay: 'calc(800ms + var(--t0, 0ms))' }}>
