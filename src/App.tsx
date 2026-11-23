@@ -277,10 +277,18 @@ function SentOnWhatsApp() {
   )
 }
 
-// The first eight cards on the home page: featured designs only, alternating ceremonies (wedding kankotri, chandla
-// vidhi, simant, English engagement) so the first rows show the range. The rest follow, featured first.
-const FIRST = ['sandhya-kankotri', 'neel-sagar-chandla', 'gulabi-mamta-simant', 'meadow-vows-engagement', 'raj-mahel-kankotri', 'kamal-saath-chandla', 'hindolo-simant', 'rose-arch-engagement']
-const rank = (t: Template) => (FIRST.includes(t.id) ? FIRST.indexOf(t.id) : FIRST.length + Number(!t.featured))
+// Gallery order: featured designs first, each group by GA4 template_open count (doc/analytics, newest report), most
+// opened first; ties keep the older order. Re-rank whenever a new report lands (see CLAUDE.md). Unlisted designs follow.
+// Opens 22 Nov 2026 (28 days): van-utsav 21, sandhya 18, raj-mahel 14, mor-bagh 9, soneri-jharokha 9, kamal-saath 2,
+// neel-sagar 1, gulabi-mamta 1; bal-gopal 2, pietra-dura 2, then one each.
+const ORDER = [
+  'van-utsav-kankotri', 'sandhya-kankotri', 'raj-mahel-kankotri', 'mor-bagh-kankotri', 'soneri-jharokha-kankotri',
+  'kamal-saath-chandla', 'neel-sagar-chandla', 'gulabi-mamta-simant', 'meadow-vows-engagement', 'hindolo-simant',
+  'rose-arch-engagement', 'siyaram-toran-chandla',
+  'neel-gulab-kankotri', 'bal-gopal-simant', 'pietra-dura-walima', 'aaina-mahal', 'bagh-chhatri-chandla',
+  'harmandir-gold-leaf', 'kalire-chunni', 'patola-sagai', 'rangeen-mor-simant',
+]
+const rank = (t: Template) => (ORDER.includes(t.id) ? ORDER.indexOf(t.id) : ORDER.length + Number(!t.featured))
 
 function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang) => void; draft: Invite | null; drafts: Invite[] }) {
   const [lang, setLang] = useState<Lang | 'all'>('all')
@@ -293,7 +301,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
   const shown = bySymbol.filter((t) => event === 'all' || t.event === event).sort((a, b) => rank(a) - rank(b))
   const count = (e: EventType | 'all') => bySymbol.filter((t) => e === 'all' || t.event === e).length
   const filtered = lang !== 'all' || symbol !== 'all' || event !== 'all'
-  // The home page opens on the first eight (FIRST); every card stays in the page for crawlers.
+  // The home page opens on the first eight (ORDER); every card stays in the page for crawlers.
   const [all, setAll] = useState(false)
   // A language choice keeps the short view: it changes the cards' words, not which cards show.
   const short = !all && symbol === 'all' && event === 'all' && shown.length > 8

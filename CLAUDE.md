@@ -30,3 +30,7 @@ A template change is not done until its SEO surface matches it, in the same PR. 
 - **Keywords:** titles, descriptions and on-page wording that name the design, its god or symbol, language and event, so search terms match the gallery labels above.
 - **Images:** `python3 scripts/previews.py <id>` (cover and page images) while `npm run dev` runs. On removal, delete its previews and `public/og/templates-<id>.jpg`.
 - **Head tags, share images and sitemap:** run `python3 scripts/seo.py` last, then `node scripts/previews-check.mjs`.
+
+## Gallery order (strict)
+
+The gallery order lives in `ORDER` in `src/App.tsx`. Featured designs come first, then the rest, and within each group designs are ranked by how often they are opened (GA4 `template_open` count in the newest report under `doc/analytics/`, main checkout), most opened first; ties keep the previous order. Whenever a new analytics report lands, or a template is featured, unfeatured, added or removed, re-rank `ORDER` from the latest numbers and update the dated opens comment above it.

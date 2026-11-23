@@ -248,7 +248,6 @@ export const templates: Template[] = [
     symbol: 'ganesha',
     event: 'wedding',
     also: ['butbhavani', 'swaminarayan'],
-    featured: true,
     pages: [
       { title: 'ધોળકીયા પરિવાર', sections: [b('*ધોળકીયા*', 4.2), b('*પરિવાર*', 2.2)] },
       {
