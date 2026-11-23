@@ -180,18 +180,23 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
   }
 }
 
-/* Hero: copy and language tabs on the left, the mandap with the card in it on the right; on phones the mandap
-   comes after the buttons and the tabs under it. */
-.hero-grid { display: grid; gap: 40px 56px; grid-template-areas: 'copy' 'stage' 'langs'; }
+/* Hero: the copy on the left, the scene (mandap with the card, gateway with the website) on the right; stacked on
+   phones. */
+.hero-grid { display: grid; gap: 48px; grid-template-areas: 'copy' 'scene'; }
 .hero-copy { grid-area: copy; }
-.hero-stage { grid-area: stage; }
-.hero-langs { grid-area: langs; text-align: center; }
-.hero-langs [role='group'] { justify-content: center; }
-@media (min-width: 768px) {
-  .hero-grid { grid-template-columns: 1fr minmax(340px, 460px); grid-template-areas: 'copy stage' 'langs stage'; align-items: center; row-gap: 0; }
-  .hero-copy { align-self: end; }
-  .hero-langs { align-self: start; margin-top: 40px; text-align: left; }
-  .hero-langs [role='group'] { justify-content: flex-start; }
+.hero-scene { grid-area: scene; width: 100%; max-width: 560px; justify-self: center; }
+@media (min-width: 1100px) {
+  .hero-grid { grid-template-columns: 1fr minmax(0, 560px); grid-template-areas: 'copy scene'; align-items: center; }
+}
+/* Both drawings at one scale (600x900 and 300x620 user units), so the gateway is dropped by the height difference
+   (280 units) and the two platforms meet on one ground line. On phones the gateway goes under the mandap. */
+.hero-scene { --gap: 14px; display: flex; align-items: flex-start; gap: var(--gap); }
+.scene-mandap { flex: 600 1 0; min-width: 0; }
+.scene-gate { flex: 300 1 0; min-width: 0; margin-top: calc((100% - var(--gap)) * 280 / 900); }
+@media (max-width: 599px) {
+  .hero-scene { flex-direction: column; align-items: center; gap: 40px; }
+  .scene-mandap { width: 100%; max-width: 400px; flex: none; }
+  .scene-gate { width: 62%; max-width: 220px; flex: none; margin-top: 0; }
 }
 
 /* The mandap (viewBox 600x900) draws itself; the card stands on its platform (top edge at y 840) between the
@@ -253,19 +258,18 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-footer) 
 @keyframes card-swap { from { opacity: .35; } }
 .hero-phone {
   position: absolute;
-  right: 1%;
-  bottom: 2%;
-  width: 19%;
+  left: 31%;
+  width: 38%;
+  bottom: calc(100% * 60 / 620);
   aspect-ratio: 1 / 2;
   overflow: hidden;
   border: 4px solid #120b0e;
   border-radius: 14px;
   box-shadow: 0 20px 36px -12px rgba(0, 0, 0, .8);
-  rotate: 5deg;
-  animation-delay: calc(2.2s + var(--t0, 0ms));
-  transition: rotate .4s cubic-bezier(.2,.7,.2,1), translate .4s cubic-bezier(.2,.7,.2,1);
+  animation-delay: calc(1.6s + var(--t0, 0ms));
+  transition: translate .4s cubic-bezier(.2,.7,.2,1);
 }
-.hero-phone:hover { rotate: 0deg; translate: 0 -6px; }
+.scene-gate:hover .hero-phone { translate: 0 -6px; }
 
 /* A light sweep across the main button every few seconds. */
 .shine::after {

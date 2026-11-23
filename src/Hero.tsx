@@ -126,6 +126,62 @@ function Mandap() {
   )
 }
 
+// The website's own building: an arched haveli gateway (viewBox 300x620, drawn at the mandap's scale so the two
+// platforms meet on one ground line), with the phone standing in its doorway. The websites open on carved doors.
+const Mirror = ({ children }: { children: ReactNode }) => (
+  <>
+    {children}
+    <g transform="matrix(-1 0 0 1 300 0)">{children}</g>
+  </>
+)
+// Mango-leaf toran hung in a curve under the cornice: [x, y] of each leaf.
+const TORAN = Array.from({ length: 9 }, (_, i) => {
+  const x = 46 + i * 26
+  return [x, 112 + 26 * (1 - ((x - 150) / 120) ** 2)] as const
+})
+
+function Gateway() {
+  return (
+    <svg className="mandap" viewBox="0 0 300 620" aria-hidden>
+      <g style={g(0.3, 1.4)}>
+        <P d="M10 560H290V586H10ZM0 586H300V612H0Z" />
+        <P d={each(7, (i) => `M${24 + i * 41} 567l6-6 6 6-6 6z`)} />
+      </g>
+      <Mirror>
+        <g style={g(0.7)}>
+          <P d="M30 560V536H76V560M38 536V250M68 536V250M38 470H68M38 390H68M38 310H68" />
+          <P d="M53 422l7 8-7 8-7-8zM53 342l7 8-7 8-7-8z" />
+          <P d="M38 250Q38 240 30 236H76Q68 240 68 250" />
+        </g>
+        <g style={g(1.6)}>
+          <P d="M68 236C68 178 104 150 150 104" />
+          <P d="M84 240A16 16 0 0 1 90 216A16 16 0 0 1 104 194A18 18 0 0 1 124 172A18 18 0 0 1 150 158" />
+          <circle cx="56" cy="160" r="9" pathLength={1} />
+        </g>
+        <g style={g(2.5, 1.2)}>
+          <P d="M14 102V138M8 138L14 130L20 138L14 158L8 138Z" />
+        </g>
+        {/* A carved door leaf swung open against the pillar, as the websites open. */}
+        <g style={g(2, 1.4)}>
+          <P d="M68 250L92 262V544L68 556ZM74 286L86 292V392L74 390ZM74 420L86 422V512L74 518Z" />
+          <circle cx="88" cy="406" r="2.5" pathLength={1} />
+        </g>
+      </Mirror>
+      <g style={g(1.2, 1.4)}>
+        <P d="M24 236H276M14 102H286V90H14ZM26 102V236M274 102V236" />
+      </g>
+      <g style={g(1.8, 1.6)}>
+        <P d="M108 90V78H192V90M116 78C108 52 128 38 150 20C172 38 192 52 184 78M150 20V10" />
+        <circle cx="150" cy="6" r="4" pathLength={1} />
+      </g>
+      <g style={g(2.2, 1.4)}>
+        <P d="M30 112Q150 164 270 112" />
+        <P d={TORAN.map(([x, y]) => `M${x} ${y}q-5 8 0 16q5-8 0-16`).join('')} />
+      </g>
+    </svg>
+  )
+}
+
 // The languages the hero card speaks, in the order it cycles through them; the card's own sample (Gujarati) first.
 // No Punjabi: its sample wording is for an Anand Karaj, which is wrong under this card's Shiv-Parvati art.
 export const HERO_LANGS = [
@@ -147,7 +203,7 @@ export function Hero({ draftName, elapsed = 0, demo }: { draftName?: string | nu
       <SiteHeader />
       <section className="hero hero-grid mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6 md:pb-20 md:pt-10">
         <div className="hero-copy">
-          <h1 className="intro font-display text-[42px] leading-[1.04] tracking-[-0.02em] [text-wrap:balance] sm:text-[60px] lg:text-[68px]" style={{ animationDelay: 'calc(200ms + var(--t0, 0ms))' }}>
+          <h1 className="intro font-display text-[42px] leading-[1.04] tracking-[-0.02em] [text-wrap:balance] sm:text-[54px] lg:text-[58px]" style={{ animationDelay: 'calc(200ms + var(--t0, 0ms))' }}>
             Indian wedding invitations in your family's language
           </h1>
           <p className="intro mt-6 max-w-[46ch] text-[18px] leading-relaxed text-rose/80" style={{ animationDelay: 'calc(350ms + var(--t0, 0ms))' }}>
@@ -176,42 +232,51 @@ export function Hero({ draftName, elapsed = 0, demo }: { draftName?: string | nu
   )
 }
 
-// The mandap with the card standing in it and the website phone at its foot, and the language tabs. `card` is the
-// live card; without it (the prerendered page) the card's cover image stands in. The tabs sit with the copy on wide
-// screens (grid areas in index.css) and under the mandap on phones.
+// The mandap with the card standing in it and the language tabs under it, then the gateway with the website phone in
+// its doorway. `card` is the live card; without it (the prerendered page) the card's cover image stands in.
 export function HeroDemo({ lang, onLang, card }: { lang: string; onLang?: (l: string) => void; card?: ReactNode }) {
   return (
-    <>
-      <div className="hero-stage mx-auto w-full max-w-[460px]">
-        <Mandap />
-        <div className="hero-card intro">
-          {card ?? <img src={preview(HERO_CARD)} width={540} height={960} alt="Sandhya kankotri, a painted Gujarati wedding card" className="h-full w-full" />}
+    <div className="hero-scene">
+      <div className="scene-mandap">
+        <div className="relative">
+          <Mandap />
+          <div className="hero-card intro">
+            {card ?? <img src={preview(HERO_CARD)} width={540} height={960} alt="Sandhya kankotri, a painted Gujarati wedding card" className="h-full w-full" />}
+          </div>
         </div>
-        <a href="/websites/" className="hero-phone intro" aria-label="Wedding website designs">
-          <img src={SHOTS.mubarakMahal.small} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: SHOTS.mubarakMahal.pos }} />
-          <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 to-transparent px-1 pb-[16%] pt-[50%] text-center font-display text-[11px] leading-tight text-white">
-            Aditi &amp; Vihaan
+        <div className="intro mt-5 text-center" style={{ animationDelay: 'calc(650ms + var(--t0, 0ms))' }}>
+          <p className="text-sm text-rose/65">See this card in</p>
+          <div role="group" aria-label="Card language" className="mt-2 flex flex-wrap justify-center gap-1">
+            {HERO_LANGS.map(([id, name]) => (
+              <button
+                key={id}
+                type="button"
+                lang={id}
+                aria-pressed={lang === id}
+                onClick={() => onLang?.(id)}
+                className={`rounded-full px-3 py-1.5 text-[15px] transition-colors ${lang === id ? 'bg-zari text-wine-deep' : 'text-rose/75 ring-1 ring-zari/30 hover:text-rose hover:ring-zari/70'}`}
+              >
+                {name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <a href="/websites/" className="scene-gate group">
+        <div className="relative">
+          <Gateway />
+          <span className="hero-phone intro">
+            <img src={SHOTS.mubarakMahal.small} alt="" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: SHOTS.mubarakMahal.pos }} />
+            <span className="absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 to-transparent px-1 pb-[16%] pt-[50%] text-center font-display text-[12px] leading-tight text-white">
+              Aditi &amp; Vihaan
+            </span>
           </span>
-        </a>
-      </div>
-      <div className="hero-langs intro" style={{ animationDelay: 'calc(650ms + var(--t0, 0ms))' }}>
-        <p className="text-sm text-rose/65">See this card in</p>
-        <div role="group" aria-label="Card language" className="mt-2 flex flex-wrap gap-1">
-          {HERO_LANGS.map(([id, name]) => (
-            <button
-              key={id}
-              type="button"
-              lang={id}
-              aria-pressed={lang === id}
-              onClick={() => onLang?.(id)}
-              className={`rounded-full px-3.5 py-1.5 text-[15px] transition-colors ${lang === id ? 'bg-zari text-wine-deep' : 'text-rose/75 ring-1 ring-zari/30 hover:text-rose hover:ring-zari/70'}`}
-            >
-              {name}
-            </button>
-          ))}
         </div>
-        <p className="mt-2 text-sm text-rose/55">Same card, same art. Only the words change.</p>
-      </div>
-    </>
+        <span className="intro mt-5 block text-center text-sm text-rose/65" style={{ animationDelay: 'calc(800ms + var(--t0, 0ms))' }}>
+          <span className="block font-display text-[19px] text-rose underline decoration-transparent underline-offset-4 group-hover:decoration-zari">Wedding website</span>
+          RSVPs, venue map, one link
+        </span>
+      </a>
+    </div>
   )
 }
