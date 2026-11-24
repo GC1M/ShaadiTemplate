@@ -205,6 +205,14 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           <div className="mx-auto max-w-2xl space-y-12">
             <section className="space-y-6">
               <h1 className="font-display text-[34px] leading-tight tracking-[-0.015em] sm:text-[42px]">{t.name}</h1>
+              {/* Phones stack the card under the form, and families tap the card expecting to type on it. Say where the words go. */}
+              <p className="rounded-md bg-zari/15 px-4 py-3 text-[15px] text-ink/85 ring-1 ring-zari/40 lg:hidden">
+                Type your names and details in the boxes of{' '}
+                <button type="button" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })} className="font-medium text-wine underline underline-offset-2">
+                  step 3 below
+                </button>
+                . Your card updates as you type: tap <span className="font-medium text-wine">Preview</span> to see it.
+              </p>
               <Step n={1} title="Card settings" />
               <div className="flex flex-wrap items-end gap-x-8 gap-y-5">
                 <label className="block">
@@ -350,6 +358,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
             <div className="flex items-center justify-between px-5 pb-3 pt-5 sm:px-8">
               <p className="text-sm text-rose/70">
                 Page {index + 1} of {invite.pages.length}
+                <span className="block text-rose/90 lg:hidden">Tap a page to edit its words</span>
               </p>
               <Segmented<'fit' | '100'>
                 label="Zoom"

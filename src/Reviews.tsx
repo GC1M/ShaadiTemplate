@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 
 // Anonymous star reviews, stored in Firestore through its REST API (no SDK). New reviews are saved with
 // approved: true and show at once; the owner deletes spam (or sets approved to false) in the Firebase console. The
@@ -62,8 +62,8 @@ export default function Reviews() {
   const [text, setText] = useState('')
   const [start, setStart] = useState(0)
   const [paused, setPaused] = useState(false)
-  // The form waits behind a button: the page is for reading what families say; the few who finished a card open it.
-  const [writing, setWriting] = useState(false)
+  // The form waits behind a button and opens as a popup over the reviews, so it's never missed below the fold on phones.
+  const dialog = useRef<HTMLDialogElement>(null)
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error' | 'nostar'>(() => {
     try {
       return localStorage.getItem(SENT) ? 'sent' : 'idle'
@@ -126,7 +126,7 @@ export default function Reviews() {
   }
 
   const form = (
-    <form onSubmit={submit} className="mt-8 max-w-md rounded-lg border border-zari/40 bg-white/80 p-5">
+    <form onSubmit={submit} className="rounded-lg border border-zari/40 bg-white/80 p-5">
       {state === 'sent' ? (
         <p className="text-ink/80">Thank you! Your review has been added.</p>
       ) : (
@@ -183,7 +183,7 @@ export default function Reviews() {
   )
 
   return (
-    <section id="reviews" className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+    <section id="reviews" className="mx-auto max-w-6xl scroll-mt-12 px-4 py-14 sm:px-6">
       <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div>
           <h2 className="font-display text-3xl tracking-tight text-wine sm:text-4xl">What families say</h2>
@@ -197,8 +197,8 @@ export default function Reviews() {
           )}
           {reviews?.length === 0 && <p className="mt-3 text-ink/60">No reviews yet. Be the first to tell us how your card turned out.</p>}
         </div>
-        {!writing && (
-          <button type="button" onClick={() => setWriting(true)} className="rounded-full border border-wine/30 px-5 py-2.5 text-[15px] text-wine hover:border-wine">
+        {reviews?.length !== 0 && (
+          <button type="button" onClick={() => dialog.current?.showModal()} className="rounded-full border border-wine/30 px-5 py-2.5 text-[15px] text-wine hover:border-wine">
             Rate ShaadiTemplate
           </button>
         )}
@@ -216,7 +216,21 @@ export default function Reviews() {
           ))}
         </div>
       )}
-      {(writing || reviews?.length === 0) && form}
+      {reviews?.length === 0 ? (
+        <div className="mt-8 max-w-md">{form}</div>
+      ) : (
+        <dialog
+          ref={dialog}
+          aria-label="Rate ShaadiTemplate"
+          onClick={(e) => e.target === e.currentTarget && dialog.current?.close()}
+          className="m-auto w-[min(28rem,calc(100vw-2rem))] rounded-lg bg-paper p-0 shadow-2xl backdrop:bg-ink/60"
+        >
+          {form}
+          <button type="button" onClick={() => dialog.current?.close()} aria-label="Close" className="absolute right-2 top-2 grid size-11 place-items-center text-2xl leading-none text-ink/60 hover:text-ink">
+            ×
+          </button>
+        </dialog>
+      )}
     </section>
   )
 }
