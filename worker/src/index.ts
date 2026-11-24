@@ -366,7 +366,9 @@ async function create(req: Request, env: Env, origin: string) {
     if (saved.size) await env.PHOTOS.delete([...saved])
     fail(409, 'That address is taken. Try another.')
   }
-  const { sent } = reach.email || reach.phone ? await saveContact(env, b.slug, key, reach) : { sent: false }
+  // The site is already stored: a failed contact save or email must not turn the publish into an error (a retry would
+  // find the address taken). The couple can add it again from the "Your website is live" panel.
+  const { sent } = reach.email || reach.phone ? await saveContact(env, b.slug, key, reach).catch((e) => (console.error(`contact on publish: ${e}`), { sent: false })) : { sent: false }
   // The stored content comes back with the key, so the editor never needs a second request to keep it.
   return json({ slug: b.slug, key, look: b.look, content, sent }, 201)
 }
