@@ -29,6 +29,15 @@ assert.equal((await call('POST', '/api/sites', { slug: 'fuckyou-1', look: 'rajwa
 assert.equal((await call('POST', '/api/sites', { slug: 'Bad Slug', look: 'rajwada', content })).status, 400)
 assert.equal((await call('POST', '/api/sites', { slug: 'admin', look: 'rajwada', content })).status, 400)
 assert.equal((await call('POST', '/api/sites', { slug, look: 'rajwada', content: { ...content, events: [{ ...content.events[0], date: '2020-05-01' }] } })).status, 400) // long past: it would be deleted tonight
+const withEvents = (...events) => call('POST', '/api/sites', { slug, look: 'rajwada', content: { ...content, events: events.map((e) => ({ ...content.events[0], ...e })) } })
+assert.equal((await withEvents({ date: '2028-02-31' })).status, 400) // not a real day: it would break the site in Safari
+assert.equal((await withEvents({ date: '2028-13-01' })).status, 400)
+assert.equal((await withEvents({ date: '2099-05-01' })).status, 400) // years away: the site would never expire
+assert.equal((await withEvents({}, { name: 'Sangeet', date: '' })).data.error, 'Add a date for Sangeet.') // guests would see a made-up date
+// A bad time is dropped, not fatal; 'porn' inside a word no longer blocks the name Pornima.
+const pornima = await call('POST', '/api/sites', { slug: `pornima-rahul-${slug.slice(-6)}`, look: 'rajwada', content: { ...content, story: [], photos: { gallery: [] }, events: [{ ...content.events[0], time: '25:61', photo: undefined }] } })
+assert.equal(pornima.status, 201, JSON.stringify(pornima.data))
+assert.equal(pornima.data.content.events[0].time, '')
 
 const made = await call('POST', '/api/sites', { slug, look: 'rajwada', content })
 assert.equal(made.status, 201, JSON.stringify(made.data))
@@ -47,7 +56,14 @@ const meera = await call('POST', '/api/sites', { ...withContact, contact: { emai
 assert.equal(meera.status, 201, JSON.stringify(meera.data))
 assert.equal(meera.data.sent, false) // no RESEND_API_KEY locally
 assert.deepEqual((await call('GET', `/api/sites/${withContact.slug}/contact`, undefined, meera.data.key)).data, { email: 'meera@example.com', phone: '', marketing: false })
+assert.equal((await call('PUT', `/api/sites/${withContact.slug}/contact`, { email: 'meera@example.com', marketing: true }, meera.data.key)).status, 200)
 assert.equal((await call('DELETE', `/api/sites/${withContact.slug}`, undefined, meera.data.key)).status, 200)
+// The address is free again; the kept (marketing) contact must not come with it.
+const again = await call('POST', '/api/sites', { ...withContact, slug: withContact.slug })
+assert.equal(again.status, 201, JSON.stringify(again.data))
+assert.deepEqual((await call('GET', `/api/sites/${withContact.slug}/contact`, undefined, again.data.key)).data, { email: '', phone: '', marketing: false })
+assert.equal((await call('DELETE', `/api/sites/${withContact.slug}`, undefined, again.data.key)).status, 200)
+assert.equal((await call('DELETE', `/api/sites/pornima-rahul-${slug.slice(-6)}`, undefined, pornima.data.key)).status, 200)
 assert.equal((await call('POST', '/api/sites', { slug, look: 'rajwada', content })).status, 409)
 
 const got = await call('GET', `/api/sites/${slug}`)
@@ -85,9 +101,10 @@ assert.equal((await call('POST', `/api/sites/${slug}/blessings`, { name: 'Troll'
 const list = await call('GET', `/api/sites/${slug}/blessings`)
 assert.equal(list.data.length, 1)
 assert.equal((await call('POST', `/api/sites/${slug}/rsvps`, { name: 'Ravi', side: 'a', events: ['e0'], party: 3, note: 'veg' })).status, 201)
+assert.equal((await call('POST', `/api/sites/${slug}/rsvps`, { name: 'Ravi K', side: 'a', events: [], party: 1, note: '', guest: 'g-1234abcd' })).data.guest, 'g-1234abcd') // kept, so a changed reply replaces the old one
 assert.equal((await call('GET', `/api/sites/${slug}/rsvps`)).status, 403)
 const rsvps = await call('GET', `/api/sites/${slug}/rsvps`, undefined, key)
-assert.equal(rsvps.data[0].party, 3)
+assert.equal(rsvps.data.find((r) => r.name === 'Ravi').party, 3)
 assert.equal((await call('DELETE', `/api/sites/${slug}/blessings/${list.data[0].id}`, undefined, key)).status, 200)
 assert.equal((await call('GET', `/api/sites/${slug}/blessings`)).data.length, 0)
 assert.equal((await call('POST', `/api/sites/${slug}/blessings`, { name: 'Asha', text: 'Two people who really deserve each other. May Maa Durga and Ganesh ji bless you.' })).status, 201)

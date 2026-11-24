@@ -81,7 +81,11 @@ function Intro({ d, stage, light, skip }: { d: Design; stage: number; light: () 
   }
   const down = (e: PointerEvent<HTMLButtonElement>) => {
     if (stage) return
-    e.currentTarget.setPointerCapture(e.pointerId)
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      /* WebKit throws if the pointer is already gone; the pull still works without capture */
+    }
     drag.current = { y: e.clientY, peak: 0 }
     e.currentTarget.dataset.pulling = ''
   }
@@ -372,7 +376,7 @@ function Gallery({ d }: { d: Design }) {
   const photos = [...new Set([d.hero, ...d.gallery])]
   const box = useRef<HTMLDialogElement>(null)
   const [at, setAt] = useState(0)
-  const show = (i: number) => (setAt(i), box.current?.showModal())
+  const show = (i: number) => (setAt(i), box.current?.open || box.current?.showModal())
   const step = (n: number) => setAt((i) => (i + n + photos.length) % photos.length)
   const p = photos[Math.min(at, photos.length - 1)]
   return (

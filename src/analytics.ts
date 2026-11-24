@@ -90,7 +90,12 @@ export function initAnalytics() {
     load(`https://www.clarity.ms/tag/${CLARITY}`)
   }
   if (GA || CLARITY) {
-    addEventListener('error', (e) => track('exception', { description: `${e.message} @ ${e.filename}:${e.lineno}`.slice(0, 150), fatal: false }))
-    addEventListener('unhandledrejection', (e) => track('exception', { description: String(e.reason).slice(0, 150), fatal: false }))
+    // GA keeps 100 characters of a parameter: the message, then the file's name and line. Errors from the editor's
+    // preview frame start with "preview:". Other sites' scripts (GA, Clarity, in-app browsers) reach us only as
+    // "Script error." with no file: nothing to act on, so they are not counted.
+    const where = top === self ? '' : 'preview: '
+    const report = (msg: string, file = '', line = 0) => track('exception', { description: `${where}${msg} @ ${file.split('/').pop()}:${line}`.slice(0, 100), fatal: false })
+    addEventListener('error', (e) => e.filename && report(e.message, e.filename, e.lineno))
+    addEventListener('unhandledrejection', (e) => report(String(e.reason)))
   }
 }

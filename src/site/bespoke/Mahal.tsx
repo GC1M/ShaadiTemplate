@@ -99,22 +99,27 @@ function Hero({ d }: { d: Design }) {
     if (reducedMotion()) return
     const fine = matchMedia('(pointer: fine)').matches
     let p = 0, ep = 0, mx = 0, my = 0, emx = 0, emy = 0, raf = 0
+    // The refs go null before this effect's cleanup runs (a Suspense hide on leaving the page, a remount on Replay),
+    // and scroll and resize events still arrive in between: every handler here returns early on a missing node.
     const draw = () => {
+      const pal = palace.current, mo = moon.current, cp = copy.current, nu = nudge.current
+      if (!pal || !mo || !cp || !nu) return void (raf = 0)
       ep += (p - ep) * 0.08
       emx += (mx - emx) * 0.08
       emy += (my - emy) * 0.08
-      palace.current!.style.transform = `translateX(-50%) perspective(1400px) rotateX(${(emy * -9).toFixed(2)}deg) rotateY(${(emx * -14).toFixed(2)}deg) scale(${(1 + ep * 0.45).toFixed(3)})`
-      moon.current!.style.transform = `translate(${(emx * -6).toFixed(1)}px, ${(ep * -40 + emy * -6).toFixed(1)}px)`
+      pal.style.transform = `translateX(-50%) perspective(1400px) rotateX(${(emy * -9).toFixed(2)}deg) rotateY(${(emx * -14).toFixed(2)}deg) scale(${(1 + ep * 0.45).toFixed(3)})`
+      mo.style.transform = `translate(${(emx * -6).toFixed(1)}px, ${(ep * -40 + emy * -6).toFixed(1)}px)`
       const out = clamp((ep - 0.5) / 0.35)
-      copy.current!.style.opacity = String(1 - out)
-      copy.current!.style.transform = `translateY(${(ep * -32).toFixed(1)}px)`
-      copy.current!.style.filter = out ? `blur(${(out * 14).toFixed(1)}px)` : ''
-      nudge.current!.style.opacity = String(clamp(1 - ep / 0.15))
+      cp.style.opacity = String(1 - out)
+      cp.style.transform = `translateY(${(ep * -32).toFixed(1)}px)`
+      cp.style.filter = out ? `blur(${(out * 14).toFixed(1)}px)` : ''
+      nu.style.opacity = String(clamp(1 - ep / 0.15))
       raf = Math.abs(p - ep) + Math.abs(mx - emx) + Math.abs(my - emy) > 0.001 ? requestAnimationFrame(draw) : 0
     }
     const kick = () => void (raf ||= requestAnimationFrame(draw))
     const onScroll = () => {
-      const w = wrap.current!
+      const w = wrap.current
+      if (!w) return
       p = clamp(-w.getBoundingClientRect().top / Math.max(1, w.offsetHeight - innerHeight))
       kick()
     }
@@ -294,11 +299,14 @@ function Story({ d }: { d: Design }) {
 
   useEffect(() => {
     const s = stage.current!
+    // Null-safe for the same reason as the hero's handlers.
     const set = (a: number) => {
-      left.current!.style.transform = `translateX(${(-a * 100).toFixed(2)}%)`
-      right.current!.style.transform = `translateX(${(a * 100).toFixed(2)}%)`
-      bride.current!.style.transform = `translateX(${(-a * 28).toFixed(1)}px) scale(${(1 - a * 0.04).toFixed(3)})`
-      groom.current!.style.transform = `translateX(${(a * 28).toFixed(1)}px) scale(${(1 - a * 0.04).toFixed(3)})`
+      const l = left.current, r = right.current, b = bride.current, g = groom.current
+      if (!l || !r || !b || !g) return
+      l.style.transform = `translateX(${(-a * 100).toFixed(2)}%)`
+      r.style.transform = `translateX(${(a * 100).toFixed(2)}%)`
+      b.style.transform = `translateX(${(-a * 28).toFixed(1)}px) scale(${(1 - a * 0.04).toFixed(3)})`
+      g.style.transform = `translateX(${(a * 28).toFixed(1)}px) scale(${(1 - a * 0.04).toFixed(3)})`
       if (a >= 0.7) s.dataset.open = ''
     }
     if (reducedMotion()) return set(1)
