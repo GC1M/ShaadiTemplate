@@ -8,13 +8,20 @@
 // Couples' wedding websites live at /w/<slug> (and /w/<slug>/edit#<key>); GitHub Pages has no such file, so hand the
 // path to the app, which puts it back on the address (src/App.tsx). The edit key stays in the fragment, which never
 // reaches a server, and comes off this page's address first so analytics.js below cannot report it.
-if (/^\/w\/[a-z0-9-]+(\/edit)?\/?$/.test(location.pathname)) {
+// A typed or autocorrected capital (/w/Priya-Raj) still finds the site: addresses are lowercase.
+if (/^\/w\/[a-z0-9-]+(\/edit)?\/?$/i.test(location.pathname)) {
   var key = location.hash.slice(1)
-  history.replaceState(null, '', location.pathname)
-  location.replace('/#' + location.pathname.replace(/\/$/, '') + (key ? '?k=' + key : ''))
+  var path = location.pathname.toLowerCase().replace(/\/$/, '')
+  history.replaceState(null, '', path)
+  location.replace('/#' + path + (key ? '?k=' + key : ''))
 }
 </script>
 <title>Page not found · ShaadiTemplate</title>
+<!-- Link previews (WhatsApp, Instagram) read this page for a couple's /w/<slug> link, as GitHub Pages serves it there
+     and they run no script: so it carries an invitation preview, not "Page not found". -->
+<meta property="og:title" content="You're invited: our wedding website" />
+<meta property="og:description" content="Our events, the venue, and a place to RSVP and send your blessings." />
+<meta property="og:type" content="website" />
 <link rel="stylesheet" href="/legal.css" />
 <!-- seo -->
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

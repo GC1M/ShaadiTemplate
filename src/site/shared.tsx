@@ -12,7 +12,8 @@ import { api, API } from './api'
 
 /* ---------- local persistence ---------- */
 
-type Rsvp = { name: string; side: string; events: string[]; party: number; note: string }
+// guest: a random id kept with this browser's reply, so changing the reply (even the name) replaces it for the couple.
+type Rsvp = { name: string; side: string; events: string[]; party: number; note: string; guest?: string }
 type Blessing = { name: string; text: string; at: number }
 const rsvpKey = (d: Design, slug?: string) => (slug ? `site:${slug}:rsvp` : `shaadidraft:${d.id}:rsvp`)
 const blessKey = (d: Design) => `shaadidraft:${d.id}:blessings`
@@ -56,6 +57,12 @@ export function downloadIcs(e: WeddingEvent, d: Design) {
     'END:VEVENT',
     'END:VCALENDAR',
   ].join('\r\n')
+  // In-app browsers (Instagram, Facebook, Android WebView) ignore downloads, so the button would do nothing there:
+  // they get Google Calendar's add-event page instead.
+  if (/\bwv\b|FBAN|FBAV|Instagram|Line\//.test(navigator.userAgent)) {
+    const q = new URLSearchParams({ action: 'TEMPLATE', text: `${e.name}: ${d.couple.join(' and ')}`, dates: `${fromIst(e.start)}/${fromIst(e.end)}`, location: d.venue, details: [e.time, e.note].filter(Boolean).join('. ') })
+    return void window.open(`https://calendar.google.com/calendar/render?${q}`, '_blank')
+  }
   const a = document.createElement('a')
   a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }))
   a.download = `${e.id}-${slug}.ics`
@@ -192,7 +199,8 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
       ;(e.currentTarget.elements.namedItem('name') as HTMLInputElement).focus()
       return setError('Add your name so the families know who is coming.')
     }
-    const r: Rsvp = { name, side: String(f.get('side')), events, party, note: String(f.get('note')).trim() }
+    const guest = saved?.guest ?? (crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`)
+    const r: Rsvp = { name, side: String(f.get('side')), events, party, note: String(f.get('note')).trim(), guest }
     if (slug) {
       setBusy(true)
       try {

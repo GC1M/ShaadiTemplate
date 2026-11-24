@@ -5,15 +5,20 @@ export const API: string = import.meta.env.VITE_SITES_API ?? (import.meta.env.DE
 
 export async function api<T>(path: string, opts: { method?: string; body?: unknown; key?: string } = {}): Promise<T> {
   if (!API) throw new Error('Wedding websites are not switched on yet. Please try again soon.')
+  const method = opts.method ?? 'GET'
   const res = await fetch(`${API}/api/${path}`, {
-    method: opts.method ?? 'GET',
+    method,
+    // A read that hangs (a weak signal at the venue) gives up so the page can offer to try again. Writes carry
+    // photos and may be slow, so they are left to finish.
+    signal: method === 'GET' && typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(20_000) : undefined,
     headers: { ...(opts.body !== undefined && { 'Content-Type': 'application/json' }), ...(opts.key && { Authorization: `Bearer ${opts.key}` }) },
     body: opts.body === undefined ? undefined : JSON.stringify(opts.body, lean),
   }).catch(() => {
     throw new Error('Could not reach the server. Check your connection and try again.')
   })
-  const data = await res.json().catch(() => ({}))
-  if (!res.ok) throw Object.assign(new Error(data.error ?? 'Something went wrong. Please try again.'), { status: res.status })
+  // Wi-Fi login pages and proxies can answer 200 with an HTML page: that is a failure too, not empty data.
+  const data = await res.json().catch(() => null)
+  if (!res.ok || data === null) throw Object.assign(new Error(data?.error ?? 'Something went wrong. Please try again.'), { status: res.ok ? 0 : res.status })
   return data as T
 }
 

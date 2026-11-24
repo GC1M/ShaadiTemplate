@@ -15,7 +15,7 @@ import { Segmented, useSplit } from '../ui'
 // A new site's draft is kept in localStorage until it is published, and after, so this browser can keep editing.
 
 type Draft = SiteData & { slug: string; slugTouched?: boolean; key?: string }
-type Rsvp = { id: number; at: number; name: string; side: string; events: string[]; party: number; note: string }
+type Rsvp = { id: number; at: number; name: string; side: string; events: string[]; party: number; note: string; guest?: string }
 type Blessing = { id: number; name: string; text: string; at: number }
 
 const DRAFT = 'sitedraft'
@@ -103,17 +103,38 @@ const photosIn = (c: Content) =>
   new Set([c.photos.hero, c.photos.venue, ...c.photos.gallery, ...c.story.map((s) => s.photo), ...c.events.map((e) => e.photo), ...(c.meet ?? []).map((m) => m.photo)].filter((p): p is Photo => !!p).map((p) => p.src))
 
 // Phone photos are large; shrink each to 1600px JPEG under ~1 MB before it goes anywhere (16 of them fit one save).
+// iPhones cap canvas memory, so the decoded photo and the canvas are let go as soon as the JPEG exists, and a canvas
+// that could not be made fails as "could not be opened" rather than saving a blank photo.
+let shrinking = 0 // photos still being shrunk: publish() waits for them
 async function shrink(file: File, alt: string): Promise<Photo> {
-  const bmp = await createImageBitmap(file)
-  const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height))
+  shrinking++
   const c = document.createElement('canvas')
-  c.width = Math.round(bmp.width * scale)
-  c.height = Math.round(bmp.height * scale)
-  c.getContext('2d')!.drawImage(bmp, 0, 0, c.width, c.height)
-  let q = 0.82
-  let src = c.toDataURL('image/jpeg', q)
-  while (src.length * 0.75 > 1_000_000 && q > 0.4) src = c.toDataURL('image/jpeg', (q -= 0.15))
-  return { src, small: src, alt, pos: 'center' }
+  try {
+    const bmp = await createImageBitmap(file)
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height))
+    c.width = Math.round(bmp.width * scale)
+    c.height = Math.round(bmp.height * scale)
+    const ctx = c.getContext('2d')
+    if (!ctx) throw new Error('no canvas')
+    ctx.drawImage(bmp, 0, 0, c.width, c.height)
+    bmp.close()
+    let q = 0.82
+    let src = c.toDataURL('image/jpeg', q)
+    while (src.length * 0.75 > 1_000_000 && q > 0.4) src = c.toDataURL('image/jpeg', (q -= 0.15))
+    if (!src.startsWith('data:image/jpeg')) throw new Error('no image')
+    return { src, small: src, alt, pos: 'center' }
+  } finally {
+    c.width = c.height = 0
+    shrinking--
+  }
+}
+
+// Some in-app browsers answer confirm() with "cancel" at once, without showing it, which would make the step
+// impossible there. An answer faster than a person could give counts as yes. Only for prompts where yes is harmless.
+// ponytail: a timing guess; swap for an in-page confirm step if it ever misfires.
+const ask = (message: string) => {
+  const t = performance.now()
+  return confirm(message) || performance.now() - t < 50
 }
 
 // For a draft too big to store: without the photos not yet published, so the words survive a reload.
@@ -136,24 +157,40 @@ export default function SiteEditor() {
         setDraft({ ...s, slug, key: key || local!.key })
       },
       (e: Error & { status?: number }) => {
-        if (linked || e.status === 410) return setError(e.message)
-        if (e.status !== 404) return setDraft(local) // offline: this browser's copy
-        localStorage.removeItem(DRAFT) // deleted since, from the edit link
+        if (linked) return setError(e.message)
+        if (e.status !== 404 && e.status !== 410) return setDraft(local) // offline: this browser's copy
+        // Deleted since (from the edit link), or taken down: this browser starts a new site.
+        try {
+          localStorage.removeItem(DRAFT)
+        } catch {
+          /* storage is off */
+        }
         setDraft(startNew(local!.look))
       },
     )
   }, [])
+  // Saved a beat after typing stops: with photos the draft is megabytes, too much to write on every key. A new edit
+  // key (just published) is written at once, and leaving the page writes whatever is still waiting.
+  const savedKey = useRef(local?.key)
   useEffect(() => {
     if (!draft || linked) return
-    try {
-      localStorage.setItem(DRAFT, JSON.stringify(draft, lean))
-    } catch {
+    const save = () => {
+      clearTimeout(t)
+      removeEventListener('pagehide', save)
+      savedKey.current = draft.key
       try {
-        localStorage.setItem(DRAFT, JSON.stringify(draft, unsent))
+        localStorage.setItem(DRAFT, JSON.stringify(draft, lean))
       } catch {
-        /* storage is off; the draft lasts as long as this page */
+        try {
+          localStorage.setItem(DRAFT, JSON.stringify(draft, unsent))
+        } catch {
+          /* storage is off; the draft lasts as long as this page */
+        }
       }
     }
+    const t = setTimeout(save, draft.key !== savedKey.current ? 0 : 400)
+    addEventListener('pagehide', save)
+    return () => (clearTimeout(t), removeEventListener('pagehide', save))
   }, [draft])
   useTitle('Make your wedding website | ShaadiTemplate')
   if (error)
@@ -258,9 +295,10 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     e.preventDefault()
     // A first publish with the design's sample words still in asks first: guests would read them as the couple's.
     const left = leftovers(c)
-    if (!draft.key && left.length && !confirm(`These still have the design's sample words: ${left.join(', ')}. Guests will see them as written. Publish anyway?`)) return
+    if (shrinking) return setError('A photo is still being added. Try again in a moment.')
+    if (!draft.key && left.length && !ask(`These still have the design's sample words: ${left.join(', ')}. Guests will see them as written. Publish anyway?`)) return
     // Without an email or WhatsApp a lost edit link means a site that can't be changed, so a first publish asks once.
-    if (!draft.key && !reach.email.trim() && !reach.phone.trim() && !confirm("You haven't added an email or WhatsApp number. If you lose your edit link, you can't change your site. Publish anyway?")) {
+    if (!draft.key && !reach.email.trim() && !reach.phone.trim() && !ask("You haven't added an email or WhatsApp number. If you lose your edit link, you can't change your site. Publish anyway?")) {
       const box = document.getElementById('reach-email')
       box?.scrollIntoView({ block: 'center' })
       box?.focus({ preventScroll: true })
@@ -518,7 +556,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                             const files = [...(e.target.files ?? [])].slice(0, room)
                             e.target.value = ''
                             try {
-                              const added = await Promise.all(files.map((f) => shrink(f, names)))
+                              const added: Photo[] = []
+                              for (const f of files) added.push(await shrink(f, names)) // one at a time: each is ~200 MB decoded on a phone
                               up((c) => ({ photos: { ...c.photos, gallery: [...c.photos.gallery, ...added] } }))
                             } catch {
                               setError('One of those photos could not be opened. Try a JPEG or PNG.')
@@ -764,7 +803,11 @@ const keepUntil = (events: Content['events']) => {
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`
-const copy = (text: string, done: (s: string) => void) => navigator.clipboard.writeText(text).then(() => done('Copied'), () => done('Select the link and copy it'))
+// Some in-app browsers have no navigator.clipboard: that is a "select it yourself", not an error.
+const copy = (text: string, done: (s: string) => void) =>
+  Promise.resolve()
+    .then(() => navigator.clipboard.writeText(text))
+    .then(() => done('Copied'), () => done('Select the link and copy it'))
 
 // The live link and the secret edit link, shown big right after publishing and small after that.
 function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
@@ -968,8 +1011,10 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: C
     api<Blessing[]>(`sites/${slug}/blessings`).then(setBlessings, () => {})
   }, [slug, edit])
   if (!rsvps) return null
-  // A guest who replies twice counts once: their latest reply.
-  const latest = [...new Map([...rsvps].reverse().map((r) => [r.name.toLowerCase(), r])).values()] // rows come newest first
+  // A guest who replies twice counts once: their latest reply. First by the guest's browser id (a reply changed in
+  // the same browser replaces the old one, even renamed), then by name (the same guest from a second browser).
+  const byKey = (rows: Rsvp[], key: (r: Rsvp) => string) => [...new Map([...rows].reverse().map((r) => [key(r), r])).values()].reverse()
+  const latest = byKey(byKey(rsvps, (r) => r.guest || r.name.toLowerCase()), (r) => r.name.toLowerCase()) // rows come newest first
   const coming = latest.filter((r) => r.events.length)
   const remove = async (id: number) => {
     if (!confirm('Remove this blessing from your site?')) return
