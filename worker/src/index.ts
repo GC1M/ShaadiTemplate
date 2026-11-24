@@ -38,6 +38,9 @@ const DAY = 24 * HOUR
 const KEEP_DAYS = 30
 // The deletion reminder goes this many days before the site is deleted.
 const REMIND_DAYS = 7
+// How far ahead an event date may be: a year, plus a day so "a year from today" passes in India at any hour and in
+// leap years. The editor limits its date boxes to 365 days.
+const MAX_AHEAD_DAYS = 366
 // Edit-link emails one site may send, so an edit key can't be used to mail strangers.
 const MAX_SENT = 5
 
@@ -278,7 +281,7 @@ const DATA_URL = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+=*)$/
 
 // Keeps only the fields the site draws, trimmed to sane lengths. Photos must be new uploads (data URLs) or ones
 // already stored for this site; any other URL is dropped.
-function clean(raw: any, ownPhoto: (src: string) => boolean) {
+function clean(raw: any, ownPhoto: (src: string) => boolean, saved = new Set<string>()) {
   const photos: Photo[] = []
   const photo = (v: any): Photo | undefined => {
     const src = v?.src
@@ -325,9 +328,11 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
   // An undated event would show guests a made-up date. The editor asks for one; this catches anything else.
   const undated = content.events.find((e) => !e.date)
   if (undated) fail(400, `Add a date for ${undated.name || 'every event'}.`)
-  // A date years away would keep the site up for good (expire() goes by the last event).
-  if (content.events.some((e) => e.date > new Date(Date.now() + 3 * 365 * DAY).toISOString().slice(0, 10)))
-    fail(400, 'One of your event dates is more than 3 years away. Check the year.')
+  // Event dates may be at most a year ahead: a far date keeps a site up for good (expire() goes by the last event)
+  // and is most often a mistyped year. Dates a site already had (saved before this rule) stay allowed, so those
+  // couples can still save their edits.
+  const far = content.events.find((e) => e.date > new Date(Date.now() + MAX_AHEAD_DAYS * DAY).toISOString().slice(0, 10) && !saved.has(e.date))
+  if (far) fail(400, `${far.name || 'One of your events'} is more than a year away. Check the year, or add it closer to the day.`)
   // expire() would delete such a site the same night: most likely a mistyped year.
   if (content.events.every((e) => e.date < new Date(Date.now() - KEEP_DAYS * DAY).toISOString().slice(0, 10)))
     fail(400, `Your last event was more than ${KEEP_DAYS} days ago, so the site would be deleted tonight. Check the dates and the year.`)
@@ -402,13 +407,14 @@ async function create(req: Request, env: Env, origin: string) {
 }
 
 async function update(req: Request, env: Env, slug: string, origin: string) {
-  await owner(req, env, slug)
+  const s = await owner(req, env, slug)
   const b = await body(req)
   if (!LOOK.test(b?.look)) fail(400, 'Pick a design.')
+  const saved = new Set<string>((JSON.parse(s.data).content?.events ?? []).map((e: { date: string }) => e.date))
   // A photo is kept only if it is still in this site's folder: an old copy of the site can name ones since deleted.
   const have = new Set((await env.PHOTOS.list({ prefix: `${slug}/` })).objects.map((o) => o.key))
   const prefix = `${origin}/api/photo/`
-  const { content, photos } = clean(b.content, (src) => src.startsWith(prefix) && have.has(src.slice(prefix.length)))
+  const { content, photos } = clean(b.content, (src) => src.startsWith(prefix) && have.has(src.slice(prefix.length)), saved)
   const keep = await storePhotos(env, slug, origin, photos)
   await env.DB.prepare('UPDATE sites SET data = ?, updated = ? WHERE slug = ?').bind(JSON.stringify({ look: b.look, content }), Date.now(), slug).run()
   // Delete photos the site no longer uses.

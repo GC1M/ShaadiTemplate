@@ -205,6 +205,12 @@ export default function SiteEditor() {
 
 function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft) => Draft) => void }) {
   const c = draft.content
+  // Event dates may be at most a year ahead (the worker checks too, allowing a day more for time zones). Dates the
+  // site already has on the server stay allowed: some were saved before the rule. The date box gets the limit, so
+  // the browser points at the event before anything is sent, sample dates included.
+  const [kept, setKept] = useState(() => new Set(draft.key ? c.events.map((e) => e.date) : []))
+  const lastDay = new Date(Date.now() + 5.5 * 36e5 + 365 * 864e5).toISOString().slice(0, 10) // a year from today in India
+  const tooFar = (date: string) => date > lastDay && !kept.has(date)
   // Edits apply to the latest draft, as photos finish shrinking after other edits.
   const up = (f: (c: Content) => Partial<Content>) => {
     setDirty(true)
@@ -243,7 +249,10 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     } catch {
       /* nothing saved */
     }
-    if (location.pathname.startsWith('/websites/')) setDraft(() => startNew(draft.look))
+    if (location.pathname.startsWith('/websites/')) {
+      setKept(new Set())
+      setDraft(() => startNew(draft.look))
+    }
     else go(`/websites/${draft.look}/edit/`)
   }
   const count = photosIn(c).size
@@ -311,6 +320,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     try {
       if (draft.key) {
         const s = await api<SiteData>(`sites/${draft.slug}`, { method: 'PUT', key: draft.key, body })
+        setKept(new Set(s.content.events.map((e) => e.date)))
         setDraft((d) => ({ ...d, content: stored(d.content, s.content) }))
         setSaved(true)
         setDirty(false)
@@ -324,6 +334,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
           /* storage blocked */
         }
         const r = await api<SiteData & { key: string }>('sites', { method: 'POST', body: { ...body, contact, source, heard } })
+        setKept(new Set(r.content.events.map((e) => e.date)))
         setDraft((d) => ({ ...d, content: stored(d.content, r.content), key: r.key }))
         setDirty(false)
         setJustPublished(true)
@@ -476,13 +487,14 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                       <Text label="Event" value={e.name} onChange={(name) => item('events', i, { name })} required maxLength={60} />
                       <label className="block">
                         <span className="text-[13px] text-ink/65">Date</span>
-                        <input type="date" value={e.date} onChange={(x) => item('events', i, { date: x.target.value })} required className={inputCls} />
+                        <input type="date" value={e.date} onChange={(x) => item('events', i, { date: x.target.value })} required max={kept.has(e.date) ? undefined : lastDay} className={inputCls} />
                       </label>
                       <label className="block">
                         <span className="text-[13px] text-ink/65">Starts (IST)</span>
                         <input type="time" value={e.time} onChange={(x) => item('events', i, { time: x.target.value })} required className={inputCls} />
                       </label>
                     </div>
+                    {tooFar(e.date) && <p className="text-[13px] text-maroon">Choose a date up to a year from today, by {new Date(`${lastDay}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}.</p>}
                     <Text label="Time and place, in words (optional)" value={e.where} onChange={(where) => item('events', i, { where })} placeholder="7 pm, in the palace lawns" maxLength={120} />
                     <Text label="Note for guests" value={e.note} onChange={(note) => item('events', i, { note })} maxLength={300} />
                     {photoField('Photo', e.photo, (photo) => item('events', i, { photo }), e.name)}
