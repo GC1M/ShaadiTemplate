@@ -249,7 +249,10 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     } catch {
       /* nothing saved */
     }
-    if (location.pathname.startsWith('/websites/')) setDraft(() => startNew(draft.look))
+    if (location.pathname.startsWith('/websites/')) {
+      setKept(new Set())
+      setDraft(() => startNew(draft.look))
+    }
     else go(`/websites/${draft.look}/edit/`)
   }
   const count = photosIn(c).size
