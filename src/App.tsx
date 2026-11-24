@@ -150,8 +150,17 @@ function Numbers() {
   return (
     <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-y-8 px-4 py-12 sm:flex sm:flex-wrap sm:justify-between sm:gap-x-10 sm:px-6">
       {items.map(([n, label]) => (
-        <div key={label} className="flex flex-col-reverse">
-          <dt className="mt-1 max-w-[16ch] text-sm leading-snug text-ink/65">{label}</dt>
+        <div key={label} className="relative flex flex-col-reverse">
+          <dt className="mt-1 max-w-[16ch] text-sm leading-snug text-ink/65">
+            {n.endsWith('★') ? (
+              // The rating jumps to the reviews it counts; the link covers the whole stat. Scrolled by hand: the hash is the app's router (#edit).
+              <a href="#reviews" onClick={(e) => (e.preventDefault(), document.getElementById('reviews')?.scrollIntoView({ behavior: 'smooth' }))} className="after:absolute after:inset-0 hover:text-wine hover:underline">
+                {label}
+              </a>
+            ) : (
+              label
+            )}
+          </dt>
           <dd className="font-display text-[40px] leading-none text-wine sm:text-[48px]">{n}</dd>
         </div>
       ))}
@@ -279,8 +288,8 @@ function SentOnWhatsApp() {
 
 // Gallery order: featured designs first, each group by GA4 template_open count (doc/analytics, newest report), most
 // opened first; ties keep the older order. Re-rank whenever a new report lands (see CLAUDE.md). Unlisted designs follow.
-// Opens 22 Nov 2026 (28 days): van-utsav 21, sandhya 18, raj-mahel 14, mor-bagh 9, soneri-jharokha 9, kamal-saath 2,
-// neel-sagar 1, gulabi-mamta 1; bal-gopal 2, pietra-dura 2, then one each.
+// Opens 23 Nov 2026 (28 days): van-utsav 21, sandhya 19, raj-mahel 15, mor-bagh 10, soneri-jharokha 9, kamal-saath 4,
+// then one each; neel-gulab 4, bal-gopal 2, pietra-dura 2, then one each (ties keep the 22 Nov order).
 const ORDER = [
   'van-utsav-kankotri', 'sandhya-kankotri', 'raj-mahel-kankotri', 'mor-bagh-kankotri', 'soneri-jharokha-kankotri',
   'kamal-saath-chandla', 'neel-sagar-chandla', 'gulabi-mamta-simant', 'meadow-vows-engagement', 'hindolo-simant',
