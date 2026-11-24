@@ -79,10 +79,9 @@ export default {
   },
 }
 
+// Each job runs even if another fails, so one bad email never stops the night's deletions.
 async function daily(env: Env) {
-  await remind(env)
-  await digest(env)
-  await expire(env)
+  for (const job of [remind, digest, expire]) await job(env).catch((e) => console.error(`${job.name} failed: ${e}`))
 }
 
 // A site's latest event date. Dates are YYYY-MM-DD, so they compare as text.
@@ -138,23 +137,31 @@ async function mail(env: Env, to: string, subject: string, text: string) {
     console.log(`mail not sent (no RESEND_API_KEY): ${subject}`)
     return false
   }
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: env.MAIL_FROM, to: [to], subject, text }),
-  })
-  if (!res.ok) console.error(`mail failed ${res.status}: ${await res.text()}`)
-  return res.ok
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: env.MAIL_FROM, to: [to], subject, text }),
+    })
+    if (!res.ok) console.error(`mail failed ${res.status}: ${await res.text()}`)
+    return res.ok
+  } catch (e) {
+    console.error(`mail failed: ${e}`)
+    return false
+  }
 }
 
 // Deletes a site, its photos, RSVPs, blessings and contact (kept only if they asked for news of new designs).
+// Photos go first: if that fails the rows stay, and the next run tries again instead of leaving photos behind.
+// A kept contact moves off the slug (slug#<time>), so a new site at the same address never mails it.
 async function remove(env: Env, slug: string) {
+  const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
+  if (listed.objects.length) await env.PHOTOS.delete(listed.objects.map((o) => o.key))
   await env.DB.batch([
     ...['sites', 'blessings', 'rsvps'].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE slug = ?`).bind(slug)),
     env.DB.prepare('DELETE FROM contacts WHERE slug = ? AND marketing = 0').bind(slug),
+    env.DB.prepare("UPDATE contacts SET slug = slug || '#' || ? WHERE slug = ?").bind(String(Date.now()), slug),
   ])
-  const listed = await env.PHOTOS.list({ prefix: `${slug}/` })
-  if (listed.objects.length) await env.PHOTOS.delete(listed.objects.map((o) => o.key))
 }
 
 async function route(req: Request, env: Env): Promise<Response> {
@@ -237,9 +244,10 @@ async function owner(req: Request, env: Env, slug: string) {
 /* ---------- abuse checks ---------- */
 
 // Matched anywhere inside a word (long enough not to hit real names).
-const BAD_ANYWHERE = ['fuck', 'cunt', 'bitch', 'nigg', 'whore', 'madarchod', 'maderchod', 'behenchod', 'bhenchod', 'benchod', 'bhosd', 'chutiy', 'chutia', 'gaand', 'lavda', 'lauda', 'porn']
+const BAD_ANYWHERE = ['fuck', 'cunt', 'bitch', 'nigg', 'whore', 'madarchod', 'maderchod', 'behenchod', 'bhenchod', 'benchod', 'bhosd', 'chutiy', 'chutia', 'gaand', 'lavda', 'lauda', 'pornhub']
 // Matched only as a whole word.
-const BAD_WORDS = new Set(['shit', 'rape', 'sex', 'sexy', 'nude', 'nudes', 'cock', 'pussy', 'slut', 'fag', 'nazi', 'hitler', 'retard', 'gandu', 'lund', 'loda', 'randi', 'harami', 'kamina', 'kutta', 'bsdk', 'mc', 'bc', 'mkc', 'bkl', 'chod', 'escort', 'casino', 'viagra', 'crypto', 'loan'])
+// 'porn' is here, not above: matched inside words it blocked the name Pornima.
+const BAD_WORDS = new Set(['porn', 'porno', 'shit', 'rape', 'sex', 'sexy', 'nude', 'nudes', 'cock', 'pussy', 'slut', 'fag', 'nazi', 'hitler', 'retard', 'gandu', 'lund', 'loda', 'randi', 'harami', 'kamina', 'kutta', 'bsdk', 'mc', 'bc', 'mkc', 'bkl', 'chod', 'escort', 'casino', 'viagra', 'crypto', 'loan'])
 const RESERVED = new Set(['api', 'admin', 'edit', 'new', 'www', 'help', 'support', 'about', 'contact', 'login', 'official', 'shaaditemplate', 'shaadi-template', 'test', 'demo', 'sample'])
 // ponytail: word lists only, so "fu-ck" or a misspelling gets through; couples can remove blessings and anyone can
 // report a site. Swap in a moderation API if abuse shows up.
@@ -258,6 +266,12 @@ const slugProblem = (slug: unknown) => {
 
 /* ---------- content ---------- */
 
+// A real calendar day: the shape alone lets 2027-02-31 or 2027-13-01 through, which break the site in browsers.
+const realDate = (d: unknown) => {
+  if (typeof d !== 'string' || !/^\d{4}-\d\d-\d\d$/.test(d)) return false
+  const t = new Date(`${d}T00:00:00Z`)
+  return !isNaN(t.getTime()) && t.toISOString().startsWith(d)
+}
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 const arr = <T>(v: unknown, max: number, f: (x: any) => T) => (Array.isArray(v) ? v.slice(0, max).map(f) : [])
 const DATA_URL = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+=*)$/
@@ -279,7 +293,11 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
     families: [str(c.families?.[0], 80), str(c.families?.[1], 80)],
     parents: [str(c.parents?.[0], 300), str(c.parents?.[1], 300)],
     meet: Array.isArray(c.meet) ? arr(c.meet, 2, (m) => ({ bio: str(m?.bio, 500), photo: photo(m?.photo) })) : undefined,
-    compliments: Array.isArray(c.compliments) ? arr(c.compliments, 10, (x) => str(x, 160)).filter(Boolean) : undefined,
+    // All blank lines is no list at all: an empty one would draw an empty "With best compliments from".
+    compliments: (() => {
+      const xs = Array.isArray(c.compliments) ? arr(c.compliments, 10, (x) => str(x, 160)).filter(Boolean) : []
+      return xs.length ? xs : undefined
+    })(),
     nativeNames: str(c.nativeNames, 80) || undefined,
     invocation: str(c.invocation, 80) || undefined,
     note: str(c.note, 400) || undefined,
@@ -293,8 +311,8 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
     events: arr(c.events, 8, (e) => ({
       id: /^[a-z0-9]{1,8}$/.test(e?.id) ? e.id : undefined,
       name: str(e?.name, 60),
-      date: /^\d{4}-\d\d-\d\d$/.test(e?.date) ? e.date : '',
-      time: /^\d\d:\d\d$/.test(e?.time) ? e.time : '',
+      date: realDate(e?.date) ? e.date : '',
+      time: /^([01]\d|2[0-3]):[0-5]\d$/.test(e?.time) ? e.time : '',
       where: str(e?.where, 120),
       note: str(e?.note, 300),
       photo: photo(e?.photo),
@@ -303,7 +321,13 @@ function clean(raw: any, ownPhoto: (src: string) => boolean) {
     photos: { hero: photo(c.photos?.hero), venue: photo(c.photos?.venue), gallery: arr(c.photos?.gallery, 8, photo).filter(Boolean) },
   }
   if (!content.couple[0] || !content.couple[1]) fail(400, 'Add both of your names.')
-  if (!content.events.some((e) => e.date)) fail(400, 'Add the date of at least one event.')
+  if (!content.events.length) fail(400, 'Add at least one event.')
+  // An undated event would show guests a made-up date. The editor asks for one; this catches anything else.
+  const undated = content.events.find((e) => !e.date)
+  if (undated) fail(400, `Add a date for ${undated.name || 'every event'}.`)
+  // A date years away would keep the site up for good (expire() goes by the last event).
+  if (content.events.some((e) => e.date > new Date(Date.now() + 3 * 365 * DAY).toISOString().slice(0, 10)))
+    fail(400, 'One of your event dates is more than 3 years away. Check the year.')
   // expire() would delete such a site the same night: most likely a mistyped year.
   if (content.events.every((e) => e.date < new Date(Date.now() - KEEP_DAYS * DAY).toISOString().slice(0, 10)))
     fail(400, `Your last event was more than ${KEEP_DAYS} days ago, so the site would be deleted tonight. Check the dates and the year.`)
@@ -324,7 +348,10 @@ async function storePhotos(env: Env, slug: string, origin: string, photos: Photo
     const [, type, b64] = p.src.match(DATA_URL)!
     let bytes: Uint8Array
     try {
-      bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0))
+      // A plain loop: Uint8Array.from with a callback per byte costs real CPU time on the free plan for 16 photos.
+      const bin = atob(b64)
+      bytes = new Uint8Array(bin.length)
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
     } catch {
       return fail(400, 'One of the photos could not be read.')
     }
@@ -361,9 +388,10 @@ async function create(req: Request, env: Env, origin: string) {
     await env.DB.prepare('INSERT INTO sites (slug, data, key_hash, ip, created, updated, source, heard) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
       .bind(b.slug, JSON.stringify({ look: b.look, content }), await sha256(key), ip, now, now, str(b.source, 60), str(b.heard, 30))
       .run()
-  } catch {
-    // Lost a race for the same slug: take this request's photos back out.
+  } catch (e) {
+    // Lost a race for the same slug (or a database hiccup): take this request's photos back out either way.
     if (saved.size) await env.PHOTOS.delete([...saved])
+    if (!String(e).includes('UNIQUE')) throw e
     fail(409, 'That address is taken. Try another.')
   }
   // The site is already stored: a failed contact save or email must not turn the publish into an error (a retry would
@@ -406,7 +434,9 @@ async function bless(req: Request, env: Env, slug: string) {
   if (!name || !text) fail(400, 'Add your name and a few words before you post.')
   if (isAbusive(`${name} ${text}`)) fail(400, 'Please keep your blessing kind.')
   const ip = await ipOf(req, env)
-  if ((await count(env, 'SELECT COUNT(*) AS n FROM blessings WHERE slug = ? AND ip = ? AND at > ?', slug, ip, Date.now() - HOUR)) >= 5)
+  // ponytail: 30 an hour per network per site. Guests at the venue share Wi-Fi or a carrier's address, so 5 blocked
+  // real guests; per-browser limits would need a token.
+  if ((await count(env, 'SELECT COUNT(*) AS n FROM blessings WHERE slug = ? AND ip = ? AND at > ?', slug, ip, Date.now() - HOUR)) >= 30)
     fail(429, 'You have posted several blessings already. Please try again later.')
   const at = Date.now()
   const r = await env.DB.prepare('INSERT INTO blessings (slug, name, text, ip, at) VALUES (?, ?, ?, ?, ?)').bind(slug, name, text, ip, at).run()
@@ -422,6 +452,8 @@ async function rsvp(req: Request, env: Env, slug: string) {
     events: arr(b?.events, 8, (x) => str(x, 8)),
     party: Math.min(8, Math.max(1, Math.round(Number(b?.party)) || 1)),
     note: str(b?.note, 200),
+    // The guest's browser id, so the couple sees a changed reply replace the old one.
+    guest: typeof b?.guest === 'string' && /^[a-z0-9-]{8,40}$/i.test(b.guest) ? b.guest : '',
   }
   if (!r.name) fail(400, 'Add your name so the families know who is coming.')
   const ip = await ipOf(req, env)

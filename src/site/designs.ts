@@ -533,6 +533,14 @@ const plus3h = (date: string, time: string) => {
   return d.toISOString().slice(0, 16).replace(/[-:]/g, '') + '00'
 }
 
+// A real calendar day and clock time: the shape alone lets 2027-02-31 or 25:61 through, and those make Date throw
+// (toISOString) or print "undefined" in Safari.
+const realDate = (d: string) => {
+  const t = new Date(`${d}T00:00:00Z`)
+  return /^\d{4}-\d\d-\d\d$/.test(d) && !isNaN(t.getTime()) && t.toISOString().startsWith(d)
+}
+const realTime = (t: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t)
+
 export function toDesign(look: Look, c: Content = look.demo): Design {
   const { demo, ...rest } = look
   const at = <T,>(xs: T[], i: number) => xs[i % xs.length]
@@ -546,8 +554,8 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
     meet: c.meet?.map((m, i) => ({ name: c.couple[i] ?? '', bio: m.bio, photo: m.photo ?? demo.meet?.[i]?.photo ?? at(demo.photos.gallery, i) })),
     story: c.story.map((s, i) => ({ ...s, photo: s.photo ?? at(demo.story, i).photo! })),
     events: c.events.map((e, i) => {
-      const date = /^\d{4}-\d\d-\d\d$/.test(e.date) ? e.date : today
-      const time = /^\d\d:\d\d$/.test(e.time) ? e.time : '10:00'
+      const date = realDate(e.date) ? e.date : today
+      const time = realTime(e.time) ? e.time : '10:00'
       return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: e.where || clock(time), note: e.note, photo: e.photo ?? at(demo.events, i).photo! }
     }),
     mainEvent: c.mainEvent === undefined ? undefined : (c.events[c.mainEvent]?.id ?? `e${c.mainEvent}`),

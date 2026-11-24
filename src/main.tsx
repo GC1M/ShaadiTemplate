@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { Component, StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 // Latin faces
 import '@fontsource/cinzel/500.css'
@@ -44,11 +44,64 @@ import { land, sitePath } from './siteRoutes'
 land()
 initAnalytics()
 
+// After a deploy, a page opened earlier asks for code files that no longer exist. Reload once to get the new ones
+// (the flag stops a loop if the file is really missing); vite:preloadError covers files Vite fetches ahead.
+const reloadOnce = () => {
+  try {
+    if (sessionStorage.getItem('reloaded')) return false
+    sessionStorage.setItem('reloaded', '1')
+  } catch {
+    return false
+  }
+  location.reload()
+  return true
+}
+const staleCode = (e: unknown) => /dynamically imported module|module script failed|Importing a module|error loading dynamically/i.test(String(e))
+addEventListener('vite:preloadError', (e) => reloadOnce() && e.preventDefault())
+
+// Anything that still breaks the page shows a way back instead of a blank screen. The editor's draft is in
+// localStorage, so a reload loses nothing.
+class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  componentDidCatch(e: unknown) {
+    if (staleCode(e)) reloadOnce()
+  }
+  render() {
+    if (!this.state.failed) return this.props.children
+    return (
+      <div className="grid min-h-svh place-items-center bg-[#fbf7f1] p-6 text-center text-[#2a1a1f]">
+        <div className="space-y-4">
+          <p className="text-lg">Something went wrong while opening this page.</p>
+          <button type="button" onClick={() => location.reload()} className="rounded-full bg-[#4a0e1c] px-6 py-3 text-white">
+            Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
+}
+
 // A wedding website page loads only the website code, not the card gallery and editor. The page's static content
 // stays in #root until the app is ready, so nothing shifts while the chunk loads.
-const { default: App } = await (sitePath(location.pathname) ? import('./SiteApp') : import('./App'))
+const { default: App } = await (sitePath(location.pathname) ? import('./SiteApp') : import('./App')).catch((e) => {
+  if (!reloadOnce()) throw e
+  return new Promise<never>(() => {}) // reloading
+})
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <Boundary>
+      <App />
+    </Boundary>
   </StrictMode>,
 )
+// A page that loaded fine may reload again after a later deploy.
+setTimeout(() => {
+  try {
+    sessionStorage.removeItem('reloaded')
+  } catch {
+    /* storage blocked */
+  }
+}, 10_000)

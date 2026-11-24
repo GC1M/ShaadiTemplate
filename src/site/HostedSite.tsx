@@ -39,22 +39,38 @@ function Preview() {
 
 function Hosted({ slug }: { slug: string }) {
   const [data, setData] = useState<SiteData | null>(null)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<{ message: string; status?: number } | null>(null)
+  const [tries, setTries] = useState(0)
   useEffect(() => {
-    api<SiteData>(`sites/${slug}`).then(setData, (e: Error) => setError(e.message))
-  }, [slug])
+    setError(null)
+    api<SiteData>(`sites/${slug}`).then(setData, (e: Error & { status?: number }) => setError({ message: e.message, status: e.status }))
+  }, [slug, tries])
   useTitle(data ? `${data.content.couple.join(' & ')}: our wedding` : 'Wedding website')
   if (error)
     return (
       <Message title="Wedding website">
-        {error}{' '}
-        <a href="/websites/" className="text-zari underline underline-offset-4">
-          Make your own, free
-        </a>
-        .
+        {error.message}{' '}
+        {/* No such site (404) or taken down (410) won't change on a retry; a lost connection or server hiccup may. */}
+        {error.status === 404 || error.status === 410 ? (
+          <>
+            <a href="/websites/" className="text-zari underline underline-offset-4">
+              Make your own, free
+            </a>
+            .
+          </>
+        ) : (
+          <button type="button" onClick={() => setTries((n) => n + 1)} className="text-zari underline underline-offset-4">
+            Try again
+          </button>
+        )}
       </Message>
     )
-  if (!data) return <div className="min-h-svh bg-[#0e0a0c]" aria-busy="true" />
+  if (!data)
+    return (
+      <div className="grid min-h-svh place-items-center bg-[#0e0a0c] text-[#e9d9b8]/70" aria-busy="true">
+        <p className="animate-pulse tracking-wide">Opening the invitation…</p>
+      </div>
+    )
   return <Site d={draw(data)} mode="hosted" slug={slug} />
 }
 

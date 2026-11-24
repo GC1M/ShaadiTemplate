@@ -164,11 +164,13 @@ function Countdown({ to }: { to: string }) {
   )
 }
 
-// Each letter rises in turn once the gate has opened.
+// Each letter rises in turn once the gate has opened. Letters are split as a reader sees them (graphemes), so a
+// Devanagari or Gujarati vowel sign stays on its consonant instead of drawing as a lone mark.
+const graphemes = (text: string) => (typeof Intl.Segmenter === 'function' ? Array.from(new Intl.Segmenter().segment(text), (s) => s.segment) : [...text])
 function Letters({ text, start }: { text: string; start: number }) {
   return (
     <span aria-label={text}>
-      {[...text].map((c, i) => (
+      {graphemes(text).map((c, i) => (
         <span key={i} aria-hidden className="st-letter" style={{ animationDelay: `${start + i * 70}ms` }}>
           {c}
         </span>
@@ -439,7 +441,8 @@ function Frames({ d }: { d: Design }) {
 /* ---------- Meet the bride and groom: a letter each under a scalloped arch ---------- */
 
 function Meet({ d }: { d: Design }) {
-  if (!d.meet) return null
+  const meet = d.meet?.filter((m) => m.bio.trim()) ?? [] // a blank bio would show a name over a sample photo
+  if (!meet.length) return null
   return (
     <section className="px-6 py-[14svh]">
       <div className="mx-auto max-w-5xl text-center">
@@ -447,7 +450,7 @@ function Meet({ d }: { d: Design }) {
         <h2 className="ov-display st-foil mt-4 text-[clamp(2.6rem,6vw,4.5rem)] leading-none">Meet the bride &amp; groom</h2>
         <Rule />
         <div className="grid gap-14 md:grid-cols-2">
-          {d.meet.map((m, i) => (
+          {meet.map((m, i) => (
             <Reveal key={i} delay={i * 160}>
               <div className="st-cusp relative mx-auto aspect-[4/5] w-[min(80vw,320px)]">
                 <img src={m.photo.small} alt={m.photo.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: m.photo.pos }} />
@@ -542,7 +545,7 @@ function Finale({ d }: { d: Design }) {
 
 /* ---------- Story as swipeable chapter cards with hashtags ---------- */
 
-const hashtag = (t: string) => `#${t.replace(/[^\p{L}\p{N} ]/gu, '').replace(/ (\p{L})/gu, (_, c: string) => c.toUpperCase()).replace(/ /g, '')}`
+const hashtag = (t: string) => `#${t.replace(/[^\p{L}\p{M}\p{N} ]/gu, '').replace(/ (\p{L})/gu, (_, c: string) => c.toUpperCase()).replace(/ /g, '')}`
 
 function Carousel({ d }: { d: Design }) {
   const row = useRef<HTMLUListElement>(null)
