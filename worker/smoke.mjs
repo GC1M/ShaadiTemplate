@@ -9,6 +9,7 @@ const call = async (method, path, body, key) => {
 // A 1x1 JPEG.
 const JPEG = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA='
 const slug = `smoke-${Date.now().toString(36)}`
+const SOON = new Date(Date.now() + 200 * 864e5).toISOString().slice(0, 10) // event dates may be at most a year ahead
 const content = {
   couple: ['Asha', 'Dev'],
   nativeNames: 'आशा संग देव',
@@ -20,7 +21,7 @@ const content = {
   invite: 'Come celebrate',
   rsvpBy: '1 May',
   story: [{ year: '2020', title: 'Met', body: 'At work', photo: { src: JPEG, alt: 'us' } }],
-  events: [{ name: 'Wedding', date: '2028-05-01', time: '18:00', where: '', note: '', photo: { src: JPEG, alt: 'mandap', pos: '30% 70%' } }],
+  events: [{ name: 'Wedding', date: SOON, time: '18:00', where: '', note: '', photo: { src: JPEG, alt: 'mandap', pos: '30% 70%' } }],
   photos: { hero: { src: JPEG, alt: 'cover' }, gallery: [{ src: 'https://evil.example/x.jpg' }] },
 }
 
@@ -33,6 +34,7 @@ const withEvents = (...events) => call('POST', '/api/sites', { slug, look: 'rajw
 assert.equal((await withEvents({ date: '2028-02-31' })).status, 400) // not a real day: it would break the site in Safari
 assert.equal((await withEvents({ date: '2028-13-01' })).status, 400)
 assert.equal((await withEvents({ date: '2099-05-01' })).status, 400) // years away: the site would never expire
+assert.equal((await withEvents({ name: 'Wedding', date: new Date(Date.now() + 400 * 864e5).toISOString().slice(0, 10) })).data.error, 'Wedding is more than a year away. Check the year, or add it closer to the day.')
 assert.equal((await withEvents({}, { name: 'Sangeet', date: '' })).data.error, 'Add a date for Sangeet.') // guests would see a made-up date
 // A bad time is dropped, not fatal; 'porn' inside a word no longer blocks the name Pornima.
 const pornima = await call('POST', '/api/sites', { slug: `pornima-rahul-${slug.slice(-6)}`, look: 'rajwada', content: { ...content, story: [], photos: { gallery: [] }, events: [{ ...content.events[0], time: '25:61', photo: undefined }] } })
