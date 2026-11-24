@@ -42,7 +42,22 @@ function optedOut() {
   }
 }
 
+// Where this browser first came from: the link's utm_source, else the site that sent it ("l.instagram.com" is kept
+// as "instagram.com"), else "direct". Kept once, and sent with a wedding website when it is published so the owner's
+// dashboard shows which channel brought each couple. public/analytics.js keeps it on the static pages too.
+export function rememberSource() {
+  try {
+    if (localStorage.getItem('source')) return
+    const ref = document.referrer && new URL(document.referrer).hostname.replace(/^(www|l|lm|m|out)\./, '')
+    const from = new URLSearchParams(location.search).get('utm_source') || (ref && ref !== location.hostname.replace(/^www\./, '') ? ref : 'direct')
+    localStorage.setItem('source', from.slice(0, 60))
+  } catch {
+    /* storage blocked: the site goes without a source */
+  }
+}
+
 export function initAnalytics() {
+  rememberSource()
   if (optedOut()) return
   if (GA) {
     window.dataLayer = window.dataLayer || []

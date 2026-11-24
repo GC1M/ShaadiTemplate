@@ -239,6 +239,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     )
     return () => ((live = false), clearTimeout(t))
   }, [draft.slug, draft.key])
+  // How to reach the couple and how they found us, asked with a first publish (all optional, see Reach).
+  const [reach, setReach] = useState({ email: '', phone: '', marketing: false, heard: '' })
   const [justPublished, setJustPublished] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -257,6 +259,13 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     // A first publish with the design's sample words still in asks first: guests would read them as the couple's.
     const left = leftovers(c)
     if (!draft.key && left.length && !confirm(`These still have the design's sample words: ${left.join(', ')}. Guests will see them as written. Publish anyway?`)) return
+    // Without an email or WhatsApp a lost edit link means a site that can't be changed, so a first publish asks once.
+    if (!draft.key && !reach.email.trim() && !reach.phone.trim() && !confirm("You haven't added an email or WhatsApp number. If you lose your edit link, you can't change your site. Publish anyway?")) {
+      const box = document.getElementById('reach-email')
+      box?.scrollIntoView({ block: 'center' })
+      box?.focus({ preventScroll: true })
+      return
+    }
     setBusy(true)
     setError('')
     setSaved(false)
@@ -269,11 +278,18 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
         setDirty(false)
       } else {
         // The reply carries the stored content: uploaded photos now have addresses, so the next save doesn't send them again.
-        const r = await api<SiteData & { key: string }>('sites', { method: 'POST', body })
+        const { heard, ...contact } = reach
+        let source = ''
+        try {
+          source = localStorage.getItem('source') ?? ''
+        } catch {
+          /* storage blocked */
+        }
+        const r = await api<SiteData & { key: string }>('sites', { method: 'POST', body: { ...body, contact, source, heard } })
         setDraft((d) => ({ ...d, content: stored(d.content, r.content), key: r.key }))
         setDirty(false)
         setJustPublished(true)
-        track('site_publish', { design: draft.look })
+        track('site_publish', { design: draft.look, contact: !!(contact.email || contact.phone), heard })
       }
     } catch (err) {
       setError((err as Error).message)
@@ -560,6 +576,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
               <Text label="With best compliments from, one per line (optional)" value={(c.compliments ?? []).join('\n')} onChange={(v) => up(() => ({ compliments: v.split('\n') }))} multiline rows={3} />
             </section>
 
+            {!draft.key && <Reach value={reach} onChange={setReach} />}
+
             <section className="space-y-3 border-t border-zari/40 pt-8">
               <button type="submit" disabled={busy} className={`${btn} zari-button px-6 text-wine-deep`}>
                 {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
@@ -820,6 +838,55 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
         {note}
       </p>
     </div>
+  )
+}
+
+// Answers for "How did you find us?" (value sent, label shown). Stored as given; the dashboard shows the value.
+const HEARD = [
+  ['instagram', 'Instagram'],
+  ['reddit', 'Reddit'],
+  ['pinterest', 'Pinterest'],
+  ['google', 'Google search'],
+  ['whatsapp', 'WhatsApp'],
+  ['friend', 'Friend or family'],
+  ['guest', "Saw someone's wedding website"],
+  ['other', 'Somewhere else'],
+]
+
+// Asked before a first publish: where to send the edit link (the server emails it), and how they found us.
+// All optional; publishing without an email or number asks once (publish()). After publishing, Contact edits them.
+function Reach({ value, onChange }: { value: { email: string; phone: string; marketing: boolean; heard: string }; onChange: (v: typeof value) => void }) {
+  const set = (k: 'email' | 'phone' | 'heard') => (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => onChange({ ...value, [k]: e.target.value })
+  return (
+    <section className="space-y-4">
+      <Step n={7} title="Where should we send your edit link?" />
+      <p className="text-[15px] text-ink/75">Your edit link is the only way to change your site later. We'll email it to you, tell you when guests reply, and remind you before your site is deleted.</p>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="block text-[13px] text-ink/65">
+          Email
+          <input id="reach-email" type="email" autoComplete="email" maxLength={120} value={value.email} onChange={set('email')} className={inputCls} />
+        </label>
+        <label className="block text-[13px] text-ink/65">
+          WhatsApp number
+          <input type="tel" autoComplete="tel" maxLength={30} placeholder="+91" value={value.phone} onChange={set('phone')} className={inputCls} />
+        </label>
+      </div>
+      <label className="flex items-start gap-2 text-[14px] text-ink/75 pointer-coarse:min-h-11">
+        <input type="checkbox" checked={value.marketing} onChange={(e) => onChange({ ...value, marketing: e.target.checked })} className="mt-1 size-4 accent-wine" />
+        Also send me new designs and offers now and then.
+      </label>
+      <label className="block text-[13px] text-ink/65 sm:max-w-xs">
+        How did you find us? (optional)
+        <select value={value.heard} onChange={set('heard')} className={inputCls}>
+          <option value="">Choose one</option>
+          {HEARD.map(([v, label]) => (
+            <option key={v} value={v}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </section>
   )
 }
 
