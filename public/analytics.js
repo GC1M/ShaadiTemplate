@@ -2,6 +2,14 @@
 // measured. Same IDs and consent defaults as src/analytics.ts, which covers the app. Only runs on the live domain.
 ;(function () {
   if (location.hostname !== 'shaaditemplate.com') return
+  // First-touch source, same key and rule as rememberSource() in src/analytics.ts.
+  try {
+    if (!localStorage.getItem('source')) {
+      var ref = document.referrer ? new URL(document.referrer).hostname.replace(/^(www|l|lm|m|out)\./, '') : ''
+      var from = new URLSearchParams(location.search).get('utm_source') || (ref && ref !== 'shaaditemplate.com' ? ref : 'direct')
+      localStorage.setItem('source', from.slice(0, 60))
+    }
+  } catch (e) {}
   // ?notrack turns analytics off in this browser, ?track turns it back on (same flag as src/analytics.ts).
   try {
     var q = new URLSearchParams(location.search)

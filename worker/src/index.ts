@@ -1,7 +1,7 @@
 // API for couples' wedding websites: publish and edit a site, its photos, guests' RSVPs and blessings, and
 // "report this site". No accounts: publishing returns a secret edit key, and only its SHA-256 is stored.
 //
-//   POST   /api/sites                    {slug, look, content}  -> {slug, key, look, content}
+//   POST   /api/sites                    {slug, look, content, contact?, source?, heard?} -> {slug, key, look, content, sent}
 //   GET    /api/sites/:slug                                     -> {look, content}
 //   PUT    /api/sites/:slug              (Bearer key) {look, content}
 //   DELETE /api/sites/:slug              (Bearer key)           deletes the site, its photos, RSVPs and blessings
@@ -351,21 +351,26 @@ async function create(req: Request, env: Env, origin: string) {
   // ponytail: 5 new sites a day per IP; a shared office or college IP could hit it. Raise it if couples write in.
   if ((await count(env, 'SELECT COUNT(*) AS n FROM sites WHERE ip = ? AND created > ?', ip, Date.now() - DAY)) >= 5)
     fail(429, 'You have published several sites today. Please try again tomorrow, or edit the one you made.')
+  // Checked before anything is stored, so a mistyped email stops the publish rather than losing the contact.
+  const reach = contactOf(b.contact)
   const { content, photos } = clean(b.content, () => false)
   const saved = await storePhotos(env, b.slug, origin, photos)
   const key = hex(crypto.getRandomValues(new Uint8Array(24)).buffer as ArrayBuffer)
   const now = Date.now()
   try {
-    await env.DB.prepare('INSERT INTO sites (slug, data, key_hash, ip, created, updated) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(b.slug, JSON.stringify({ look: b.look, content }), await sha256(key), ip, now, now)
+    await env.DB.prepare('INSERT INTO sites (slug, data, key_hash, ip, created, updated, source, heard) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(b.slug, JSON.stringify({ look: b.look, content }), await sha256(key), ip, now, now, str(b.source, 60), str(b.heard, 30))
       .run()
   } catch {
     // Lost a race for the same slug: take this request's photos back out.
     if (saved.size) await env.PHOTOS.delete([...saved])
     fail(409, 'That address is taken. Try another.')
   }
+  // The site is already stored: a failed contact save or email must not turn the publish into an error (a retry would
+  // find the address taken). The couple can add it again from the "Your website is live" panel.
+  const { sent } = reach.email || reach.phone ? await saveContact(env, b.slug, key, reach).catch((e) => (console.error(`contact on publish: ${e}`), { sent: false })) : { sent: false }
   // The stored content comes back with the key, so the editor never needs a second request to keep it.
-  return json({ slug: b.slug, key, look: b.look, content }, 201)
+  return json({ slug: b.slug, key, look: b.look, content, sent }, 201)
 }
 
 async function update(req: Request, env: Env, slug: string, origin: string) {
@@ -440,27 +445,38 @@ async function report(req: Request, env: Env, slug: string) {
 // Saves how to reach the couple. A new email address gets the edit link, so a lost link can be found again.
 async function contact(req: Request, env: Env, slug: string) {
   await owner(req, env, slug)
-  const b = await body(req)
+  const reach = contactOf(await body(req))
+  return json({ ok: true, ...(await saveContact(env, slug, req.headers.get('Authorization')!.replace(/^Bearer /, ''), reach)) })
+}
+
+type Reach = { email: string; phone: string; marketing: boolean }
+
+// A couple's email and WhatsApp number as sent (both optional), checked.
+function contactOf(b: any): Reach {
   const email = str(b?.email, 120).toLowerCase()
   const phone = str(b?.phone, 30).replace(/[\s()-]/g, '')
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) fail(400, 'Check your email address.')
   if (phone && !/^\+?\d{8,15}$/.test(phone)) fail(400, 'Check your WhatsApp number. Use only digits, with the country code if you like.')
+  return { email, phone, marketing: b?.marketing === true }
+}
+
+// Stores how to reach the couple; a new email gets the edit link.
+async function saveContact(env: Env, slug: string, key: string, { email, phone, marketing }: Reach) {
   const old = await env.DB.prepare('SELECT email, sent FROM contacts WHERE slug = ?').bind(slug).first<{ email: string; sent: number }>()
   // Clearing both blanks the row rather than deleting it, so the count of edit-link emails sent stays.
   const now = Date.now()
   await env.DB.prepare(
     'INSERT INTO contacts (slug, email, phone, marketing, at, notified) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (slug) DO UPDATE SET email = excluded.email, phone = excluded.phone, marketing = excluded.marketing, at = excluded.at',
   )
-    .bind(slug, email, phone, (email || phone) && b?.marketing === true ? 1 : 0, now, now)
+    .bind(slug, email, phone, (email || phone) && marketing ? 1 : 0, now, now)
     .run()
   let sent = false
   const tried = !!email && email !== old?.email && (old?.sent ?? 0) < MAX_SENT
   if (tried) {
-    const key = req.headers.get('Authorization')!.replace(/^Bearer /, '')
     const live = `${env.SITE_URL}/w/${slug}`
     const text = `Your wedding website is live: ${live}\n\nYour secret edit link (keep it private, anyone with it can change your site):\n${live}/edit#${key}\n\nOpen it to change your site and see who has replied. We will email you here once a day when guests reply, and once before your site is deleted.\n\nShaadiTemplate`
     sent = await mail(env, email, 'Your wedding website edit link', text)
     if (sent) await env.DB.prepare('UPDATE contacts SET sent = sent + 1 WHERE slug = ?').bind(slug).run()
   }
-  return json({ ok: true, tried, sent })
+  return { tried, sent }
 }

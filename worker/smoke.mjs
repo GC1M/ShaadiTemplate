@@ -35,9 +35,19 @@ assert.equal(made.status, 201, JSON.stringify(made.data))
 const { key } = made.data
 assert.match(made.data.content.photos.hero.src, /\/api\/photo\//) // the stored content comes back with the key
 // A bad word is only matched inside one word: Durga and Andrew may marry (durGA-ANDrew).
-const durga = await call('POST', '/api/sites', { slug: `durga-andrew-${slug.slice(-6)}`, look: 'rajwada', content: { ...content, story: [], photos: { gallery: [] } } })
+const durgaContent = { ...content, story: [], photos: { gallery: [] } }
+const durga = await call('POST', '/api/sites', { slug: `durga-andrew-${slug.slice(-6)}`, look: 'rajwada', content: durgaContent })
 assert.equal(durga.status, 201, JSON.stringify(durga.data))
 assert.equal((await call('DELETE', `/api/sites/durga-andrew-${slug.slice(-6)}`, undefined, durga.data.key)).status, 200)
+// Contact given with the publish: a bad one stops it before anything is stored, a good one is saved with the site.
+const withContact = { slug: `meera-raj-${slug.slice(-6)}`, look: 'rajwada', content: durgaContent, source: 'instagram.com', heard: 'instagram' }
+assert.equal((await call('POST', '/api/sites', { ...withContact, contact: { email: 'nope' } })).status, 400)
+assert.equal((await call('GET', `/api/sites/${withContact.slug}`)).status, 404)
+const meera = await call('POST', '/api/sites', { ...withContact, contact: { email: 'Meera@Example.com', phone: '', marketing: false } })
+assert.equal(meera.status, 201, JSON.stringify(meera.data))
+assert.equal(meera.data.sent, false) // no RESEND_API_KEY locally
+assert.deepEqual((await call('GET', `/api/sites/${withContact.slug}/contact`, undefined, meera.data.key)).data, { email: 'meera@example.com', phone: '', marketing: false })
+assert.equal((await call('DELETE', `/api/sites/${withContact.slug}`, undefined, meera.data.key)).status, 200)
 assert.equal((await call('POST', '/api/sites', { slug, look: 'rajwada', content })).status, 409)
 
 const got = await call('GET', `/api/sites/${slug}`)
