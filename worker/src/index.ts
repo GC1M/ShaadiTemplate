@@ -38,8 +38,9 @@ const DAY = 24 * HOUR
 const KEEP_DAYS = 30
 // The deletion reminder goes this many days before the site is deleted.
 const REMIND_DAYS = 7
-// How far ahead an event date may be, from today.
-const MAX_AHEAD_DAYS = 365
+// How far ahead an event date may be: a year, plus a day so "a year from today" passes in India at any hour and in
+// leap years. The editor limits its date boxes to 365 days.
+const MAX_AHEAD_DAYS = 366
 // Edit-link emails one site may send, so an edit key can't be used to mail strangers.
 const MAX_SENT = 5
 
