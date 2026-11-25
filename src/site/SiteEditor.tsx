@@ -9,6 +9,9 @@ import type { Photo } from './photos'
 import { useTitle } from './shared'
 import { TRACKS, youTubeClip, clipLink, clock, unclock, useClipPlayer, type Track } from './music'
 import { Segmented, useSplit } from '../ui'
+import type { TypedCover } from '../templates'
+import { TransliterateInput } from '../transliterate'
+import type { Lang } from '../types'
 
 // The wedding website editor: /websites/<design>/edit starts a new site from a design, /w/<slug>/edit#<key>
 // edits a published one (the secret link from publishing; App.tsx keeps the key and takes it off the address). The form is on the left, and the live site on the
@@ -43,6 +46,47 @@ const fresh = (l: Look): Content => ({
 const ascii = (s: string) => s.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 // names-xxxx: the random tail keeps two couples with the same names apart, and stays put while the names are typed.
 const suggest = (c: Content['couple'], tail = Math.random().toString(36).slice(2, 6)) => `${[ascii(c[0]), ascii(c[1])].filter(Boolean).join('-').slice(0, 30) || 'wedding'}-${tail}`
+
+// Starting a site from a card (templates.ts typedCover): names written in English letters fill the site's names,
+// names in an Indian script go to "your names in your own language", and a date and time the card writes in
+// numbers (any script's digits) set the wedding day. Anything it can't read is left for the couple to type.
+const latin = (v: string) => /^[\p{Script=Latin}\p{P}\p{Zs}]+$/u.test(v)
+const asciiDigits = (v: string) => v.replace(/[\u0966-\u096f\u0a66-\u0a6f\u0ae6-\u0aef\u0be6-\u0bef]/g, (d) => String((d.charCodeAt(0) & 0xf) - 6))
+export function cardDate(v: string) {
+  const t = asciiDigits(v)
+  const n = t.match(/\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})\b/)
+  const w = t.match(/\b(\d{1,2})(?:st|nd|rd|th)? ([A-Za-z]{3,}),? (\d{4})\b/)
+  const iso = (y: number, m: number, d: number) => {
+    const x = new Date(Date.UTC(y, m - 1, d))
+    return x.getUTCMonth() === m - 1 && x.getUTCDate() === d ? x.toISOString().slice(0, 10) : ''
+  }
+  if (n) return iso(+n[3], +n[2], +n[1])
+  const m = w && new Date(`${w[2]} 1, 2000`).getMonth()
+  return w && m !== null && !isNaN(m) ? iso(+w[3], m + 1, +w[1]) : ''
+}
+// Only a time that says am or pm, or is clearly on a 24-hour clock: "7:30" alone could be morning or evening.
+export function cardTime(v: string) {
+  const t = asciiDigits(v).toLowerCase()
+  const m = t.match(/\b(\d{1,2})(?:[:.](\d{2}))?\s*([ap])\.?\s?m\b/) ?? t.match(/\b(1[3-9]|2[0-3]):(\d{2})\b/)
+  if (!m) return ''
+  const h = m[3] ? (+m[1] % 12) + (m[3] === 'p' ? 12 : 0) : +m[1]
+  return h < 24 && +(m[2] ?? 0) < 60 ? `${String(h).padStart(2, '0')}:${m[2] ?? '00'}` : ''
+}
+function fromCard(c: Content, card: TypedCover): Partial<Content> {
+  const named = card.bride && card.groom
+  const english = named && latin(card.bride + card.groom)
+  const main = c.mainEvent ?? Math.min(1, c.events.length - 1)
+  const date = cardDate(card.date)
+  const time = cardTime(card.time)
+  return {
+    ...(english && { couple: [card.bride, card.groom] as [string, string] }),
+    ...(named && !english && { nativeNames: `${card.bride} ${card.joiner} ${card.groom}`.replace(/\s+/g, ' ').slice(0, 80) }),
+    ...(card.brideParents && card.groomParents && latin(card.brideParents + card.groomParents) && { parents: [card.brideParents, card.groomParents] as [string, string] }),
+    ...(card.invocation && { invocation: card.invocation.slice(0, 80) }),
+    ...(card.venue && { venue: card.venue.slice(0, 160) }),
+    ...((date || time) && { events: c.events.map((e, i) => (i === main ? { ...e, ...(date && { date }), ...(time && { time }) } : e)) }),
+  }
+}
 
 function startDraft(lookId: string): Draft {
   const look = lookById(lookId) ?? LOOKS[0]
@@ -244,6 +288,33 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     })
   const photo = (k: 'hero' | 'venue') => (p: Photo | undefined) => up((c) => ({ photos: { ...c.photos, [k]: p } }))
   // A new site's address bar names its design, so a reload keeps the one picked here.
+  // A new site can start from the card this browser made last. The card code loads only to look (it is large).
+  // Coming from a card's "Make a website from this card" fills it in at once; otherwise the couple is offered it.
+  const [card, setCard] = useState<{ name: string; cover: TypedCover; used: boolean } | null>(null)
+  const looked = useRef(false)
+  useEffect(() => {
+    if (draft.key || looked.current) return
+    looked.current = true
+    import('../templates').then(({ loadDrafts, templateById, typedCover }) => {
+      const d = loadDrafts().find((i) => typedCover(i))
+      if (!d) return
+      const cover = typedCover(d)!
+      let asked = false
+      try {
+        asked = sessionStorage.getItem('sitefromcard') === d.templateId
+        sessionStorage.removeItem('sitefromcard')
+      } catch {
+        /* storage off */
+      }
+      if (asked) fillFromCard(cover)
+      setCard({ name: templateById(d.templateId).name, cover, used: asked })
+    }, () => {})
+  }, [])
+  const fillFromCard = (cover: TypedCover) => {
+    up((c) => fromCard(c, cover))
+    setCard((k) => k && { ...k, used: true })
+    track('site_from_card')
+  }
   const pickLook = (look: string) => {
     if (location.pathname.startsWith('/websites/')) history.replaceState(null, '', `/websites/${look}/edit/`)
     setDirty(true)
@@ -433,6 +504,21 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
 
             {draft.key && <Replies slug={draft.slug} edit={draft.key} events={c.events} />}
 
+            {card && !draft.key && (
+              <p role="status" className="rounded-md bg-zari/15 px-4 py-3 text-[15px] text-ink/85 ring-1 ring-zari/40">
+                {card.used ? (
+                  <>Filled in from your {card.name} card: the names, venue and wedding date it had. Check them below.</>
+                ) : (
+                  <>
+                    You made a {card.name} card.{' '}
+                    <button type="button" onClick={() => fillFromCard(card.cover)} className="font-medium text-wine underline underline-offset-2 pointer-coarse:min-h-11">
+                      Use its names, venue and date
+                    </button>
+                  </>
+                )}
+              </p>
+            )}
+
             <section className="space-y-5">
               <Step n={1} title="Design, music and address" />
               <label className="block">
@@ -488,8 +574,14 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                 ))}
               </div>
               <Text label="Invitation line (optional)" value={c.invite} onChange={(invite) => up(() => ({ invite }))} multiline maxLength={400} />
-              <Text label="Your names in your own language (optional)" value={c.nativeNames ?? ''} onChange={(nativeNames) => up(() => ({ nativeNames }))} placeholder="अदिति संग विहान" maxLength={80} />
-              <Text label="Invocation on the opening screen (optional)" value={c.invocation ?? ''} onChange={(invocation) => up(() => ({ invocation }))} placeholder="श्री गणेशाय नमः" maxLength={80} />
+              <OwnScript>
+                {(lang) => (
+                  <>
+                    <Script lang={lang} label="Your names in your own language (optional)" value={c.nativeNames ?? ''} onChange={(nativeNames) => up(() => ({ nativeNames }))} placeholder="अदिति संग विहान" person />
+                    <Script lang={lang} label="Invocation on the opening screen (optional)" value={c.invocation ?? ''} onChange={(invocation) => up(() => ({ invocation }))} placeholder="श्री गणेशाय नमः" />
+                  </>
+                )}
+              </OwnScript>
             </section>
 
             <section className="space-y-5">
@@ -684,21 +776,21 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
               </p>
               {draft.key && (
                 <div className="flex flex-wrap gap-x-6 gap-y-2">
-                  <button
-                    type="button"
+                  <Ask
                     className="text-[13px] text-wine underline underline-offset-2 pointer-coarse:min-h-11"
-                    onClick={() => confirm('Start a new website? Keep your edit link: it is the only way back to this one.') && restart()}
+                    question="Start a new website? Keep your edit link: it is the only way back to this one."
+                    yes="Start a new one"
+                    onYes={restart}
                   >
                     Start a new website instead
-                  </button>
-                  <button
-                    type="button"
+                  </Ask>
+                  <Ask
                     className="text-[13px] text-maroon underline underline-offset-2 pointer-coarse:min-h-11"
-                    onClick={async () => {
-                      if (!confirm('Delete your website for good? Its photos, replies and blessings go too. This cannot be undone.')) return
+                    question="Delete your website for good? Its photos, replies and blessings go too. This cannot be undone."
+                    yes="Delete it for good"
+                    onYes={async () => {
                       try {
                         await api(`sites/${draft.slug}`, { method: 'DELETE', key: draft.key })
-                        alert('Your website has been deleted.')
                         restart()
                       } catch (err) {
                         setError((err as Error).message)
@@ -706,7 +798,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                     }}
                   >
                     Delete this website
-                  </button>
+                  </Ask>
                 </div>
               )}
             </section>
@@ -873,6 +965,60 @@ function ClipPicker({ id, start, end, onChange }: { id: string; start: number; e
         Play the loop
       </button>
     </div>
+  )
+}
+
+// The scripts the card maker types in. Kept here so the website editor doesn't load the cards' sample text.
+const SCRIPTS: [Lang, string][] = [
+  ['hi', 'Hindi (हिन्दी)'],
+  ['gu', 'Gujarati (ગુજરાતી)'],
+  ['mr', 'Marathi (मराठी)'],
+  ['pa', 'Punjabi (ਪੰਜਾਬੀ)'],
+  ['ta', 'Tamil (தமிழ்)'],
+]
+// The couple's own script, typed in English letters ("shri ganeshay namah" becomes श्री गणेशाय नमः) in the
+// language they pick, or as typed with their own keyboard. The choice is remembered in this browser.
+function OwnScript({ children }: { children: (lang: Lang | 'own') => ReactNode }) {
+  const [lang, setLang] = useState<Lang | 'own'>(() => {
+    try {
+      return (localStorage.getItem('sitescript') as Lang | 'own' | null) ?? 'hi'
+    } catch {
+      return 'hi'
+    }
+  })
+  const pick = (v: Lang | 'own') => {
+    setLang(v)
+    try {
+      localStorage.setItem('sitescript', v)
+    } catch {
+      /* storage off */
+    }
+  }
+  return (
+    <div className="space-y-3 rounded-md bg-wine/[0.04] p-4 ring-1 ring-wine/10">
+      <label className="block">
+        <span className="text-[13px] text-ink/65">Type the next two in</span>
+        <select value={lang} onChange={(e) => pick(e.target.value as Lang | 'own')} className={`${inputCls} select-chevron pr-10`}>
+          {SCRIPTS.map(([id, name]) => (
+            <option key={id} value={id}>
+              {name}, from English letters
+            </option>
+          ))}
+          <option value="own">My own keyboard</option>
+        </select>
+        {lang !== 'own' && <span className="mt-1 block text-[13px] text-ink/55">Type in English letters and press space. Each word you type is sent to Google's transliteration service.</span>}
+      </label>
+      {children(lang)}
+    </div>
+  )
+}
+
+function Script({ label, value, onChange, placeholder, person, lang }: { label: string; value: string; onChange: (v: string) => void; placeholder: string; person?: boolean; lang: Lang | 'own' }) {
+  return (
+    <label className="block">
+      <span className="text-[13px] text-ink/65">{label}</span>
+      <TransliterateInput lang={lang === 'own' ? 'en' : lang} enabled={lang !== 'own'} person={person} value={value} onChange={onChange} placeholder={placeholder} maxLength={80} className={inputCls} />
+    </label>
   )
 }
 
@@ -1166,7 +1312,6 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: C
   const latest = byKey(byKey(rsvps, (r) => r.guest || r.name.toLowerCase()), (r) => r.name.toLowerCase()) // rows come newest first
   const coming = latest.filter((r) => r.events.length)
   const remove = async (id: number) => {
-    if (!confirm('Remove this blessing from your site?')) return
     await api(`sites/${slug}/blessings/${id}`, { method: 'DELETE', key: edit }).then(() => setBlessings((b) => b.filter((x) => x.id !== id)), () => {})
   }
   return (
@@ -1200,15 +1345,37 @@ function Replies({ slug, edit, events }: { slug: string; edit: string; events: C
                 <span>
                   {b.text} <span className="text-ink/60">· {b.name}</span>
                 </span>
-                <button type="button" onClick={() => remove(b.id)} className={small}>
+                <Ask className={small} question="Remove this blessing from your site?" yes="Remove" onYes={() => remove(b.id)}>
                   Remove
-                </button>
+                </Ask>
               </li>
             ))}
           </ul>
         </Details>
       )}
     </section>
+  )
+}
+
+// A button that asks on the page before acting: some in-app browsers (WhatsApp, Instagram) never show confirm().
+function Ask({ question, yes, onYes, className, children }: { question: string; yes: string; onYes: () => void; className: string; children: ReactNode }) {
+  const [asking, setAsking] = useState(false)
+  if (!asking)
+    return (
+      <button type="button" onClick={() => setAsking(true)} className={className}>
+        {children}
+      </button>
+    )
+  return (
+    <span role="alert" className="flex basis-full flex-wrap items-center gap-2 rounded-md bg-maroon/5 p-3 text-[14px] text-ink/85 ring-1 ring-maroon/20">
+      <span className="basis-full">{question}</span>
+      <button type="button" onClick={() => (setAsking(false), onYes())} className={`${small} border-maroon/40 text-maroon`}>
+        {yes}
+      </button>
+      <button type="button" onClick={() => setAsking(false)} className={small}>
+        Cancel
+      </button>
+    </span>
   )
 }
 
