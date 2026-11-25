@@ -400,7 +400,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                   }}
                   aria-label={`Edit page ${i + 1}`}
                   aria-current={p.id === page.id}
-                  className={`mx-auto block transition-[outline-color] ${p.id === page.id ? 'outline outline-1 outline-offset-[7px] outline-zari' : 'opacity-80 hover:opacity-100'}`}
+                  className={`mx-auto block scroll-mt-24 transition-[outline-color] ${p.id === page.id ? 'outline outline-1 outline-offset-[7px] outline-zari' : 'opacity-80 hover:opacity-100'}`}
                   style={zoom === 'fit' ? { width: '100%', maxWidth: invite.format === 'story' ? 400 : 480 } : { width: w }}
                 >
                   <div className="pointer-events-none">
@@ -434,7 +434,8 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       {!previewSeen && !toast && (
         <button
           type="button"
-          onClick={() => asideRef.current?.scrollIntoView({ behavior: 'smooth' })}
+          // Straight to the page being edited: on phones the preview is part of the page, so its top shows page 1.
+          onClick={() => previewRef.current?.querySelector(`[data-page="${page.id}"]`)?.scrollIntoView({ behavior: 'smooth' })}
           className="zari-button fixed bottom-5 right-4 z-30 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-wine-deep lg:hidden [body:has(:is(textarea,input:not([type])):focus)_&]:hidden"
         >
           <Eye className="size-4" aria-hidden /> Preview page {index + 1}
