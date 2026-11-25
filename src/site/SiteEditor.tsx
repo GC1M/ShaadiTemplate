@@ -28,7 +28,8 @@ const small = 'inline-flex items-center gap-1.5 rounded-full border border-wine/
 // A look's demo words, without its photos (anything left out shows the design's own photo) and without what
 // nobody should publish by leaving the box alone: the demo couple's names in their script, their invocation (a
 // god that may not be the couple's; not checked in leftovers, as couples type the same common lines themselves)
-// and their bios. Its events start with no directions (`map: ''`), which a couple adds per event.
+// and their bios. Its events start at the main venue (no `map`, so Directions go to the venue) until a couple
+// gives one its own place.
 const fresh = (l: Look): Content => ({
   ...l.demo,
   nativeNames: undefined,
@@ -36,7 +37,7 @@ const fresh = (l: Look): Content => ({
   families: ['', ''],
   story: l.demo.story.map(({ photo: _, ...s }) => s),
   meet: l.demo.meet?.map(() => ({ bio: '' })),
-  events: l.demo.events.map(({ photo: _, ...e }, i) => ({ ...e, id: `e${i}`, map: '' })),
+  events: l.demo.events.map(({ photo: _, map: __, ...e }, i) => ({ ...e, id: `e${i}` })),
   photos: { gallery: [] },
 })
 const ascii = (s: string) => s.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -58,25 +59,32 @@ function startDraft(lookId: string): Draft {
 // The parts of a site still holding a design's sample words, named as the form names them. Every design is checked:
 // switching design keeps the words typed (or not) so far.
 const DEMOS = LOOKS.map((l) => l.demo)
+const PARTS: [string, (d: Content) => (string | undefined)[]][] = [
+  ['family names', (d) => [...d.families, ...d.parents]],
+  ['invitation line', (d) => [d.invite]],
+  ['city and venue', (d) => [d.city, d.venue]],
+  ['reply-by date', (d) => [d.rsvpBy]],
+  ['travel and stay', (d) => [d.stay]],
+  ['event dates', (d) => d.events.map((e) => e.date)],
+  ['event places and notes', (d) => d.events.flatMap((e) => [e.where, e.note])],
+  ['your story', (d) => d.story.flatMap((x) => [x.title, x.body])],
+  ['note from the two of you', (d) => [d.note]],
+  ['things to note', (d) => d.notes],
+  ['about the two of you', (d) => d.meet?.map((m) => m.bio) ?? []],
+  ['best compliments', (d) => d.compliments ?? []],
+]
+// Every sample sentence of every design, to tag a box still holding one while the couple edits. Not the cities:
+// a couple may really marry in Udaipur.
+const CITIES = new Set(DEMOS.map((d) => d.city))
+const SAMPLE = new Set(DEMOS.flatMap((d) => PARTS.flatMap(([, f]) => f(d))).filter((v) => v?.trim() && !CITIES.has(v)).map((v) => v!.trim()))
+const isSample = (v: string) => v.split('\n').some((l) => SAMPLE.has(l.trim()))
 export function leftovers(c: Content): string[] {
-  const any = (f: (d: Look['demo']) => (string | undefined)[], mine: (string | undefined)[]) => {
-    const sample = new Set(DEMOS.flatMap(f).filter(Boolean))
-    return mine.some((v) => v?.trim() && sample.has(v.trim()))
-  }
   const found: [string, boolean][] = [
     ['your names', DEMOS.some((d) => d.couple[0] === c.couple[0].trim() && d.couple[1] === c.couple[1].trim())],
-    ['family names', any((d) => [...d.families, ...d.parents], [...c.families, ...c.parents])],
-    ['invitation line', any((d) => [d.invite], [c.invite])],
-    ['city and venue', any((d) => [d.city, d.venue], [c.city, c.venue])],
-    ['reply-by date', any((d) => [d.rsvpBy], [c.rsvpBy])],
-    ['travel and stay', any((d) => [d.stay], [c.stay])],
-    ['event dates', any((d) => d.events.map((e) => e.date), c.events.map((e) => e.date))],
-    ['event places and notes', any((d) => d.events.flatMap((e) => [e.where, e.note]), c.events.flatMap((e) => [e.where, e.note]))],
-    ['your story', any((d) => d.story.flatMap((x) => [x.title, x.body]), c.story.flatMap((x) => [x.title, x.body]))],
-    ['note from the two of you', any((d) => [d.note], [c.note])],
-    ['things to note', any((d) => d.notes, c.notes)],
-    ['about the two of you', any((d) => d.meet?.map((m) => m.bio) ?? [], c.meet?.map((m) => m.bio) ?? [])],
-    ['best compliments', any((d) => d.compliments ?? [], c.compliments ?? [])],
+    ...PARTS.map(([name, f]): [string, boolean] => {
+      const sample = new Set(DEMOS.flatMap(f).filter(Boolean))
+      return [name, f(c).some((v) => v?.trim() && sample.has(v.trim()))]
+    }),
   ]
   return found.filter(([, on]) => on).map(([name]) => name)
 }
@@ -409,6 +417,14 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
         <form id="site-form" onSubmit={publish} className="min-w-0 px-4 pb-24 pt-8 sm:px-8 lg:px-12">
           {/* Nothing can be typed while a save is on its way: the reply replaces the form's content. */}
           <div className="mx-auto max-w-2xl space-y-12" inert={busy}>
+            {/* A long form: the steps stay in reach to jump between. */}
+            <nav aria-label="Steps" className="sticky top-16 z-10 -mx-4 -mt-4 flex gap-2 overflow-x-auto bg-rose/95 px-4 py-2 backdrop-blur sm:-mx-8 sm:px-8 lg:mx-0 lg:px-0">
+              {STEPS.slice(0, draft.key ? 6 : 7).map((t, i) => (
+                <button key={t} type="button" onClick={() => document.getElementById(`step-${i + 1}`)?.scrollIntoView({ behavior: 'smooth' })} className={`${small} shrink-0 bg-paper/80`}>
+                  <span className="font-display italic text-zari">{i + 1}</span> {t}
+                </button>
+              ))}
+            </nav>
             <section className="space-y-4">
               <h1 className="font-display text-[34px] leading-tight tracking-[-0.015em] sm:text-[42px]">Your wedding website</h1>
               <p className="text-ink/70">Free, on shaaditemplate.com. Fill in your details and publish; you can keep editing after.</p>
@@ -502,7 +518,11 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                     {tooFar(e.date) && <p className="text-[13px] text-maroon">Choose a date up to a year from today, by {new Date(`${lastDay}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}.</p>}
                     <Text label="Place within the venue (optional)" value={e.where} onChange={(where) => item('events', i, { where })} placeholder="in the palace lawns" maxLength={120} />
                     <Text label="Note for guests (optional)" value={e.note} onChange={(note) => item('events', i, { note })} maxLength={300} />
-                    <Text label="Directions (optional): a Google Maps link or the address" value={e.map ?? ''} onChange={(map) => item('events', i, { map })} placeholder="https://maps.app.goo.gl/…" maxLength={500} />
+                    <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px]">
+                      <input type="checkbox" checked={e.map === undefined} onChange={(x) => item('events', i, { map: x.target.checked ? undefined : '' })} className="size-4 accent-wine" />
+                      At the main venue (Directions take guests there)
+                    </label>
+                    {e.map !== undefined && <Text label="Directions (optional): a Google Maps link or the address" value={e.map} onChange={(map) => item('events', i, { map })} placeholder="https://maps.app.goo.gl/…" maxLength={500} />}
                     {photoField('Photo', e.photo, (photo) => item('events', i, { photo }), e.name)}
                     <div className="flex flex-wrap gap-2">
                       {i > 0 && (
@@ -754,8 +774,9 @@ const startNew = (look: string): Draft => {
   return { look, content, slug: suggest(content.couple) }
 }
 
+const STEPS = ['Design', 'Names', 'Events', 'Photos', 'Story', 'Notes', 'Edit link']
 const Step = ({ n, title }: { n: number; title: string }) => (
-  <h2 className="flex items-baseline gap-3 border-b border-zari/40 pb-3 font-display text-2xl">
+  <h2 id={`step-${n}`} className="scroll-mt-32 flex items-baseline gap-3 border-b border-zari/40 pb-3 font-display text-2xl">
     <span className="font-display text-xl italic text-zari">{n}</span>
     {title}
   </h2>
@@ -813,12 +834,12 @@ function MusicField({ value, onChange }: { value?: string; onChange: (v: string 
           <p className="text-[13px] text-ink/60">
             {value && !id
               ? 'That doesn’t look like a YouTube video link. Copy it from Share on the video.'
-              : 'It starts in a small YouTube player when a guest first taps your site, and plays the part you choose below over and over. Some music labels block their videos on other sites; if yours won’t play here, pick another upload of the song.'}
+              : 'It starts when a guest first taps your site, with a small pause button and no video, and plays the part you choose below over and over. Some music labels block their videos on other sites; if yours won’t play here, pick another upload of the song.'}
           </p>
           {clip && <ClipPicker key={clip.id} {...clip} onChange={(s, e) => onChange(clipLink(clip.id, s, e))} />}
         </div>
       )}
-      {!yt && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts when a guest first taps the page.</p>}
+      {!yt && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts when a guest first taps the page and shows only a small pause button, no video.</p>}
     </fieldset>
   )
 }
@@ -859,6 +880,7 @@ function Text({ label, value, onChange, multiline, rows = 3, ...rest }: { label:
   return (
     <label className="block">
       <span className="text-[13px] text-ink/65">{label}</span>
+      {isSample(value) && <span className="ml-2 rounded-full bg-zari/25 px-2 py-0.5 text-[12px] text-wine">Sample, replace</span>}
       {multiline ? <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} className={`${inputCls} resize-y`} {...rest} /> : <input value={value} onChange={(e) => onChange(e.target.value)} className={inputCls} {...rest} />}
     </label>
   )

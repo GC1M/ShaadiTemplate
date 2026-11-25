@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 
 // Background music for a couple's site: one of a few freely licensed instrumentals (from Wikimedia Commons,
-// credited in the player), or a song of their choice from YouTube. YouTube songs play in YouTube's own visible
-// player, so YouTube licenses the music and we host none of it; its rules want the player at least 200x200 and
-// on screen while it plays, so closing it stops the song. Content.music holds `track:<id>` or a YouTube link.
+// credited in the player), or a song of their choice from YouTube. YouTube songs play in YouTube's own player, so
+// YouTube licenses the music and we host none of it. To keep the video off the page, the player sits
+// out of sight behind a play/pause pill. ponytail: YouTube's terms want the player visible (200x200); if YouTube
+// blocks playback for the site, show the player again. Content.music holds `track:<id>` or a YouTube link.
 
 export type Track = { id: string; name: string; src: string; by: string; licence: string; file: string }
 
@@ -56,7 +57,7 @@ const loadYT = () =>
   }))
 
 // A YouTube player that plays [start, end) and goes back to start each time the part ends.
-export function useClipPlayer(box: React.RefObject<HTMLDivElement | null>, id: string, start: number, end: number | undefined, opts: { autoplay?: boolean; width?: number; height?: number } = {}) {
+export function useClipPlayer(box: React.RefObject<HTMLDivElement | null>, id: string, start: number, end: number | undefined, opts: { autoplay?: boolean; width?: number; height?: number; onState?: (state: number) => void } = {}) {
   const player = useRef<YTPlayer | null>(null)
   const clip = useRef({ start, end })
   clip.current = { start, end }
@@ -74,6 +75,7 @@ export function useClipPlayer(box: React.RefObject<HTMLDivElement | null>, id: s
         playerVars: { autoplay: opts.autoplay ? 1 : 0, start: clip.current.start, ...(clip.current.end && { end: clip.current.end }), playsinline: 1, rel: 0 },
         events: {
           onStateChange: (e: { data: number }) => {
+            opts.onState?.(e.data)
             const { start, end } = clip.current
             if (e.data === YT.PlayerState.ENDED) player.current?.loadVideoById({ videoId: id, startSeconds: start, endSeconds: end })
           },
@@ -145,37 +147,43 @@ function TrackPlayer({ t }: { t: Track }) {
 function YouTubeDock({ id, start, end }: { id: string; start: number; end?: number }) {
   const [open, setOpen] = useState(false)
   useEffect(() => {
-    // Like the tracks: the song opens with the guest's first tap (usually the opening screen), since browsers
-    // allow sound only after one. A tap on the music button itself is left to the button.
+    // Like the tracks: the song starts with the guest's first tap (usually the opening screen), since browsers
+    // allow sound only after one.
     const KEYS = ['pointerup', 'keydown']
-    const go = (e: Event) => {
+    const go = () => {
       stop()
-      if (!(e.target as Element | null)?.closest?.('[data-music]')) setOpen(true)
+      setOpen(true)
     }
     const stop = () => KEYS.forEach((k) => removeEventListener(k, go))
     KEYS.forEach((k) => addEventListener(k, go))
     return stop
   }, [])
-  if (!open)
-    return (
-      <button type="button" data-music onClick={() => setOpen(true)} className={pill}>
-        <span aria-hidden>♪</span> Play our song
-      </button>
-    )
-  return (
-    <div data-music className="fixed bottom-3 left-3 z-50 overflow-hidden rounded-lg bg-black shadow-xl">
-      <button type="button" onClick={() => setOpen(false)} className="flex w-full items-center justify-between px-3 py-1.5 text-[12px] text-white/85 pointer-coarse:min-h-11">
-        Our song <span aria-hidden>✕</span>
-        <span className="sr-only">Stop and close</span>
-      </button>
-      <ClipFrame id={id} start={start} end={end} />
-    </div>
+  return open ? (
+    <ClipPill id={id} start={start} end={end} />
+  ) : (
+    <button type="button" data-music onClick={() => setOpen(true)} className={pill}>
+      <span aria-hidden>♪</span> Play our song
+    </button>
   )
 }
 
-// Opened by the guest's tap, so it may start with sound.
-function ClipFrame({ id, start, end }: { id: string; start: number; end?: number }) {
+// The YouTube player sits out of sight behind the page; the pill plays and pauses it.
+function ClipPill({ id, start, end }: { id: string; start: number; end?: number }) {
   const box = useRef<HTMLDivElement>(null)
-  useClipPlayer(box, id, start, end, { autoplay: true })
-  return <div ref={box} className="h-[200px] w-[240px]" title="Our song on YouTube" />
+  const [on, setOn] = useState(false)
+  const player = useClipPlayer(box, id, start, end, { autoplay: true, width: 200, height: 200, onState: (st) => setOn(st === 1) })
+  useEffect(() => {
+    // A guest who switches to WhatsApp shouldn't keep hearing it.
+    const hide = () => document.hidden && player.current?.pauseVideo()
+    document.addEventListener('visibilitychange', hide)
+    return () => document.removeEventListener('visibilitychange', hide)
+  }, [player])
+  return (
+    <>
+      <div ref={box} aria-hidden className="pointer-events-none fixed bottom-0 left-0 -z-10 size-[200px] opacity-0" />
+      <button type="button" data-music onClick={() => (on ? player.current?.pauseVideo() : player.current?.playVideo())} aria-pressed={on} className={pill}>
+        <span aria-hidden>{on ? '❚❚' : '♪'}</span> {on ? 'Pause our song' : 'Play our song'}
+      </button>
+    </>
+  )
 }
