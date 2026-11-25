@@ -1,5 +1,5 @@
 import type { SymbolId } from '../types'
-import { SHOTS, type Photo } from './photos'
+import { PEOPLE, SHOTS, type Photo } from './photos'
 
 // The sample wedding website designs, in the order the gallery shows them. Every couple, family and story here is
 // fictional demo content; the venues are real places so the map links work.
@@ -41,7 +41,9 @@ export type Look = {
 
 // date is YYYY-MM-DD and time HH:MM, both in IST. where: the time and place in words ("7 pm, in the lawns").
 // id: a short stable name, so replies still point at the right event after others are added or removed.
-export type SiteEvent = { id?: string; name: string; date: string; time: string; where: string; note: string; photo?: Photo }
+// map: optional directions for this event, a maps link or an address; blank shows none. Events saved before the
+// field existed (no map at all) keep pointing at the main venue.
+export type SiteEvent = { id?: string; name: string; date: string; time: string; where: string; note: string; map?: string; photo?: Photo }
 // Any photo left out falls back to the look's demo photo in the same place.
 export type Content = {
   couple: [string, string]
@@ -60,7 +62,10 @@ export type Content = {
   note?: string
   // Optional line under the venue: where to stay, how to get there.
   stay?: string
+  // Optional background music: `track:<id>` (site/music.tsx) or a YouTube link.
+  music?: string
   notes: string[]
+  // Both optional: events in different places give each event its own directions instead.
   city: string
   venue: string
   invite: string
@@ -72,7 +77,8 @@ export type Content = {
   photos: { hero?: Photo; venue?: Photo; rsvp?: Photo; bless?: Photo; finale?: Photo; gallery: Photo[] }
 }
 
-export type WeddingEvent = { id: string; name: string; date: string; start: string; end: string; time: string; note: string; photo: Photo }
+// place: the event's own address, for its calendar entry (blank: the main venue).
+export type WeddingEvent = { id: string; name: string; date: string; start: string; end: string; time: string; note: string; map?: string; place?: string; photo: Photo }
 export type Design = Omit<Look, 'demo'> &
   Omit<Content, 'events' | 'meet' | 'story' | 'photos' | 'mainEvent'> & {
     mainEvent?: string
@@ -544,6 +550,13 @@ const realTime = (t: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t)
 export function toDesign(look: Look, c: Content = look.demo): Design {
   const { demo, ...rest } = look
   const at = <T,>(xs: T[], i: number) => xs[i % xs.length]
+  // A couple's site never shows the sample couple: a place they left empty that the sample fills with the
+  // strangers gets the couple's own photos, or else the design's places and things.
+  const own = c !== demo
+  const mine = [c.photos.hero, c.photos.venue, ...c.photos.gallery].filter((p): p is Photo => !!p)
+  const places = [...new Set([demo.photos.hero, demo.photos.venue, demo.photos.rsvp, demo.photos.bless, demo.photos.finale, ...demo.photos.gallery, ...demo.events.map((e) => e.photo)])].filter((p): p is Photo => !!p && !PEOPLE.has(p))
+  const fill = <P extends Photo | undefined>(p: P, i = 0): P => (own && p && PEOPLE.has(p) ? (at(mine.length ? mine : places.length ? places : [SHOTS.marigold], i) as P) : p)
+  const venueMap = mapsUrl(c.venue.trim() || c.city)
   const today = new Date().toISOString().slice(0, 10)
   return {
     ...rest,
@@ -551,23 +564,38 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
     // A blank family is named after its side, so the RSVP never offers an empty choice; no venue yet shows the city.
     families: c.families.map((f, i) => f.trim() || `${c.couple[i]}’s family`) as [string, string],
     venue: c.venue.trim() || c.city,
-    meet: c.meet?.map((m, i) => ({ name: c.couple[i] ?? '', bio: m.bio, photo: m.photo ?? demo.meet?.[i]?.photo ?? at(demo.photos.gallery, i) })),
-    story: c.story.map((s, i) => ({ ...s, photo: s.photo ?? at(demo.story, i).photo! })),
+    meet: c.meet?.map((m, i) => ({ name: c.couple[i] ?? '', bio: m.bio, photo: m.photo ?? fill(demo.meet?.[i]?.photo ?? at(demo.photos.gallery, i), i) })),
+    story: c.story.map((s, i) => ({ ...s, photo: s.photo ?? fill(at(demo.story, i).photo!, i) })),
     events: c.events.map((e, i) => {
       const date = realDate(e.date) ? e.date : today
       const time = realTime(e.time) ? e.time : '10:00'
-      return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: e.where || clock(time), note: e.note, photo: e.photo ?? at(demo.events, i).photo! }
+      // The samples point every event at their one venue; a couple's event has directions only if they gave some.
+      const given = e.map?.trim() ?? ''
+      const link = /^https?:\/\//i.test(given)
+      const map = own && e.map !== undefined ? (link ? given : mapsUrl(given) || undefined) : venueMap || undefined
+      // "In the haveli courtyard" alone would hide the start time; words with a time in them replace it.
+      const when = !e.where ? clock(time) : /\p{Nd}/u.test(e.where) ? e.where : `${clock(time)}, ${e.where}`
+      return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: when, note: e.note, map, place: link ? undefined : given || undefined, photo: e.photo ?? fill(at(demo.events, i).photo!, i) }
     }),
     mainEvent: c.mainEvent === undefined ? undefined : (c.events[c.mainEvent]?.id ?? `e${c.mainEvent}`),
-    hero: c.photos.hero ?? demo.photos.hero!,
-    venuePhoto: c.photos.venue ?? demo.photos.venue!,
-    rsvpPhoto: c.photos.rsvp ?? demo.photos.rsvp!,
-    blessPhoto: c.photos.bless ?? demo.photos.bless!,
-    finale: c.photos.finale ?? demo.photos.finale,
-    gallery: c.photos.gallery.length ? c.photos.gallery : demo.photos.gallery,
+    hero: c.photos.hero ?? fill(demo.photos.hero!),
+    venuePhoto: c.photos.venue ?? fill(demo.photos.venue!),
+    rsvpPhoto: c.photos.rsvp ?? fill(demo.photos.rsvp!, 1),
+    blessPhoto: c.photos.bless ?? fill(demo.photos.bless!, 2),
+    finale: c.photos.finale ?? fill(demo.photos.finale, 3),
+    // A couple's gallery is only their own photos: the design's would show up among their story as if theirs.
+    gallery: own ? c.photos.gallery : demo.photos.gallery,
+    // Ganesha's emblem stays only on a site that invokes him.
+    emblem: own && rest.emblem === 'ganesha' && !invokesGanesh(c.invocation) ? undefined : rest.emblem,
   }
 }
 
+// An invocation that names Ganesh, in the scripts the site is written in.
+// His names and the shlokas that call on him without naming him (Vakratunda Mahakaya, Gajanana, Ekadanta...).
+export const invokesGanesh = (s = '') =>
+  /ganesh|ganpat|ganapat|vinayak|vakratund|gajanan|lambodar|ekadant|gajmukh|gajamukh|गणेश|गणप|विनायक|वक्रतुण्ड|वक्रतुंड|गजानन|लम्बोदर|लंबोदर|एकदन्त|एकदंत|गजमुख|ગણેશ|ગણપ|વિનાયક|વક્રતુંડ|ગજાનન|લંબોદર|એકદંત|ਗਣੇਸ਼|ਗਣਪਤ|விநாயக|கணேச|கணபதி|பிள்ளையார்|వినాయక|గణేశ|గణపతి|ಗಣೇಶ|ಗಣಪತಿ|വിനായക|ഗണപതി/i.test(s)
+// A Google Maps search for a place; blank when there is no place to search for.
+export const mapsUrl = (q: string) => (q.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q.trim())}` : '')
 export const mainOf = (d: Design) => d.events.find((e) => e.id === d.mainEvent) ?? d.events[1] ?? d.events[0]
 export const lookById = (id: string) => LOOKS.find((l) => l.id === id)
 export const DESIGNS = LOOKS.map((l) => toDesign(l))
