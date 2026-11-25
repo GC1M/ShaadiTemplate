@@ -27,14 +27,15 @@ const small = 'inline-flex items-center gap-1.5 rounded-full border border-wine/
 
 // A look's demo words, without its photos (anything left out shows the design's own photo) and without what
 // nobody should publish by leaving the box alone: the demo couple's names in their script, their invocation (a
-// god that may not be the couple's) and their bios.
+// god that may not be the couple's; not checked in leftovers, as couples type the same common lines themselves)
+// and their bios. Its events start with no directions (`map: ''`), which a couple adds per event.
 const fresh = (l: Look): Content => ({
   ...l.demo,
   nativeNames: undefined,
   invocation: undefined,
   story: l.demo.story.map(({ photo: _, ...s }) => s),
   meet: l.demo.meet?.map(() => ({ bio: '' })),
-  events: l.demo.events.map(({ photo: _, ...e }, i) => ({ ...e, id: `e${i}` })),
+  events: l.demo.events.map(({ photo: _, ...e }, i) => ({ ...e, id: `e${i}`, map: '' })),
   photos: { gallery: [] },
 })
 const ascii = (s: string) => s.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -73,7 +74,6 @@ export function leftovers(c: Content): string[] {
     ['your story', any((d) => d.story.flatMap((x) => [x.title, x.body]), c.story.flatMap((x) => [x.title, x.body]))],
     ['note from the two of you', any((d) => [d.note], [c.note])],
     ['things to note', any((d) => d.notes, c.notes)],
-    ['invocation', any((d) => [d.invocation], [c.invocation])],
     ['about the two of you', any((d) => d.meet?.map((m) => m.bio) ?? [], c.meet?.map((m) => m.bio) ?? [])],
     ['best compliments', any((d) => d.compliments ?? [], c.compliments ?? [])],
   ]

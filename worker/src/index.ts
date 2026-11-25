@@ -328,7 +328,8 @@ function clean(raw: any, ownPhoto: (src: string) => boolean, saved = new Set<str
       time: /^([01]\d|2[0-3]):[0-5]\d$/.test(e?.time) ? e.time : '',
       where: str(e?.where, 120),
       note: str(e?.note, 300),
-      map: str(e?.map, 500) || undefined,
+      // Blank is kept (no directions); a site saved before this field has none and links its venue instead.
+      map: typeof e?.map === 'string' ? str(e.map, 500) : undefined,
       photo: photo(e?.photo),
     })),
     mainEvent: Number.isInteger(c.mainEvent) && c.mainEvent >= 0 && c.mainEvent < 8 ? c.mainEvent : undefined,

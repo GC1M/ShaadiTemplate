@@ -30,14 +30,15 @@ function TrackPlayer({ t }: { t: Track }) {
   const [on, setOn] = useState(false)
   useEffect(() => {
     // Browsers allow sound only after a tap, so the music starts with the guest's first tap (usually the
-    // opening screen). A tap on the music button itself is left to the button.
+    // opening screen). On a phone only the end of a touch counts as that tap (pointerup), not its start. Until
+    // the music actually plays, every tap tries again; a tap on the music button itself is left to the button.
+    const KEYS = ['pointerup', 'keydown']
     const start = (e: Event) => {
       if ((e.target as Element | null)?.closest?.('[data-music]')) return stop()
-      audio.current?.play().then(() => setOn(true), () => {})
-      stop()
+      audio.current?.play().then(stop, () => {})
     }
-    const stop = () => ['pointerdown', 'keydown'].forEach((k) => removeEventListener(k, start))
-    ;['pointerdown', 'keydown'].forEach((k) => addEventListener(k, start))
+    const stop = () => KEYS.forEach((k) => removeEventListener(k, start))
+    KEYS.forEach((k) => addEventListener(k, start))
     // A guest who switches to WhatsApp shouldn't keep hearing it.
     const hide = () => document.hidden && audio.current?.pause()
     document.addEventListener('visibilitychange', hide)

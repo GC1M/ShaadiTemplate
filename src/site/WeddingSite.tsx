@@ -138,7 +138,8 @@ function Trifold({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => 
 
 /* ---------- Hero ---------- */
 
-function Countdown({ to }: { to: string }) {
+// heading: shown above the countdown only while it runs, so it switches with it at the start time.
+function Countdown({ to, heading }: { to: string; heading?: ReactNode }) {
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
@@ -154,14 +155,17 @@ function Countdown({ to }: { to: string }) {
     [Math.floor(left / 1e3) % 60, 'sec'],
   ]
   return (
-    <dl className="mt-10 flex justify-center gap-3 sm:gap-5" aria-label="Time until the wedding">
-      {parts.map(([n, label]) => (
-        <div key={label} className="st-count flex flex-col-reverse items-center">
-          <dt className="ov-meta mt-1.5 text-[0.6rem] uppercase opacity-70">{label}</dt>
-          <dd className="ov-display text-[clamp(1.6rem,4vw,2.6rem)] leading-none tabular-nums">{String(n).padStart(2, '0')}</dd>
-        </div>
-      ))}
-    </dl>
+    <>
+      {heading}
+      <dl className="mt-10 flex justify-center gap-3 sm:gap-5" aria-label="Time until the wedding">
+        {parts.map(([n, label]) => (
+          <div key={label} className="st-count flex flex-col-reverse items-center">
+            <dt className="ov-meta mt-1.5 text-[0.6rem] uppercase opacity-70">{label}</dt>
+            <dd className="ov-display text-[clamp(1.6rem,4vw,2.6rem)] leading-none tabular-nums">{String(n).padStart(2, '0')}</dd>
+          </div>
+        ))}
+      </dl>
+    </>
   )
 }
 
@@ -534,8 +538,7 @@ function Finale({ d }: { d: Design }) {
       <div className="absolute inset-0 bg-linear-to-b from-(--ov-kohl) via-(--ov-kohl)/40 to-(--ov-kohl)/70" />
       <Reveal className="relative">
         <p className="ov-meta uppercase text-(--ov-gulab)">{main.date}</p>
-        {istDate(main.start).getTime() > Date.now() && <h2 className="ov-display st-foil mt-4 text-[clamp(2.8rem,7vw,5.5rem)] leading-none">The countdown begins</h2>}
-        <Countdown to={main.start} />
+        <Countdown to={main.start} heading={<h2 className="ov-display st-foil mt-4 text-[clamp(2.8rem,7vw,5.5rem)] leading-none">The countdown begins</h2>} />
         <p className="ov-display mt-10 text-3xl italic">
           {d.couple[0]}
           <span className="st-amp">&amp;</span>

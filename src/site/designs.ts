@@ -41,7 +41,8 @@ export type Look = {
 
 // date is YYYY-MM-DD and time HH:MM, both in IST. where: the time and place in words ("7 pm, in the lawns").
 // id: a short stable name, so replies still point at the right event after others are added or removed.
-// map: optional directions for this event, a maps link or an address; left blank, the event shows no directions.
+// map: optional directions for this event, a maps link or an address; blank shows none. Events saved before the
+// field existed (no map at all) keep pointing at the main venue.
 export type SiteEvent = { id?: string; name: string; date: string; time: string; where: string; note: string; map?: string; photo?: Photo }
 // Any photo left out falls back to the look's demo photo in the same place.
 export type Content = {
@@ -569,11 +570,11 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
       const date = realDate(e.date) ? e.date : today
       const time = realTime(e.time) ? e.time : '10:00'
       // The samples point every event at their one venue; a couple's event has directions only if they gave some.
-      const given = own ? (e.map?.trim() ?? '') : ''
+      const given = e.map?.trim() ?? ''
       const link = /^https?:\/\//i.test(given)
-      const map = own ? (link ? given : mapsUrl(given) || undefined) : venueMap
+      const map = own && e.map !== undefined ? (link ? given : mapsUrl(given) || undefined) : venueMap || undefined
       // "In the haveli courtyard" alone would hide the start time; words with a time in them replace it.
-      const when = !e.where ? clock(time) : /\d/.test(e.where) ? e.where : `${clock(time)}, ${e.where}`
+      const when = !e.where ? clock(time) : /\p{Nd}/u.test(e.where) ? e.where : `${clock(time)}, ${e.where}`
       return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: when, note: e.note, map, place: link ? undefined : given || undefined, photo: e.photo ?? fill(at(demo.events, i).photo!, i) }
     }),
     mainEvent: c.mainEvent === undefined ? undefined : (c.events[c.mainEvent]?.id ?? `e${c.mainEvent}`),
@@ -590,7 +591,9 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
 }
 
 // An invocation that names Ganesh, in the scripts the site is written in.
-export const invokesGanesh = (s = '') => /ganesh|ganpati|ganapati|vinayak|गणेश|गणपति|विनायक|ગણેશ|ગણપતિ|விநாயக|கணேச|गणेशा/i.test(s)
+// His names and the shlokas that call on him without naming him (Vakratunda Mahakaya, Gajanana, Ekadanta...).
+export const invokesGanesh = (s = '') =>
+  /ganesh|ganpat|ganapat|vinayak|vakratund|gajanan|lambodar|ekadant|gajmukh|gajamukh|गणेश|गणप|विनायक|वक्रतुण्ड|वक्रतुंड|गजानन|लम्बोदर|लंबोदर|एकदन्त|एकदंत|गजमुख|ગણેશ|ગણપ|વિનાયક|વક્રતુંડ|ગજાનન|લંબોદર|એકદંત|ਗਣੇਸ਼|ਗਣਪਤ|விநாயக|கணேச|கணபதி|பிள்ளையார்|వినాయక|గణేశ|గణపతి|ಗಣೇಶ|ಗಣಪತಿ|വിനായക|ഗണപതി/i.test(s)
 // A Google Maps search for a place; blank when there is no place to search for.
 export const mapsUrl = (q: string) => (q.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q.trim())}` : '')
 export const mainOf = (d: Design) => d.events.find((e) => e.id === d.mainEvent) ?? d.events[1] ?? d.events[0]
