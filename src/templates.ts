@@ -230,3 +230,26 @@ export function carryDetails(from: Invite, to: Invite): Invite | null {
   for (const f of ['venue', 'address', 'rsvp'] as const) take(mine[f], was[f], (v) => (out[f] = v), cover[f])
   return carried ? { ...to, pages: [out, ...rest] } : null
 }
+
+// A card's cover as the family filled it in, for starting a wedding website from the card: the names, parents,
+// venue, date and time they typed (blank where the sample is untouched) and the card's invocation. Null for a card
+// without a cover (printed-page designs) or with no names typed yet.
+export function typedCover(i: Invite) {
+  const was = samplePages(templateById(i.templateId), i.lang)[0]
+  const mine = i.pages.find((p) => p.kind === 'cover')
+  if (was?.kind !== 'cover' || mine?.kind !== 'cover') return null
+  const typed = (v: string, sample: string) => (v.trim() && v !== sample ? v.trim() : '')
+  const out = {
+    bride: typed(mine.bride.name, was.bride.name),
+    groom: typed(mine.groom.name, was.groom.name),
+    brideParents: typed(mine.bride.parents, was.bride.parents),
+    groomParents: typed(mine.groom.parents, was.groom.parents),
+    joiner: mine.joiner.trim(),
+    invocation: mine.invocation.trim(),
+    venue: typed(mine.venue, was.venue),
+    date: typed(mine.date, was.date),
+    time: typed(mine.time, was.time),
+  }
+  return out.bride || out.groom ? out : null
+}
+export type TypedCover = NonNullable<ReturnType<typeof typedCover>>

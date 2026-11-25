@@ -6,7 +6,7 @@ import { CardPage, PHOTO_FIT, SIZES, photoStyle } from './card/Card'
 import { DESIGNS } from './card/designs'
 import { DATE_FORMATS, formatDate, type DateFormat } from './dates'
 import { LANGS, SAMPLES } from './i18n'
-import { keepEdits, samplePages, sectionsPage, stripIds, templateById } from './templates'
+import { keepEdits, samplePages, sectionsPage, stripIds, templateById, typedCover } from './templates'
 import { TransliterateInput } from './transliterate'
 import { LANG_IDS, type CoverPage, type FontScale, type Format, type Invite, type Lang, type Page, type Photo, type SectionsPage } from './types'
 import { ScaledCard, Segmented, useSplit } from './ui'
@@ -28,6 +28,16 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   const [toast, setToast] = useState('')
   // After a download, a small panel says where the file went and what to do next.
   const [saved, setSaved] = useState<'' | 'png' | 'pdf'>('')
+  const fromCard = !!saved && !!typedCover(invite)
+  // Deleting a page or section, or resetting the words, happens at once and can be undone for a few seconds
+  // (no confirm(): some in-app browsers never show it).
+  const [undo, setUndo] = useState<{ label: string; pages: Page[]; current?: string } | null>(null)
+  const remember = (label: string) => setUndo({ label, pages: invite.pages, current })
+  useEffect(() => {
+    if (!undo) return
+    const id = setTimeout(() => setUndo(null), 8000)
+    return () => clearTimeout(id)
+  }, [undo])
   const exportRef = useRef<HTMLDivElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLElement>(null)
@@ -105,7 +115,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
     if (kept) setToast(`Switched the wording to ${LANGS[lang].name}. Your names and details are kept as you typed them.`)
   }
   const reset = () => {
-    if (!confirm('Replace every page with the sample text?')) return
+    remember('Every page is back to the sample text.')
     const pages = samplePages(t, invite.lang)
     set({ pages })
     setCurrent(pages[0].id)
@@ -120,7 +130,8 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       return { ...i, pages }
     })
   const remove = () => {
-    if (invite.pages.length < 2 || !confirm('Delete this page?')) return
+    if (invite.pages.length < 2) return
+    remember(`Page ${index + 1} deleted.`)
     const pages = invite.pages.filter((p) => p.id !== page.id)
     set({ pages })
     setCurrent(pages[Math.max(0, index - 1)].id)
@@ -293,7 +304,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
               {page.kind === 'cover' ? (
                 <CoverForm p={page} on={editCover} lang={L} phonetic={phonetic} />
               ) : (
-                <SectionsForm p={page} on={editSections} lang={L} phonetic={phonetic} />
+                <SectionsForm p={page} on={editSections} lang={L} phonetic={phonetic} onRemove={(i) => remember(`Section ${i + 1} removed.`)} />
               )}
               <button onClick={reset} className="inline-flex items-center gap-1.5 pt-2 text-sm pointer-coarse:min-h-11 text-ink/60 hover:text-wine">
                 <RotateCcw className="size-4" aria-hidden /> Reset every page to the sample text
@@ -442,7 +453,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
         </div>
       )}
 
-      {!previewSeen && !toast && !saved && (
+      {!previewSeen && !toast && !saved && !undo && (
         <button
           type="button"
           // Straight to the page being edited: on phones the preview is part of the page, so its top shows page 1.
@@ -457,7 +468,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       )}
 
       {/* The preview sits thousands of pixels below the form on phones: a way back up to the words. */}
-      {previewSeen && !toast && !saved && (
+      {previewSeen && !toast && !saved && !undo && (
         <button type="button" onClick={backToEditing} className="zari-button fixed bottom-5 right-4 z-30 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-wine-deep lg:hidden">
           <Pencil className="size-4" aria-hidden /> Back to editing
         </button>
@@ -481,9 +492,38 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           ) : (
             <p className="mt-2 text-ink/70">To send it on WhatsApp, open a chat, tap the attach button and pick your card.</p>
           )}
-          <a href="/websites/" className="mt-3 block text-sm font-medium text-wine underline underline-offset-2">
-            Make a free wedding website
+          <a
+            href="/websites/"
+            onClick={() => {
+              track('card_to_website', { from_card: !!fromCard })
+              // The website editor fills itself in from this card (SiteEditor.tsx).
+              try {
+                if (fromCard) sessionStorage.setItem('sitefromcard', invite.templateId)
+              } catch {
+                /* storage off: the editor still offers the card */
+              }
+            }}
+            className="mt-3 block text-sm font-medium text-wine underline underline-offset-2"
+          >
+            {fromCard ? 'Make a website from this card' : 'Make a free wedding website'}
           </a>
+        </div>
+      )}
+
+      {undo && (
+        <div role="status" className="fixed bottom-6 left-1/2 z-50 flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-4 rounded-full bg-wine-deep py-2 pl-5 pr-2 text-sm text-rose shadow-xl ring-1 ring-zari/40">
+          {undo.label}
+          <button
+            type="button"
+            onClick={() => {
+              set({ pages: undo.pages })
+              setCurrent(undo.current ?? undo.pages[0].id)
+              setUndo(null)
+            }}
+            className="rounded-full px-4 py-2 font-medium text-zari ring-1 ring-zari/50 hover:bg-white/10 pointer-coarse:min-h-11"
+          >
+            Undo
+          </button>
         </div>
       )}
 
@@ -600,7 +640,7 @@ function CoverForm({ p, on, lang, phonetic }: { p: CoverPage; on: (patch: Partia
   )
 }
 
-function SectionsForm({ p, on, lang, phonetic }: { p: SectionsPage; on: (fn: (p: SectionsPage) => SectionsPage) => void; lang: Lang; phonetic: boolean }) {
+function SectionsForm({ p, on, lang, phonetic, onRemove }: { p: SectionsPage; on: (fn: (p: SectionsPage) => SectionsPage) => void; lang: Lang; phonetic: boolean; onRemove: (i: number) => void }) {
   const setSection = (i: number, patch: Partial<SectionsPage['sections'][number]>) =>
     on((q) => ({ ...q, sections: q.sections.map((s, j) => (j === i ? { ...s, ...patch } : s)) }))
   return (
@@ -613,7 +653,7 @@ function SectionsForm({ p, on, lang, phonetic }: { p: SectionsPage; on: (fn: (p:
               <Field label={`Section ${i + 1} heading (optional)`} value={s.heading} onChange={(heading) => setSection(i, { heading })} lang={lang} phonetic={phonetic} />
             </div>
             <button
-              onClick={() => on((q) => ({ ...q, sections: q.sections.filter((_, j) => j !== i) }))}
+              onClick={() => (onRemove(i), on((q) => ({ ...q, sections: q.sections.filter((_, j) => j !== i) })))}
               className="mb-0.5 inline-flex size-11 items-center justify-center rounded-full text-ink/60 ring-1 ring-wine/15 hover:text-wine hover:ring-wine/40"
               aria-label={`Remove section ${i + 1}`}
             >
