@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
-import { mainOf, type Design, type WeddingEvent } from '../designs'
+import { mainOf, mapsUrl, type Design, type WeddingEvent } from '../designs'
 import type { Photo } from '../photos'
 import { Blessings, RsvpForm, downloadIcs, jump, reducedMotion, useLenis } from '../shared'
 import { SiteFooter, SiteNav, themeVars, type SiteProps } from '../WeddingSite'
 import '../organza.css'
 import '../site.css'
 import './aangan.css'
+import { Music } from '../music'
 
 // Diya Aangan: a dark haveli courtyard the guest lights by pulling a rope, then the invitation in a painted arch,
 // each function on a scroll that unrolls, the couple behind parting trees, photos hanging in a courtyard, guest notes,
@@ -31,7 +32,7 @@ const Art = ({ src, className, style }: { src: string; className: string; style?
 
 // The six painted function icons, matched by name in any of the usual spellings; anything else gets a diya.
 const ICONS: [RegExp, string][] = [
-  [/mehe?n?di|henna/i, 'mehendi'],
+  [/meh[ae]?n?d[hi]|mendhi|henna/i, 'mehendi'],
   [/haldi|pithi|tel ?baan|mayr?an/i, 'haldi'],
   [/sangeet|garba|dandiya|cocktail|music|ras/i, 'sangeet'],
   [/reception|dinner|party/i, 'reception'],
@@ -165,7 +166,7 @@ function Intro({ d, stage, light, skip }: { d: Design; stage: number; light: () 
           <span>{d.couple[1]}</span>
         </h1>
         {d.nativeNames && (
-          <p className={`ag-native${on(2)}`} lang="hi">
+          <p className={`ag-native${on(2)}`}>
             {d.nativeNames}
           </p>
         )}
@@ -280,6 +281,11 @@ function Events({ d }: { d: Design }) {
                     <button type="button" className="ag-chip" onClick={() => downloadIcs(e, d)} aria-label={`Add ${e.name} to your calendar`}>
                       Add to calendar
                     </button>
+                    {e.map && (
+                      <a href={e.map} target="_blank" rel="noreferrer" className="ag-chip" aria-label={`Directions to ${e.name}`}>
+                        Directions
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
@@ -422,8 +428,9 @@ function Gallery({ d }: { d: Design }) {
 
 /* ---------- Venue and things to know ---------- */
 
-function Know({ d, maps, stay }: { d: Design; maps: string; stay: string }) {
+function Know({ d, maps, stay, demo }: { d: Design; maps: string; stay: string; demo: boolean }) {
   const [place, ...rest] = d.venue.split(',')
+  if (!d.venue && !stay && !d.notes.length) return null
   return (
     <section id="ag-know" className="ag-know" aria-labelledby="ag-know-title">
       <Art src="shared/pn-shr-mot-peacock-main-x-v01.webp" className="ag-motif ag-motif-peacock" />
@@ -440,18 +447,27 @@ function Know({ d, maps, stay }: { d: Design; maps: string; stay: string }) {
           <span />
         </div>
       </header>
-      <div className="ag-venue-card" data-reveal>
-        <Frame photo={d.venuePhoto} kind="landscape" index={0} />
-        <div>
-          <p className="ag-eyebrow">The venue</p>
-          <h3 className="ag-venue-name">{place}</h3>
-          <p className="ag-venue-city">{rest.join(',').trim() || d.city}</p>
-          {stay && <p className="ag-venue-stay">{stay}</p>}
-          <a href={maps} target="_blank" rel="noreferrer" className="ag-btn">
-            Open in Maps
-          </a>
+      {(d.venue || stay) && (
+        <div className="ag-venue-card" data-reveal>
+          {/* A couple's own venue photo only: the design's would show another city's palace as their venue. */}
+          {d.venue && (demo || !d.venuePhoto.credit) && <Frame photo={d.venuePhoto} kind="landscape" index={0} />}
+          <div>
+            {d.venue && (
+              <>
+                <p className="ag-eyebrow">The venue</p>
+                <h3 className="ag-venue-name">{place}</h3>
+                {(rest.join(',').trim() || (d.city !== place ? d.city : '')) && <p className="ag-venue-city">{rest.join(',').trim() || d.city}</p>}
+              </>
+            )}
+            {stay && <p className="ag-venue-stay">{stay}</p>}
+            {d.venue && (
+              <a href={maps} target="_blank" rel="noreferrer" className="ag-btn">
+                Open in Maps
+              </a>
+            )}
+          </div>
         </div>
-      </div>
+      )}
       {d.notes.length > 0 && (
         <ul className="ag-notes">
           {d.notes.map((n, i) => (
@@ -510,7 +526,7 @@ export default function Aangan({ d, mode, slug }: SiteProps) {
     setTimeout(() => document.getElementById('ag-invite')?.scrollIntoView(), 30)
   }
 
-  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.venue)}`
+  const maps = mapsUrl(d.venue)
   // The samples show a line about rooms; a couple's site shows only what they wrote.
   const stay = d.stay ?? (mode === 'demo' ? 'Rooms are held for guests until a month before. Mention our names when you book, and tell us your arrival time in the RSVP.' : '')
   const hasCouple = d.story.some((s) => s.title.trim() || s.body.trim()) || !!d.meet?.some((m) => m.bio.trim())
@@ -526,13 +542,14 @@ export default function Aangan({ d, mode, slug }: SiteProps) {
   return (
     <div ref={root} className="ov ag" style={themeVars(d)}>
       <SiteNav d={d} mode={mode} links={links} show={stage > 0} className="ag-nav" />
+      <Music music={d.music} />
 
       <Intro d={d} stage={stage} light={light} skip={skip} />
       <Invite d={d} />
       <Events d={d} />
       <Couple d={d} />
       <Gallery d={d} />
-      <Know d={d} maps={maps} stay={stay} />
+      <Know d={d} maps={maps} stay={stay} demo={mode === 'demo'} />
 
       <div className="ag-rsvp">
         <Scene name="rsvp/pn-rsvp-bg-royal-finale-%-v01" className="ag-rsvp-bg" />

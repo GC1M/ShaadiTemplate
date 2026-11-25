@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeft, ArrowUp, Check, Eye, FileDown, ImagePlus, ImageDown, Loader2, Plus, RotateCcw, Share2, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, Check, Eye, Pencil, X, FileDown, ImagePlus, ImageDown, Loader2, Plus, RotateCcw, Share2, Trash2 } from 'lucide-react'
 import { flushSync } from 'react-dom'
 import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { Wordmark } from './Hero'
@@ -6,7 +6,7 @@ import { CardPage, PHOTO_FIT, SIZES, photoStyle } from './card/Card'
 import { DESIGNS } from './card/designs'
 import { DATE_FORMATS, formatDate, type DateFormat } from './dates'
 import { LANGS, SAMPLES } from './i18n'
-import { keepEdits, samplePages, sectionsPage, stripIds, templateById } from './templates'
+import { keepEdits, samplePages, sectionsPage, stripIds, templateById, typedCover } from './templates'
 import { TransliterateInput } from './transliterate'
 import { LANG_IDS, type CoverPage, type FontScale, type Format, type Invite, type Lang, type Page, type Photo, type SectionsPage } from './types'
 import { ScaledCard, Segmented, useSplit } from './ui'
@@ -26,6 +26,18 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   const [phonetic, setPhonetic] = useState(true)
   const [busy, setBusy] = useState<'' | 'png' | 'pdf' | 'share'>('')
   const [toast, setToast] = useState('')
+  // After a download, a small panel says where the file went and what to do next.
+  const [saved, setSaved] = useState<'' | 'png' | 'pdf'>('')
+  const fromCard = !!saved && !!typedCover(invite)
+  // Deleting a page or section, or resetting the words, happens at once and can be undone for a few seconds
+  // (no confirm(): some in-app browsers never show it).
+  const [undo, setUndo] = useState<{ label: string; pages: Page[]; current?: string } | null>(null)
+  const remember = (label: string) => setUndo({ label, pages: invite.pages, current })
+  useEffect(() => {
+    if (!undo) return
+    const id = setTimeout(() => setUndo(null), 8000)
+    return () => clearTimeout(id)
+  }, [undo])
   const exportRef = useRef<HTMLDivElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const formRef = useRef<HTMLElement>(null)
@@ -39,6 +51,12 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
     return () => io.disconnect()
   }, [])
   const stacked = () => !matchMedia('(min-width: 1024px)').matches
+  // Where the family was in the form when they tapped Preview, so "Back to editing" returns them there.
+  const editY = useRef<number | null>(null)
+  const backToEditing = () => {
+    if (editY.current === null) formRef.current?.scrollIntoView({ behavior: 'smooth' })
+    else window.scrollTo({ top: editY.current, behavior: 'smooth' })
+  }
 
   const page = invite.pages.find((p) => p.id === current) ?? invite.pages[0]
   const index = invite.pages.indexOf(page)
@@ -97,7 +115,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
     if (kept) setToast(`Switched the wording to ${LANGS[lang].name}. Your names and details are kept as you typed them.`)
   }
   const reset = () => {
-    if (!confirm('Replace every page with the sample text?')) return
+    remember('Every page is back to the sample text.')
     const pages = samplePages(t, invite.lang)
     set({ pages })
     setCurrent(pages[0].id)
@@ -112,7 +130,8 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       return { ...i, pages }
     })
   const remove = () => {
-    if (invite.pages.length < 2 || !confirm('Delete this page?')) return
+    if (invite.pages.length < 2) return
+    remember(`Page ${index + 1} deleted.`)
     const pages = invite.pages.filter((p) => p.id !== page.id)
     set({ pages })
     setCurrent(pages[Math.max(0, index - 1)].id)
@@ -137,38 +156,41 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       .filter(Boolean)
       .join('-') || t.id
 
-  // Renders pages off-screen at full size, then captures them.
-  const [exportPages, setExportPages] = useState<Page[] | null>(null)
+  // Renders every page off-screen at full size in this shape, then captures them.
+  const [exportFormat, setExportFormat] = useState<Format | null>(null)
   const run = async (kind: 'png' | 'pdf' | 'share') => {
     setBusy(kind)
+    if (kind !== 'share') setSaved('')
     track('export_start', { kind, template: invite.templateId, inapp: inApp })
+    // The PDF is for printing, so it always comes out 5x7 in, even from a card shaped for phones.
+    const format = kind === 'pdf' ? 'print' : invite.format
     // Mount the off-screen pages (and run their auto-fit layout effects) before capturing.
-    flushSync(() => setExportPages(kind === 'png' ? [page] : invite.pages))
+    flushSync(() => setExportFormat(format))
     try {
       const m = await import('./pdf')
       const el = exportRef.current!
       if (kind === 'pdf') {
-        save(await m.buildPdf(el, invite.format, `${slug}-invitation`))
-        setToast('PDF downloaded')
+        save(await m.buildPdf(el, format, `${slug}-invitation`))
+        setSaved('pdf')
       } else {
-        const files = await m.buildPngs(el, invite.format, kind === 'png' ? `${slug}-page-${index + 1}` : `${slug}-invitation`)
+        const files = await m.buildPngs(el, format, `${slug}-invitation`)
         if (kind === 'share' && navigator.canShare?.({ files })) {
           await navigator.share({ files, title: 'Wedding invitation', text: 'Made free at shaaditemplate.com' }).catch((e) => {
             if (e.name !== 'AbortError') throw e
           })
         } else {
           files.forEach(save)
-          setToast(files.length > 1 ? `${files.length} images downloaded` : 'Image downloaded')
+          setSaved('png')
         }
       }
-      track('export', { kind, format: invite.format, pages: invite.pages.length, template: invite.templateId })
+      track('export', { kind, format, pages: invite.pages.length, template: invite.templateId })
     } catch (e) {
       console.error(e)
-      track('export_failed', { kind, format: invite.format, template: invite.templateId, error: String(e).slice(0, 150) })
+      track('export_failed', { kind, format, template: invite.templateId, error: String(e).slice(0, 150) })
       setToast('Could not create the file. Please try again.')
     } finally {
       setBusy('')
-      setExportPages(null)
+      setExportFormat(null)
     }
   }
 
@@ -192,13 +214,14 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           <div className="ml-auto flex gap-2">
             <button onClick={() => run('png')} disabled={!!busy} className={`${btn} ${sendFirst ? 'border border-zari/70 text-rose hover:bg-white/10' : 'zari-button text-wine-deep'}`}>
               {busy === 'png' ? <Loader2 className="size-4 animate-spin" /> : <ImageDown className="size-4" />}
-              <span className={sendFirst ? 'sr-only sm:not-sr-only' : ''}>
-                Download <span className="hidden sm:inline">image</span>
-              </span>
+              <span className="sm:hidden">Save</span>
+              <span className="hidden sm:inline">Download {invite.pages.length > 1 ? `${invite.pages.length} images` : 'image'}</span>
             </button>
             <button onClick={() => run('pdf')} disabled={!!busy} className={`${btn} border border-zari/70 text-rose hover:bg-white/10`}>
-              {busy === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />} PDF
-              <span className="hidden sm:inline">({invite.pages.length} {invite.pages.length === 1 ? 'page' : 'pages'})</span>
+              {busy === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
+              <span>
+                <span className="hidden sm:inline">Print</span> PDF
+              </span>
             </button>
             {canShare && (
               <button onClick={() => run('share')} disabled={!!busy} aria-label="Send the card" className={`${btn} ${sendFirst ? 'zari-button text-wine-deep' : 'border border-zari/70 text-rose hover:bg-white/10'}`}>
@@ -219,103 +242,25 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       <main className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_min(var(--pane,min(46vw,640px)),calc(100vw-420px))]" style={split.style}>
         <div className="min-w-0 px-4 pb-16 pt-8 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl space-y-12">
-            <section className="space-y-6">
+            <div className="space-y-6">
               <h1 className="font-display text-[34px] leading-tight tracking-[-0.015em] sm:text-[42px]">{t.name}</h1>
               {/* Phones stack the card under the form, and families tap the card expecting to type on it. Say where the words go. */}
               <p className="rounded-md bg-zari/15 px-4 py-3 text-[15px] text-ink/85 ring-1 ring-zari/40 lg:hidden">
-                Type your names and details in the boxes of{' '}
-                <button type="button" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })} className="font-medium text-wine underline underline-offset-2">
-                  step 3 below
-                </button>
-                . Your card updates as you type: tap <span className="font-medium text-wine">Preview</span> to see it.
+                Type your names and details in the boxes below. Your card updates as you type: tap <span className="font-medium text-wine">Preview</span> to see it.
               </p>
-              <Step n={1} title="Card settings" />
-              <div className="flex flex-wrap items-end gap-x-8 gap-y-5">
-                <label className="block">
-                  <span className="text-[13px] text-ink/65">Card language</span>
-                  <select value={L} onChange={(e) => changeLang(e.target.value as Lang)} className={`${inputCls} select-chevron w-auto pr-10`}>
-                    {LANG_IDS.map((l) => (
-                      <option key={l} value={l}>
-                        {l === 'en' ? 'English' : `${LANGS[l].name} (${LANGS[l].native})`}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <Control label="Card shape">
-                  <Segmented<Format>
-                    label="Card shape"
-                    value={invite.format}
-                    onChange={(format) => set({ format })}
-                    options={[
-                      { id: 'story', label: 'Phone 9:16' },
-                      { id: 'print', label: 'Print 5:7' },
-                    ]}
-                  />
-                </Control>
-                <Control label="Text size">
-                  <Segmented<FontScale>
-                    label="Text size"
-                    value={invite.scale}
-                    onChange={(scale) => set({ scale })}
-                    options={[
-                      { id: 's', label: 'S' },
-                      { id: 'm', label: 'M' },
-                      { id: 'l', label: 'L' },
-                    ]}
-                  />
-                </Control>
-              </div>
+            </div>
+
+            <section ref={formRef} className="scroll-mt-24 space-y-5">
+              <Step n={1} title={`Words on page ${index + 1}`} />
               {L !== 'en' && (
                 <label className="flex items-start gap-3 rounded-md bg-wine/[0.04] p-4 text-[15px] text-ink/85 ring-1 ring-wine/10">
                   <input type="checkbox" checked={phonetic} onChange={(e) => setPhonetic(e.target.checked)} className="mt-1 size-4 shrink-0 accent-wine pointer-coarse:size-6 pointer-coarse:mt-0" />
                   <span>
-                    Type in English letters and get {LANGS[L].native}. Press space to accept a word, Esc to keep English.
+                    Type in English letters and get {LANGS[L].native}. Press space to accept a word, or tap the English word in the list to keep it.
                     <span className="mt-1 block text-[13px] text-ink/55">Each word you type is sent to Google's transliteration service.</span>
                   </span>
                 </label>
               )}
-            </section>
-
-            <section className="space-y-5">
-              <Step n={2} title="Pages" />
-              <ol className="flex flex-wrap gap-2">
-                {invite.pages.map((p, i) => (
-                  <li key={p.id}>
-                    <button
-                      onClick={() => setCurrent(p.id)}
-                      aria-current={p.id === page.id}
-                      className={`flex max-w-[13rem] items-center gap-2 rounded-full py-2 pl-2 pr-4 text-sm pointer-coarse:min-h-11 transition-colors ${p.id === page.id ? 'bg-wine text-rose' : 'bg-paper text-ink/80 ring-1 ring-wine/15 hover:ring-wine/40'}`}
-                    >
-                      <span className={`grid size-6 shrink-0 place-items-center rounded-full font-display text-[13px] italic ${p.id === page.id ? 'bg-zari text-wine-deep' : 'bg-wine/[0.07]'}`}>{i + 1}</span>
-                      <span className="truncate">{p.title || 'Untitled'}</span>
-                    </button>
-                  </li>
-                ))}
-              </ol>
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="mr-1 text-ink/60">This page:</span>
-                <button onClick={() => move(-1)} disabled={index === 0} className={iconBtn} aria-label="Move page earlier">
-                  <ArrowUp className="size-4" />
-                </button>
-                <button onClick={() => move(1)} disabled={index === invite.pages.length - 1} className={iconBtn} aria-label="Move page later">
-                  <ArrowDown className="size-4" />
-                </button>
-                <button onClick={remove} disabled={invite.pages.length < 2} className={iconBtn} aria-label="Delete page">
-                  <Trash2 className="size-4" />
-                </button>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-sm">
-                <span className="mr-1 text-ink/60">Add a page:</span>
-                {PAGE_KINDS.map((k) => (
-                  <button key={k.label} onClick={() => addPage(k.make)} className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-wine pointer-coarse:min-h-11 ring-1 ring-wine/25 hover:bg-wine/5 hover:ring-wine/50">
-                    <Plus className="size-3.5" aria-hidden /> {k.label}
-                  </button>
-                ))}
-              </div>
-            </section>
-
-            <section ref={formRef} className="scroll-mt-24 space-y-5">
-              <Step n={3} title={`Words on page ${index + 1}`} />
               <details className="text-[14px] text-ink/65">
                 <summary className="cursor-pointer select-none text-wine hover:underline pointer-coarse:py-3">Formatting tips</summary>
                 <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
@@ -359,11 +304,88 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
               {page.kind === 'cover' ? (
                 <CoverForm p={page} on={editCover} lang={L} phonetic={phonetic} />
               ) : (
-                <SectionsForm p={page} on={editSections} lang={L} phonetic={phonetic} />
+                <SectionsForm p={page} on={editSections} lang={L} phonetic={phonetic} onRemove={(i) => remember(`Section ${i + 1} removed.`)} />
               )}
               <button onClick={reset} className="inline-flex items-center gap-1.5 pt-2 text-sm pointer-coarse:min-h-11 text-ink/60 hover:text-wine">
                 <RotateCcw className="size-4" aria-hidden /> Reset every page to the sample text
               </button>
+            </section>
+
+            <section className="space-y-5">
+              <Step n={2} title="Pages" />
+              <ol className="flex flex-wrap gap-2">
+                {invite.pages.map((p, i) => (
+                  <li key={p.id}>
+                    <button
+                      onClick={() => setCurrent(p.id)}
+                      aria-current={p.id === page.id}
+                      className={`flex max-w-[13rem] items-center gap-2 rounded-full py-2 pl-2 pr-4 text-sm pointer-coarse:min-h-11 transition-colors ${p.id === page.id ? 'bg-wine text-rose' : 'bg-paper text-ink/80 ring-1 ring-wine/15 hover:ring-wine/40'}`}
+                    >
+                      <span className={`grid size-6 shrink-0 place-items-center rounded-full font-display text-[13px] italic ${p.id === page.id ? 'bg-zari text-wine-deep' : 'bg-wine/[0.07]'}`}>{i + 1}</span>
+                      <span className="truncate">{p.title || 'Untitled'}</span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="mr-1 text-ink/60">This page:</span>
+                <button onClick={() => move(-1)} disabled={index === 0} className={iconBtn} aria-label="Move page earlier">
+                  <ArrowUp className="size-4" />
+                </button>
+                <button onClick={() => move(1)} disabled={index === invite.pages.length - 1} className={iconBtn} aria-label="Move page later">
+                  <ArrowDown className="size-4" />
+                </button>
+                <button onClick={remove} disabled={invite.pages.length < 2} className={iconBtn} aria-label="Delete page">
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="mr-1 text-ink/60">Add a page:</span>
+                {PAGE_KINDS.map((k) => (
+                  <button key={k.label} onClick={() => addPage(k.make)} className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-wine pointer-coarse:min-h-11 ring-1 ring-wine/25 hover:bg-wine/5 hover:ring-wine/50">
+                    <Plus className="size-3.5" aria-hidden /> {k.label}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="space-y-6">
+              <Step n={3} title="Card settings" />
+              <div className="flex flex-wrap items-end gap-x-8 gap-y-5">
+                <label className="block">
+                  <span className="text-[13px] text-ink/65">Card language</span>
+                  <select value={L} onChange={(e) => changeLang(e.target.value as Lang)} className={`${inputCls} select-chevron w-auto pr-10`}>
+                    {LANG_IDS.map((l) => (
+                      <option key={l} value={l}>
+                        {l === 'en' ? 'English' : `${LANGS[l].name} (${LANGS[l].native})`}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Control label="Card shape">
+                  <Segmented<Format>
+                    label="Card shape"
+                    value={invite.format}
+                    onChange={(format) => set({ format })}
+                    options={[
+                      { id: 'story', label: 'For WhatsApp' },
+                      { id: 'print', label: 'For printing (5x7 in)' },
+                    ]}
+                  />
+                </Control>
+                <Control label="Text size">
+                  <Segmented<FontScale>
+                    label="Text size"
+                    value={invite.scale}
+                    onChange={(scale) => set({ scale })}
+                    options={[
+                      { id: 's', label: 'S' },
+                      { id: 'm', label: 'M' },
+                      { id: 'l', label: 'L' },
+                    ]}
+                  />
+                </Control>
+              </div>
             </section>
           </div>
         </div>
@@ -421,25 +443,88 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
         </aside>
       </main>
 
-      {exportPages && (
+      {exportFormat && (
         <div ref={exportRef} aria-hidden className="pointer-events-none fixed top-0" style={{ left: -100000 }}>
-          {exportPages.map((p) => (
+          {invite.pages.map((p) => (
             <div key={p.id}>
-              <CardPage invite={invite} page={p} />
+              <CardPage invite={{ ...invite, format: exportFormat }} page={p} />
             </div>
           ))}
         </div>
       )}
 
-      {!previewSeen && !toast && (
+      {!previewSeen && !toast && !saved && !undo && (
         <button
           type="button"
           // Straight to the page being edited: on phones the preview is part of the page, so its top shows page 1.
-          onClick={() => previewRef.current?.querySelector(`[data-page="${page.id}"]`)?.scrollIntoView({ behavior: 'smooth' })}
+          onClick={() => {
+            editY.current = window.scrollY
+            previewRef.current?.querySelector(`[data-page="${page.id}"]`)?.scrollIntoView({ behavior: 'smooth' })
+          }}
           className="zari-button fixed bottom-5 right-4 z-30 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-wine-deep lg:hidden [body:has(:is(textarea,input:not([type])):focus)_&]:hidden"
         >
           <Eye className="size-4" aria-hidden /> Preview page {index + 1}
         </button>
+      )}
+
+      {/* The preview sits thousands of pixels below the form on phones: a way back up to the words. */}
+      {previewSeen && !toast && !saved && !undo && (
+        <button type="button" onClick={backToEditing} className="zari-button fixed bottom-5 right-4 z-30 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-wine-deep lg:hidden">
+          <Pencil className="size-4" aria-hidden /> Back to editing
+        </button>
+      )}
+
+      {saved && (
+        <div role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-sm rounded-lg bg-paper p-4 pr-12 text-[15px] text-ink/85 shadow-xl ring-1 ring-zari/50">
+          <button type="button" onClick={() => setSaved('')} aria-label="Close" className="absolute right-2 top-2 inline-flex size-10 items-center justify-center rounded-full text-ink/60 hover:bg-wine/5 hover:text-wine">
+            <X className="size-4" />
+          </button>
+          <p className="flex items-center gap-2 font-medium text-ink">
+            <Check className="size-4 text-wine" aria-hidden /> {saved === 'pdf' ? 'Your PDF is saved' : invite.pages.length > 1 ? 'Your images are saved' : 'Your image is saved'}
+          </p>
+          <p className="mt-1 text-ink/70">Look in your Downloads folder. On iPhone, open the Files app.</p>
+          {saved === 'pdf' ? (
+            <p className="mt-2 text-ink/70">To print, ask for 5x7 in card stock and print at actual size.</p>
+          ) : canShare ? (
+            <button type="button" onClick={() => run('share')} disabled={!!busy} className="mt-3 inline-flex items-center gap-2 rounded-full bg-wine px-4 py-2 text-sm text-rose pointer-coarse:min-h-11 hover:bg-wine-deep disabled:opacity-60">
+              {busy === 'share' ? <Loader2 className="size-4 animate-spin" /> : <Share2 className="size-4" aria-hidden />} Send on WhatsApp
+            </button>
+          ) : (
+            <p className="mt-2 text-ink/70">To send it on WhatsApp, open a chat, tap the attach button and pick your card.</p>
+          )}
+          <a
+            href="/websites/"
+            onClick={() => {
+              track('card_to_website', { from_card: !!fromCard })
+              // The website editor fills itself in from this card (SiteEditor.tsx).
+              try {
+                if (fromCard) sessionStorage.setItem('sitefromcard', invite.templateId)
+              } catch {
+                /* storage off: the editor still offers the card */
+              }
+            }}
+            className="mt-3 block text-sm font-medium text-wine underline underline-offset-2"
+          >
+            {fromCard ? 'Make a website from this card' : 'Make a free wedding website'}
+          </a>
+        </div>
+      )}
+
+      {undo && (
+        <div role="status" className="fixed bottom-6 left-1/2 z-50 flex w-max max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-4 rounded-full bg-wine-deep py-2 pl-5 pr-2 text-sm text-rose shadow-xl ring-1 ring-zari/40">
+          {undo.label}
+          <button
+            type="button"
+            onClick={() => {
+              set({ pages: undo.pages })
+              setCurrent(undo.current ?? undo.pages[0].id)
+              setUndo(null)
+            }}
+            className="rounded-full px-4 py-2 font-medium text-zari ring-1 ring-zari/50 hover:bg-white/10 pointer-coarse:min-h-11"
+          >
+            Undo
+          </button>
+        </div>
       )}
 
       {toast && (
@@ -461,7 +546,7 @@ function save(file: File) {
 
 const iconBtn = 'inline-flex size-10 pointer-coarse:size-11 items-center justify-center rounded-full bg-paper text-ink/80 ring-1 ring-wine/15 hover:text-wine hover:ring-wine/40 disabled:opacity-30'
 
-// The editor is a sequence (settings, pages, words), so its sections carry their step number.
+// The editor is a sequence (words, pages, settings), so its sections carry their step number.
 const Step = ({ n, title }: { n: number; title: string }) => (
   <h2 className="flex items-baseline gap-3 border-b border-zari/40 pb-3 font-display text-2xl">
     <span className="font-display text-xl italic text-zari">{n}</span>
@@ -497,9 +582,9 @@ function DatePicker({ lang, onPick }: { lang: Lang; onPick: (date: string) => vo
     if (i) onPick(formatDate(i, f, lang))
   }
   return (
-    <div className="flex flex-wrap items-end gap-4">
+    <div className="mt-2 flex flex-wrap items-end gap-x-4 gap-y-2">
       <label className="block">
-        <span className="text-[13px] text-ink/65">Pick a date</span>
+        <span className="text-[13px] text-ink/65">Choose from calendar</span>
         <input type="date" value={iso} onChange={(e) => pick(e.target.value, fmt)} className={`${inputCls} w-auto`} />
       </label>
       <label className="block">
@@ -540,9 +625,11 @@ function CoverForm({ p, on, lang, phonetic }: { p: CoverPage; on: (patch: Partia
         {person('groom', 'Groom')}
       </div>
       {f('Word between the names', 'joiner')}
-      <DatePicker lang={lang} onPick={(date) => on({ date })} />
       <div className="grid gap-4 sm:grid-cols-2">
-        {f('Date & day', 'date')}
+        <div>
+          {f('Date & day', 'date')}
+          <DatePicker lang={lang} onPick={(date) => on({ date })} />
+        </div>
         {f('Time / Shubh Muhurat', 'time')}
         {f('Venue name', 'venue')}
         {f('Full address', 'address')}
@@ -553,7 +640,7 @@ function CoverForm({ p, on, lang, phonetic }: { p: CoverPage; on: (patch: Partia
   )
 }
 
-function SectionsForm({ p, on, lang, phonetic }: { p: SectionsPage; on: (fn: (p: SectionsPage) => SectionsPage) => void; lang: Lang; phonetic: boolean }) {
+function SectionsForm({ p, on, lang, phonetic, onRemove }: { p: SectionsPage; on: (fn: (p: SectionsPage) => SectionsPage) => void; lang: Lang; phonetic: boolean; onRemove: (i: number) => void }) {
   const setSection = (i: number, patch: Partial<SectionsPage['sections'][number]>) =>
     on((q) => ({ ...q, sections: q.sections.map((s, j) => (j === i ? { ...s, ...patch } : s)) }))
   return (
@@ -566,7 +653,7 @@ function SectionsForm({ p, on, lang, phonetic }: { p: SectionsPage; on: (fn: (p:
               <Field label={`Section ${i + 1} heading (optional)`} value={s.heading} onChange={(heading) => setSection(i, { heading })} lang={lang} phonetic={phonetic} />
             </div>
             <button
-              onClick={() => on((q) => ({ ...q, sections: q.sections.filter((_, j) => j !== i) }))}
+              onClick={() => (onRemove(i), on((q) => ({ ...q, sections: q.sections.filter((_, j) => j !== i) })))}
               className="mb-0.5 inline-flex size-11 items-center justify-center rounded-full text-ink/60 ring-1 ring-wine/15 hover:text-wine hover:ring-wine/40"
               aria-label={`Remove section ${i + 1}`}
             >

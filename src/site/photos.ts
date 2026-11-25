@@ -52,3 +52,6 @@ export const SHOTS = {
   imambara: commons('0/04/Bara_Imambara%2C_Lucknow_2.jpg', 2365, 'The arches of the Bara Imambara, Lucknow', 'Slyronit', 'CC BY-SA 4.0'),
 }
 
+// The shots of a couple. A couple's own site never shows these strangers in a place they left empty
+// (toDesign fills it with the design's places and things instead).
+export const PEOPLE = new Set<Photo>([SHOTS.silhouette, SHOTS.sunsetTree, SHOTS.ring, SHOTS.twirl, SHOTS.bazaar, SHOTS.embrace, SHOTS.lodhi])

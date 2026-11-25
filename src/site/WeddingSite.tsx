@@ -1,8 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Emblem } from '../card/motifs'
-import { designByPath, designPath, designTitle, DESIGNS, mainOf, type Design } from './designs'
+import { designByPath, designPath, designTitle, DESIGNS, mainOf, mapsUrl, type Design } from './designs'
 import { track } from '../analytics'
 import { api, API } from './api'
+import { Music } from './music'
 import { Backdrop, Blessings, PageSwitch, PhotoCredits, RsvpForm, SeeAlso, downloadIcs, jump, reducedMotion, useLenis, useTitle } from './shared'
 import './organza.css'
 import './site.css'
@@ -137,7 +138,8 @@ function Trifold({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => 
 
 /* ---------- Hero ---------- */
 
-function Countdown({ to }: { to: string }) {
+// heading: shown above the countdown only while it runs, so it switches with it at the start time.
+function Countdown({ to, heading }: { to: string; heading?: ReactNode }) {
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
@@ -153,14 +155,17 @@ function Countdown({ to }: { to: string }) {
     [Math.floor(left / 1e3) % 60, 'sec'],
   ]
   return (
-    <dl className="mt-10 flex justify-center gap-3 sm:gap-5" aria-label="Time until the wedding">
-      {parts.map(([n, label]) => (
-        <div key={label} className="st-count flex flex-col-reverse items-center">
-          <dt className="ov-meta mt-1.5 text-[0.6rem] uppercase opacity-70">{label}</dt>
-          <dd className="ov-display text-[clamp(1.6rem,4vw,2.6rem)] leading-none tabular-nums">{String(n).padStart(2, '0')}</dd>
-        </div>
-      ))}
-    </dl>
+    <>
+      {heading}
+      <dl className="mt-10 flex justify-center gap-3 sm:gap-5" aria-label="Time until the wedding">
+        {parts.map(([n, label]) => (
+          <div key={label} className="st-count flex flex-col-reverse items-center">
+            <dt className="ov-meta mt-1.5 text-[0.6rem] uppercase opacity-70">{label}</dt>
+            <dd className="ov-display text-[clamp(1.6rem,4vw,2.6rem)] leading-none tabular-nums">{String(n).padStart(2, '0')}</dd>
+          </div>
+        ))}
+      </dl>
+    </>
   )
 }
 
@@ -396,6 +401,7 @@ function Frames({ d }: { d: Design }) {
   const row = useRef<HTMLUListElement>(null)
   const nudge = (dir: number) => row.current?.scrollBy({ left: dir * row.current.clientWidth * 0.7, behavior: 'smooth' })
   const [ref, seen] = useInView<HTMLDivElement>()
+  if (!frames.length) return null
   return (
     <section id="story" className="bg-(--ov-smoke) py-[14svh]">
       <div className="px-6 text-center">
@@ -447,7 +453,7 @@ function Meet({ d }: { d: Design }) {
     <section className="px-6 py-[14svh]">
       <div className="mx-auto max-w-5xl text-center">
         <p className="ov-meta uppercase text-(--ov-gulab)">Say hello</p>
-        <h2 className="ov-display st-foil mt-4 text-[clamp(2.6rem,6vw,4.5rem)] leading-none">Meet the bride &amp; groom</h2>
+        <h2 className="ov-display st-foil mt-4 text-[clamp(2.6rem,6vw,4.5rem)] leading-none">Meet the couple</h2>
         <Rule />
         <div className="grid gap-14 md:grid-cols-2">
           {meet.map((m, i) => (
@@ -480,9 +486,10 @@ const SCATTER = [
 ]
 
 function Polaroids({ d }: { d: Design }) {
-  const items = [...d.story.map((s) => ({ photo: s.photo, title: `${s.year} · ${s.title}`, body: s.body })), ...d.gallery.map((p) => ({ photo: p, title: '', body: '' }))].slice(0, SCATTER.length)
+  const items = [...d.story.map((s) => ({ photo: s.photo, title: [s.year, s.title].filter(Boolean).join(' · '), body: s.body })), ...d.gallery.map((p) => ({ photo: p, title: '', body: '' }))].slice(0, SCATTER.length)
   const [active, setActive] = useState<number | null>(null)
   const [ref, seen] = useInView<HTMLDivElement>()
+  if (!items.length) return null
   return (
     <section id="story" className="overflow-hidden bg-(--ov-smoke) px-6 py-[14svh]">
       <div className="text-center">
@@ -531,8 +538,7 @@ function Finale({ d }: { d: Design }) {
       <div className="absolute inset-0 bg-linear-to-b from-(--ov-kohl) via-(--ov-kohl)/40 to-(--ov-kohl)/70" />
       <Reveal className="relative">
         <p className="ov-meta uppercase text-(--ov-gulab)">{main.date}</p>
-        <h2 className="ov-display st-foil mt-4 text-[clamp(2.8rem,7vw,5.5rem)] leading-none">The countdown begins</h2>
-        <Countdown to={main.start} />
+        <Countdown to={main.start} heading={<h2 className="ov-display st-foil mt-4 text-[clamp(2.8rem,7vw,5.5rem)] leading-none">The countdown begins</h2>} />
         <p className="ov-display mt-10 text-3xl italic">
           {d.couple[0]}
           <span className="st-amp">&amp;</span>
@@ -573,9 +579,10 @@ function Carousel({ d }: { d: Design }) {
               <img src={s.photo.small} alt={s.photo.alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: s.photo.pos }} />
             </div>
             <p className="ov-meta mt-6 text-[0.7rem] uppercase text-(--ov-zari)">
-              Chapter {i + 1} · {s.year}
+              Chapter {i + 1}
+              {s.year && ` · ${s.year}`}
             </p>
-            <h3 className="ov-display mt-2 text-3xl">{hashtag(s.title)}</h3>
+            {s.title && <h3 className="ov-display mt-2 text-3xl">{hashtag(s.title)}</h3>}
             <p className="mx-auto mt-3 max-w-[34ch] leading-relaxed opacity-80">{s.body}</p>
           </li>
         ))}
@@ -594,12 +601,11 @@ function Carousel({ d }: { d: Design }) {
 /* ---------- Ceremonies as a timeline: round photos strung on a gold thread ---------- */
 
 function Timeline({ d }: { d: Design }) {
-  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.venue)}`
   return (
     <section id="celebrations" className="bg-(--st-panel) px-6 pb-[14svh] pt-[10svh] text-(--st-panel-text)">
       <div className="mx-auto max-w-3xl">
         <div className="text-center">
-          <p className="ov-meta uppercase opacity-75">At {d.venue.split(',')[0]}</p>
+          {d.venue && <p className="ov-meta uppercase opacity-75">At {d.venue.split(',')[0]}</p>}
           <h2 className="ov-display st-foil mt-4 text-[clamp(2.6rem,6vw,4.5rem)] leading-none">Ceremonies</h2>
           <Rule />
         </div>
@@ -616,9 +622,11 @@ function Timeline({ d }: { d: Design }) {
                   <p className="mt-1.5 opacity-85">{e.time}</p>
                   <p className="mt-2 text-[0.95rem] leading-relaxed opacity-70">{e.note}</p>
                   <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
-                    <a href={maps} target="_blank" rel="noreferrer" className="ov-link">
-                      ⌖ Directions
-                    </a>
+                    {e.map && (
+                      <a href={e.map} target="_blank" rel="noreferrer" className="ov-link">
+                        ⌖ Directions
+                      </a>
+                    )}
                     <button type="button" onClick={() => downloadIcs(e, d)} className="ov-link">
                       Add to calendar
                     </button>
@@ -678,11 +686,10 @@ function Garden({ d }: { d: Design }) {
 /* ---------- Ceremonies: arch-topped cards ---------- */
 
 function Ceremonies({ d }: { d: Design }) {
-  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.venue)}`
   return (
     <section id="celebrations" className="bg-(--st-panel) px-6 pb-[14svh] pt-[10svh] text-(--st-panel-text)">
       <div className="mx-auto max-w-6xl text-center">
-        <p className="ov-meta uppercase opacity-75">At {d.venue.split(',')[0]}</p>
+        {d.venue && <p className="ov-meta uppercase opacity-75">At {d.venue.split(',')[0]}</p>}
         <h2 className="ov-display st-foil mt-4 text-[clamp(2.6rem,6vw,4.5rem)] leading-none">Ceremonies</h2>
         <Rule />
         <ul className={`grid gap-x-8 gap-y-12 md:grid-cols-2 ${d.events.length === 4 ? '' : 'lg:grid-cols-3'}`}>
@@ -698,9 +705,11 @@ function Ceremonies({ d }: { d: Design }) {
                   <p className="mt-2 opacity-80">{e.time}</p>
                   <p className="mt-3 text-[0.95rem] leading-relaxed opacity-70">{e.note}</p>
                   <div className="mt-5 flex items-center justify-center gap-5">
-                    <a href={maps} target="_blank" rel="noreferrer" className="ov-link">
-                      Directions
-                    </a>
+                    {e.map && (
+                      <a href={e.map} target="_blank" rel="noreferrer" className="ov-link">
+                        Directions
+                      </a>
+                    )}
                     <button type="button" onClick={() => downloadIcs(e, d)} className="ov-link">
                       Add to calendar
                     </button>
@@ -839,7 +848,7 @@ function Shared({ d, mode, slug }: SiteProps) {
     document.documentElement.style.overflow = open ? '' : 'hidden'
     return () => void (document.documentElement.style.overflow = '')
   }, [open])
-  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.venue)}`
+  const maps = mapsUrl(d.venue)
   const bg = d.theme.bg
   const raised = d.theme.raised
   const panel = d.theme.panel ?? raised
@@ -849,20 +858,23 @@ function Shared({ d, mode, slug }: SiteProps) {
   return (
     <div className="ov st" style={themeVars(d)}>
       <Gate d={d} open={open} onOpen={() => setOpen(true)} />
+      <Music music={d.music} />
 
-      <SiteNav d={d} mode={mode} show={open} links={[['story', 'Story'], ['celebrations', 'Ceremonies'], ['venue', 'Venue'], ['rsvp', 'RSVP']]} />
+      <SiteNav d={d} mode={mode} show={open} links={[...(d.story.length || (d.storyStyle !== 'carousel' && d.gallery.length) ? [['story', 'Story']] : []), ['celebrations', 'Ceremonies'], ...(d.venue ? [['venue', 'Venue']] : []), ['rsvp', 'RSVP']]} />
 
       <Hero d={d} open={open} />
 
       <section className="px-6 py-[14svh] text-center">
-        <Reveal>
-          <p className="ov-display mx-auto max-w-[26ch] text-[clamp(1.8rem,3.8vw,3rem)] italic leading-[1.25]">{d.invite}</p>
-        </Reveal>
+        {d.invite && (
+          <Reveal>
+            <p className="ov-display mx-auto max-w-[26ch] text-[clamp(1.8rem,3.8vw,3rem)] italic leading-[1.25]">{d.invite}</p>
+          </Reveal>
+        )}
         <Rule />
         <div className="mx-auto grid max-w-4xl gap-14 md:grid-cols-2 md:gap-24">
           {d.couple.map((name, i) => (
             <Scroll key={i} title={name}>
-              <p className="opacity-85">{d.parents[i]}</p>
+              {d.parents[i] && <p className="opacity-85">{d.parents[i]}</p>}
             </Scroll>
           ))}
         </div>
@@ -878,19 +890,21 @@ function Shared({ d, mode, slug }: SiteProps) {
       {d.cards === 'timeline' ? <Timeline d={d} /> : <Ceremonies d={d} />}
       <Torn color={panel} on={bg} flip />
 
+{d.venue && (
       <section id="venue" className="relative overflow-hidden">
         <Backdrop photo={d.venuePhoto} />
         <div className="absolute inset-0 bg-(--ov-kohl)/72" />
         <Reveal className="relative mx-auto max-w-3xl px-6 py-[18svh] text-center">
           <p className="ov-meta uppercase text-(--ov-gulab)">Where</p>
           <h2 className="ov-display st-foil mt-4 text-[clamp(2.4rem,6vw,4.5rem)] leading-none">{d.venue.split(',')[0]}</h2>
-          <p className="mt-5 text-lg opacity-80">{d.venue.split(',').slice(1).join(',').trim() || d.city}</p>
+          {(d.venue.split(',').slice(1).join(',').trim() || (d.city !== d.venue ? d.city : '')) && <p className="mt-5 text-lg opacity-80">{d.venue.split(',').slice(1).join(',').trim() || d.city}</p>}
           {stay && <p className="mx-auto mt-6 max-w-[44ch] opacity-70">{stay}</p>}
           <a href={maps} target="_blank" rel="noreferrer" className="ov-press ov-btn-gold mt-10">
             OPEN IN MAPS
           </a>
         </Reveal>
       </section>
+      )}
 
       <RsvpForm d={d} slug={slug} />
       <Blessings d={d} slug={slug} />

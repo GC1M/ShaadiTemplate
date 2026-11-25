@@ -1,5 +1,6 @@
 import type { SymbolId } from '../types'
-import { SHOTS, type Photo } from './photos'
+import { PEOPLE, SHOTS, type Photo } from './photos'
+import { song } from './music'
 
 // The sample wedding website designs, in the order the gallery shows them. Every couple, family and story here is
 // fictional demo content; the venues are real places so the map links work.
@@ -41,7 +42,9 @@ export type Look = {
 
 // date is YYYY-MM-DD and time HH:MM, both in IST. where: the time and place in words ("7 pm, in the lawns").
 // id: a short stable name, so replies still point at the right event after others are added or removed.
-export type SiteEvent = { id?: string; name: string; date: string; time: string; where: string; note: string; photo?: Photo }
+// map: optional directions for this event, a maps link or an address; blank shows none. Events saved before the
+// field existed (no map at all) keep pointing at the main venue.
+export type SiteEvent = { id?: string; name: string; date: string; time: string; where: string; note: string; map?: string; photo?: Photo }
 // Any photo left out falls back to the look's demo photo in the same place.
 export type Content = {
   couple: [string, string]
@@ -60,7 +63,10 @@ export type Content = {
   note?: string
   // Optional line under the venue: where to stay, how to get there.
   stay?: string
+  // Optional background music: `track:<id>` (site/music.tsx) or a YouTube link.
+  music?: string
   notes: string[]
+  // Both optional: events in different places give each event its own directions instead.
   city: string
   venue: string
   invite: string
@@ -72,7 +78,8 @@ export type Content = {
   photos: { hero?: Photo; venue?: Photo; rsvp?: Photo; bless?: Photo; finale?: Photo; gallery: Photo[] }
 }
 
-export type WeddingEvent = { id: string; name: string; date: string; start: string; end: string; time: string; note: string; photo: Photo }
+// place: the event's own address, for its calendar entry (blank: the main venue).
+export type WeddingEvent = { id: string; name: string; date: string; start: string; end: string; time: string; note: string; map?: string; place?: string; photo: Photo }
 export type Design = Omit<Look, 'demo'> &
   Omit<Content, 'events' | 'meet' | 'story' | 'photos' | 'mainEvent'> & {
     mainEvent?: string
@@ -111,6 +118,7 @@ export const LOOKS: Look[] = [
       venue: 'City Palace, Jaipur',
       invite: 'With the blessings of Shri Ganesh and our elders, we joyfully invite you to celebrate the wedding of our children.',
       rsvpBy: '15 November',
+      music: song('lamhon-1'),
       story: [
         { year: '2018', title: 'Two seats on the Shatabdi', body: 'Delhi to Jaipur, one window seat, one argument about it, and four hours of talking after.', photo: SHOTS.silhouette },
         { year: '2022', title: 'The long way round', body: 'Her in Bengaluru, him in London, and every festival spent counting down to the next visit home.', photo: SHOTS.sunsetTree },
@@ -192,6 +200,7 @@ export const LOOKS: Look[] = [
       venue: 'The Lodhi, Lodhi Road, New Delhi',
       invite: 'With the blessings of our elders, the Malhotra and Khanna families invite you to celebrate with us.',
       rsvpBy: '1 January',
+      music: song('kalank'),
       story: [
         { year: '2017', title: 'Saturday Debate Club', body: 'She won the argument; he asked for a rematch over coffee. Neither remembers the topic.', photo: SHOTS.silhouette },
         { year: '2020', title: 'Long Distance Lockdown', body: 'Delhi to Pune on video every night at ten, with the same cup of chai on both screens.', photo: SHOTS.sunsetTree },
@@ -233,6 +242,7 @@ export const LOOKS: Look[] = [
       venue: 'BrijRama Palace, Darbhanga Ghat, Varanasi',
       invite: 'By the grace of Mahadev and with the blessings of our elders, we invite you to our wedding on the ghats of Kashi.',
       rsvpBy: '15 October',
+      music: song('kalank'),
       story: [
         { year: '2016', title: 'Same Train Every Diwali', body: 'Delhi to Varanasi, the same coach, four Diwalis in a row before either of them said hello.', photo: SHOTS.silhouette },
         { year: '2019', title: 'Kachori At Dawn', body: 'Their first date was breakfast at five in the morning in a lane only he knew.', photo: SHOTS.sunsetTree },
@@ -266,6 +276,7 @@ export const LOOKS: Look[] = [
       venue: 'The Leela Palace, Lake Pichola, Udaipur',
       invite: 'With the blessings of our families, we would love you to be with us in Udaipur as we marry.',
       rsvpBy: '1 October',
+      music: song('lamhon-2'),
       story: [
         { year: '2016', title: 'A borrowed umbrella', body: 'First week of college in Pune, the monsoon came early, and Arjun had the only umbrella at the bus stop. Ananya kept it for a month.', photo: SHOTS.silhouette },
         { year: '2019', title: 'Bengaluru to Delhi', body: 'Two jobs, two cities, and three years of video calls that started with “have you eaten?”', photo: SHOTS.sunsetTree },
@@ -296,6 +307,7 @@ export const LOOKS: Look[] = [
       venue: 'Ranjit’s Svaasa, Amritsar',
       invite: 'With Waheguru’s grace and our families’ blessings, we invite you to our Anand Karaj in Amritsar.',
       rsvpBy: '15 December',
+      music: song('uchiyaan'),
       story: [
         { year: '2018', title: 'Bhangra practice', body: 'Two left feet in the same college bhangra team. The coach paired them so they would stop ruining everyone else’s steps.', photo: SHOTS.bazaar },
         { year: '2022', title: 'Toronto winters', body: 'Harjot moved for work; Simran sent pinnis by post every Lohri so he would come home.', photo: SHOTS.sunsetTree },
@@ -385,6 +397,7 @@ export const LOOKS: Look[] = [
       venue: 'Taj Mahal Lucknow, Gomti Nagar',
       invite: 'By the grace of Allah and with our families’ duas, we invite you to our nikah in Lucknow.',
       rsvpBy: '10 September',
+      music: song('lamhon-1'),
       story: [
         { year: '2016', title: 'A shared bookshelf', body: 'The same Urdu poetry book, borrowed from the same library, one week apart. Her notes were in the margins.', photo: SHOTS.silhouette },
         { year: '2021', title: 'Eid in two cities', body: 'Sheer khurma over video call, Lucknow to Hyderabad, three years running.', photo: SHOTS.sunsetTree },
@@ -414,6 +427,7 @@ export const LOOKS: Look[] = [
       venue: 'Sunder Nursery, New Delhi',
       invite: 'We are getting married in the garden, and we would love you there.',
       rsvpBy: '15 January',
+      music: song('uchiyaan'),
       story: [
         { year: '2019', title: 'Same studio, different desks', body: 'Two architects, one shared printer that never worked. They fixed it together. Eventually.', photo: SHOTS.lodhi },
         { year: '2023', title: 'Saturday walks', body: 'Lodhi Garden at 7 am, chai at 8, every week for four years.', photo: SHOTS.embrace },
@@ -449,6 +463,7 @@ export const LOOKS: Look[] = [
       venue: 'City Palace, Udaipur',
       invite: 'With the blessings of Shri Ganesh and our elders, the Chundawat and Mehta families invite you to the wedding of their children.',
       rsvpBy: '15 October',
+      music: song('lamhon-2'),
       story: [
         { year: '2018', title: 'Rain at Saheliyon ki Bari', body: 'A monsoon afternoon at Saheliyon ki Bari, one umbrella between two strangers, and a long walk to find a rickshaw.', photo: SHOTS.silhouette },
         { year: '2021', title: 'Letters across two cities', body: 'Her in Jaipur, him in Pune, and a postcard every Sunday that both families pretended not to read.', photo: SHOTS.sunsetTree },
@@ -494,6 +509,7 @@ export const LOOKS: Look[] = [
       invite: 'With the blessings of our elders, our two families invite you to light the diyas with us at our wedding.',
       note: 'The courtyard is only full once you are in it. Come early, stay late, and dance with our grandmothers.',
       rsvpBy: '10 January',
+      music: song('lamhon-1'),
       story: [
         { year: '2022', title: 'The wrong train', body: 'He boarded the Ajmer Shatabdi by mistake, she had the seat he thought was his, and neither of them got off at the right station.', photo: SHOTS.silhouette },
         { year: '2024', title: 'Kite season', body: 'Two Makar Sankrantis on her family’s terrace in the walled city, and he still cannot fly a patang.', photo: SHOTS.embrace },
@@ -544,6 +560,13 @@ const realTime = (t: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t)
 export function toDesign(look: Look, c: Content = look.demo): Design {
   const { demo, ...rest } = look
   const at = <T,>(xs: T[], i: number) => xs[i % xs.length]
+  // A couple's site never shows the sample couple: a place they left empty that the sample fills with the
+  // strangers gets the couple's own photos, or else the design's places and things.
+  const own = c !== demo
+  const mine = [c.photos.hero, c.photos.venue, ...c.photos.gallery].filter((p): p is Photo => !!p)
+  const places = [...new Set([demo.photos.hero, demo.photos.venue, demo.photos.rsvp, demo.photos.bless, demo.photos.finale, ...demo.photos.gallery, ...demo.events.map((e) => e.photo)])].filter((p): p is Photo => !!p && !PEOPLE.has(p))
+  const fill = <P extends Photo | undefined>(p: P, i = 0): P => (own && p && PEOPLE.has(p) ? (at(mine.length ? mine : places.length ? places : [SHOTS.marigold], i) as P) : p)
+  const venueMap = mapsUrl(c.venue.trim() || c.city)
   const today = new Date().toISOString().slice(0, 10)
   return {
     ...rest,
@@ -551,23 +574,38 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
     // A blank family is named after its side, so the RSVP never offers an empty choice; no venue yet shows the city.
     families: c.families.map((f, i) => f.trim() || `${c.couple[i]}’s family`) as [string, string],
     venue: c.venue.trim() || c.city,
-    meet: c.meet?.map((m, i) => ({ name: c.couple[i] ?? '', bio: m.bio, photo: m.photo ?? demo.meet?.[i]?.photo ?? at(demo.photos.gallery, i) })),
-    story: c.story.map((s, i) => ({ ...s, photo: s.photo ?? at(demo.story, i).photo! })),
+    meet: c.meet?.map((m, i) => ({ name: c.couple[i] ?? '', bio: m.bio, photo: m.photo ?? fill(demo.meet?.[i]?.photo ?? at(demo.photos.gallery, i), i) })),
+    story: c.story.map((s, i) => ({ ...s, photo: s.photo ?? fill(at(demo.story, i).photo!, i) })),
     events: c.events.map((e, i) => {
       const date = realDate(e.date) ? e.date : today
       const time = realTime(e.time) ? e.time : '10:00'
-      return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: e.where || clock(time), note: e.note, photo: e.photo ?? at(demo.events, i).photo! }
+      // The samples point every event at their one venue; a couple's event has directions only if they gave some.
+      const given = e.map?.trim() ?? ''
+      const link = /^https?:\/\//i.test(given)
+      const map = own && e.map !== undefined ? (link ? given : mapsUrl(given) || undefined) : venueMap || undefined
+      // "In the haveli courtyard" alone would hide the start time; words with a time in them replace it.
+      const when = !e.where ? clock(time) : /\p{Nd}/u.test(e.where) ? e.where : `${clock(time)}, ${e.where}`
+      return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: when, note: e.note, map, place: link ? undefined : given || undefined, photo: e.photo ?? fill(at(demo.events, i).photo!, i) }
     }),
     mainEvent: c.mainEvent === undefined ? undefined : (c.events[c.mainEvent]?.id ?? `e${c.mainEvent}`),
-    hero: c.photos.hero ?? demo.photos.hero!,
-    venuePhoto: c.photos.venue ?? demo.photos.venue!,
-    rsvpPhoto: c.photos.rsvp ?? demo.photos.rsvp!,
-    blessPhoto: c.photos.bless ?? demo.photos.bless!,
-    finale: c.photos.finale ?? demo.photos.finale,
-    gallery: c.photos.gallery.length ? c.photos.gallery : demo.photos.gallery,
+    hero: c.photos.hero ?? fill(demo.photos.hero!),
+    venuePhoto: c.photos.venue ?? fill(demo.photos.venue!),
+    rsvpPhoto: c.photos.rsvp ?? fill(demo.photos.rsvp!, 1),
+    blessPhoto: c.photos.bless ?? fill(demo.photos.bless!, 2),
+    finale: c.photos.finale ?? fill(demo.photos.finale, 3),
+    // A couple's gallery is only their own photos: the design's would show up among their story as if theirs.
+    gallery: own ? c.photos.gallery : demo.photos.gallery,
+    // Ganesha's emblem stays only on a site that invokes him.
+    emblem: own && rest.emblem === 'ganesha' && !invokesGanesh(c.invocation) ? undefined : rest.emblem,
   }
 }
 
+// An invocation that names Ganesh, in the scripts the site is written in.
+// His names and the shlokas that call on him without naming him (Vakratunda Mahakaya, Gajanana, Ekadanta...).
+export const invokesGanesh = (s = '') =>
+  /ganesh|ganpat|ganapat|vinayak|vakratund|gajanan|lambodar|ekadant|gajmukh|gajamukh|गणेश|गणप|विनायक|वक्रतुण्ड|वक्रतुंड|गजानन|लम्बोदर|लंबोदर|एकदन्त|एकदंत|गजमुख|ગણેશ|ગણપ|વિનાયક|વક્રતુંડ|ગજાનન|લંબોદર|એકદંત|ਗਣੇਸ਼|ਗਣਪਤ|விநாயக|கணேச|கணபதி|பிள்ளையார்|వినాయక|గణేశ|గణపతి|ಗಣೇಶ|ಗಣಪತಿ|വിനായക|ഗണപതി/i.test(s)
+// A Google Maps search for a place; blank when there is no place to search for.
+export const mapsUrl = (q: string) => (q.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q.trim())}` : '')
 export const mainOf = (d: Design) => d.events.find((e) => e.id === d.mainEvent) ?? d.events[1] ?? d.events[0]
 export const lookById = (id: string) => LOOKS.find((l) => l.id === id)
 export const DESIGNS = LOOKS.map((l) => toDesign(l))

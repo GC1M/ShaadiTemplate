@@ -52,7 +52,7 @@ export function downloadIcs(e: WeddingEvent, d: Design) {
     `DTSTART:${fromIst(e.start)}`,
     `DTEND:${fromIst(e.end)}`,
     `SUMMARY:${icsText(`${e.name}: ${d.couple.join(' and ')}`)}`,
-    `LOCATION:${icsText(d.venue)}`,
+    `LOCATION:${icsText(e.place || d.venue)}`,
     `DESCRIPTION:${icsText([e.time, e.note].filter(Boolean).join('. '))}`,
     'END:VEVENT',
     'END:VCALENDAR',
@@ -60,7 +60,7 @@ export function downloadIcs(e: WeddingEvent, d: Design) {
   // In-app browsers (Instagram, Facebook, Android WebView) ignore downloads, so the button would do nothing there:
   // they get Google Calendar's add-event page instead.
   if (/\bwv\b|FBAN|FBAV|Instagram|Line\//.test(navigator.userAgent)) {
-    const q = new URLSearchParams({ action: 'TEMPLATE', text: `${e.name}: ${d.couple.join(' and ')}`, dates: `${fromIst(e.start)}/${fromIst(e.end)}`, location: d.venue, details: [e.time, e.note].filter(Boolean).join('. ') })
+    const q = new URLSearchParams({ action: 'TEMPLATE', text: `${e.name}: ${d.couple.join(' and ')}`, dates: `${fromIst(e.start)}/${fromIst(e.end)}`, location: e.place || d.venue, details: [e.time, e.note].filter(Boolean).join('. ') })
     return void window.open(`https://calendar.google.com/calendar/render?${q}`, '_blank')
   }
   const a = document.createElement('a')
@@ -189,16 +189,22 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [party, setParty] = useState(saved?.party ?? 1)
+  // Coming or not is its own first choice, so nobody replies "coming to everything" by leaving the ticks alone.
+  const [coming, setComing] = useState(saved ? saved.events.length > 0 : true)
+  const [pickError, setPickError] = useState<{ at: 'side' | 'events'; msg: string } | null>(null)
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
     const name = String(f.get('name')).trim()
-    const events = f.getAll('events').map(String)
+    const events = coming ? f.getAll('events').map(String) : []
     if (!name) {
       ;(e.currentTarget.elements.namedItem('name') as HTMLInputElement).focus()
       return setError('Add your name so the families know who is coming.')
     }
+    // No side is picked for the guest: a skipped choice would count everyone as the first family.
+    if (!f.get('side')) return setPickError({ at: 'side', msg: 'Choose whose side you are with.' })
+    if (coming && !events.length) return setPickError({ at: 'events', msg: 'Tick the celebrations you’ll come to, or choose “Sorry, can’t make it”.' })
     const guest = saved?.guest ?? (crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`)
     const r: Rsvp = { name, side: String(f.get('side')), events, party, note: String(f.get('note')).trim(), guest }
     if (slug) {
@@ -228,7 +234,7 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
           <div className="ov-rise mt-14 flex flex-col items-center text-center" aria-live="polite">
             <Knot />
             <p className="ov-display mt-6 text-[clamp(2rem,4vw,3rem)] italic">
-              {saved.events.length ? `See you in ${d.city}, ${saved.name}.` : `We’ll miss you, ${saved.name}.`}
+              {saved.events.length ? `See you ${d.city ? `in ${d.city}` : 'there'}, ${saved.name}.` : `We’ll miss you, ${saved.name}.`}
             </p>
             <p className="mt-3 text-(--ov-mogra)/75">
               {saved.events.length
@@ -262,27 +268,60 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
                 {[
                   ['a', d.families[0]],
                   ['b', d.families[1]],
-                  ['both', 'Both, somehow'],
+                  ['both', 'Both families'],
                 ].map(([v, label]) => (
                   <label key={v} className="ov-chip">
-                    <input type="radio" name="side" value={v} defaultChecked={(saved?.side ?? 'a') === v} className="sr-only" />
+                    <input type="radio" name="side" value={v} defaultChecked={saved?.side === v} onChange={() => setPickError(null)} className="sr-only" />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {pickError?.at === 'side' && (
+                <span className="ov-error" role="alert">
+                  {pickError.msg}
+                </span>
+              )}
+            </fieldset>
+            <fieldset>
+              <legend className="ov-label">Are you coming?</legend>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {[
+                  [true, 'Yes, I’ll be there'],
+                  [false, 'Sorry, can’t make it'],
+                ].map(([v, label]) => (
+                  <label key={String(v)} className="ov-chip">
+                    <input
+                      type="radio"
+                      name="coming"
+                      checked={coming === v}
+                      onChange={() => {
+                        setComing(v as boolean)
+                        setPickError(null)
+                      }}
+                      className="sr-only"
+                    />
                     {label}
                   </label>
                 ))}
               </div>
             </fieldset>
-            <fieldset>
-              <legend className="ov-label">Which celebrations? Leave all unticked if you can’t come.</legend>
+            <fieldset hidden={!coming}>
+              <legend className="ov-label">Which celebrations?</legend>
               <div className="mt-4 flex flex-wrap gap-3">
                 {d.events.map((e) => (
                   <label key={e.id} className="ov-chip">
-                    <input type="checkbox" name="events" value={e.id} defaultChecked={saved ? saved.events.includes(e.id) : true} className="sr-only" />
+                    <input type="checkbox" name="events" value={e.id} defaultChecked={saved?.events.length ? saved.events.includes(e.id) : true} onChange={() => setPickError(null)} className="sr-only" />
                     {e.name}
                   </label>
                 ))}
               </div>
+              {pickError?.at === 'events' && (
+                <span className="ov-error" role="alert">
+                  {pickError.msg}
+                </span>
+              )}
             </fieldset>
-            <div>
+            <div hidden={!coming}>
               <span className="ov-label" id="party-l">
                 How many of you, including you?
               </span>
