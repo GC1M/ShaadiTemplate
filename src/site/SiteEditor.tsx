@@ -7,7 +7,7 @@ import { go, LOOKS, lookById, type Content, type Look } from './designs'
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
-import { TRACKS, youTubeClip, clipLink, clock, unclock, useClipPlayer, type Track } from './music'
+import { TRACKS, SONGS, youTubeClip, clipLink, clock, unclock, useClipPlayer, type Track } from './music'
 import { Segmented, useSplit } from '../ui'
 import type { TypedCover } from '../templates'
 import { TransliterateInput } from '../transliterate'
@@ -30,13 +30,14 @@ const small = 'inline-flex items-center gap-1.5 rounded-full border border-wine/
 
 // A look's demo words, without its photos (anything left out shows the design's own photo) and without what
 // nobody should publish by leaving the box alone: the demo couple's names in their script, their invocation (a
-// god that may not be the couple's; not checked in leftovers, as couples type the same common lines themselves)
-// and their bios. Its events start at the main venue (no `map`, so Directions go to the venue) until a couple
+// god that may not be the couple's; not checked in leftovers, as couples type the same common lines themselves),
+// their song and their bios. Its events start at the main venue (no `map`, so Directions go to the venue) until a couple
 // gives one its own place.
 const fresh = (l: Look): Content => ({
   ...l.demo,
   nativeNames: undefined,
   invocation: undefined,
+  music: undefined,
   families: ['', ''],
   story: l.demo.story.map(({ photo: _, ...s }) => s),
   meet: l.demo.meet?.map(() => ({ bio: '' })),
@@ -874,21 +875,27 @@ const Step = ({ n, title }: { n: number; title: string }) => (
   </h2>
 )
 
-// Background music, next to the design because it sets the site's feel: off, a built-in instrumental (starts with
-// the guest's first tap) or any YouTube song (plays in YouTube's player when the guest taps "Play our song"). Each
-// instrumental can be heard here before choosing it.
+// Background music, next to the design because it sets the site's feel: off, one of the ready-picked film songs or
+// any YouTube song (both play in YouTube's player when the guest taps "Play our song"). Each film song can be heard
+// here before choosing it. The instrumentals are no longer offered; a site that already has one keeps it here.
 function MusicField({ value, onChange }: { value?: string; onChange: (v: string | undefined) => void }) {
-  const [yt, setYt] = useState(!!value && !value.startsWith('track:'))
+  const [yt, setYt] = useState(!!value && !value.startsWith('track:') && !SONGS.some((s) => s.link === value))
   const clip = yt && value ? youTubeClip(value) : undefined
   const id = clip?.id
   const sample = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState<string | null>(null)
+  const [hearing, setHearing] = useState<string | null>(null)
   const listen = (t: Track) => {
     const a = sample.current
     if (!a) return
+    setHearing(null)
     if (playing === t.id) return a.pause()
     a.src = t.src
     a.play().catch(() => setPlaying(null))
+  }
+  const hear = (id: string) => {
+    sample.current?.pause()
+    setHearing(hearing === id ? null : id)
   }
   const choice = yt ? 'youtube' : (value ?? '')
   const pick = (v: string) => {
@@ -905,7 +912,19 @@ function MusicField({ value, onChange }: { value?: string; onChange: (v: string 
         <input type="radio" name="music" checked={choice === ''} onChange={() => pick('')} className="size-4 accent-wine" />
         No music
       </label>
-      {TRACKS.map((t) => (
+      {SONGS.map((s) => (
+        <div key={s.id} className={`${row} ${ring(choice === s.link)}`}>
+          <label className="flex flex-1 cursor-pointer items-center gap-3">
+            <input type="radio" name="music" checked={choice === s.link} onChange={() => pick(s.link)} className="size-4 accent-wine" />
+            {s.name}
+          </label>
+          <button type="button" onClick={() => hear(s.id)} aria-label={`${hearing === s.id ? 'Stop' : 'Listen to'} ${s.name}`} className="rounded-full px-3 py-1 text-[13px] text-wine ring-1 ring-wine/20 hover:bg-wine/5 pointer-coarse:min-h-11">
+            {hearing === s.id ? 'Stop' : 'Listen'}
+          </button>
+        </div>
+      ))}
+      {hearing && <SongSample key={hearing} link={SONGS.find((s) => s.id === hearing)!.link} />}
+      {TRACKS.filter((t) => value === `track:${t.id}`).map((t) => (
         <div key={t.id} className={`${row} ${ring(choice === `track:${t.id}`)}`}>
           <label className="flex flex-1 cursor-pointer items-center gap-3">
             <input type="radio" name="music" checked={choice === `track:${t.id}`} onChange={() => pick(`track:${t.id}`)} className="size-4 accent-wine" />
@@ -931,9 +950,18 @@ function MusicField({ value, onChange }: { value?: string; onChange: (v: string 
           {clip && <ClipPicker key={clip.id} {...clip} onChange={(s, e) => onChange(clipLink(clip.id, s, e))} />}
         </div>
       )}
-      {!yt && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts when a guest first taps the page and shows only a small pause button, no video.</p>}
+      {SONGS.some((s) => s.link === value) && <p className="text-[13px] text-ink/55">Plays from YouTube when a guest taps "Play our song", looping just this part of the song, with no video.</p>}
+      {value?.startsWith('track:') && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts when a guest first taps the page and shows only a small pause button, no video.</p>}
     </fieldset>
   )
+}
+
+// A film song heard before choosing it: its part plays in an out-of-sight YouTube player, like on the site.
+function SongSample({ link }: { link: string }) {
+  const box = useRef<HTMLDivElement>(null)
+  const { id, start, end } = youTubeClip(link)!
+  useClipPlayer(box, id, start, end, { autoplay: true })
+  return <div ref={box} aria-hidden className="pointer-events-none fixed bottom-0 left-0 -z-10 size-[200px] opacity-0" />
 }
 
 // Pick the part of the song that loops: play the video, tap "Starts here" and "Ends here" (or type the times).
