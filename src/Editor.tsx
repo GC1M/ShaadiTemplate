@@ -14,6 +14,9 @@ import { track } from './analytics'
 
 type Props = { invite: Invite; setInvite: Dispatch<SetStateAction<Invite | null>>; onBack: () => void }
 
+// Instagram, Facebook and Android app browsers often drop downloads and have no share menu; the family is told how out.
+const inApp = typeof navigator !== 'undefined' && /\b(Instagram|FBAN|FBAV|Line)\b|; wv\)/.test(navigator.userAgent)
+
 const inputCls = 'mt-1.5 w-full rounded-md border border-wine/20 bg-paper px-3.5 py-2.5 text-base outline-none transition-colors hover:border-wine/40 focus:border-wine focus:ring-2 focus:ring-zari/40'
 
 export default function Editor({ invite, setInvite, onBack }: Props) {
@@ -77,7 +80,12 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   }, [page.id, zoom, invite.format])
 
   const set = (patch: Partial<Invite>) => setInvite((i) => i && { ...i, ...patch })
-  const editPage = (fn: (p: Page) => Page) => setInvite((i) => i && { ...i, pages: i.pages.map((p) => (p.id === page.id ? fn(p) : p)) })
+  // The first change to a page's words, once per visit to the editor: tells an opened-and-left card from a started one.
+  const edited = useRef(false)
+  const editPage = (fn: (p: Page) => Page) => {
+    if (!edited.current) (edited.current = true), track('editor_first_edit', { template: invite.templateId })
+    setInvite((i) => i && { ...i, pages: i.pages.map((p) => (p.id === page.id ? fn(p) : p)) })
+  }
   const editCover = (patch: Partial<CoverPage>) => editPage((p) => ({ ...(p as CoverPage), ...patch }))
   const editSections = (fn: (p: SectionsPage) => SectionsPage) => editPage((p) => fn(p as SectionsPage))
 
@@ -133,6 +141,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   const [exportPages, setExportPages] = useState<Page[] | null>(null)
   const run = async (kind: 'png' | 'pdf' | 'share') => {
     setBusy(kind)
+    track('export_start', { kind, template: invite.templateId, inapp: inApp })
     // Mount the off-screen pages (and run their auto-fit layout effects) before capturing.
     flushSync(() => setExportPages(kind === 'png' ? [page] : invite.pages))
     try {
@@ -144,7 +153,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       } else {
         const files = await m.buildPngs(el, invite.format, kind === 'png' ? `${slug}-page-${index + 1}` : `${slug}-invitation`)
         if (kind === 'share' && navigator.canShare?.({ files })) {
-          await navigator.share({ files, title: 'Wedding invitation' }).catch((e) => {
+          await navigator.share({ files, title: 'Wedding invitation', text: 'Made free at shaaditemplate.com' }).catch((e) => {
             if (e.name !== 'AbortError') throw e
           })
         } else {
@@ -165,6 +174,8 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
 
   const btn = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium disabled:opacity-60 pointer-coarse:min-h-11'
   const canShare = typeof navigator !== 'undefined' && !!navigator.share
+  // Sending the card is the main action where the phone can share files; downloading is then the second choice.
+  const sendFirst = canShare && matchMedia('(pointer: coarse)').matches
 
   return (
     // Families' names, dates and venues never reach Clarity recordings; clicks and layout still do.
@@ -179,9 +190,9 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
             <Wordmark />
           </span>
           <div className="ml-auto flex gap-2">
-            <button onClick={() => run('png')} disabled={!!busy} className={`${btn} zari-button text-wine-deep`}>
+            <button onClick={() => run('png')} disabled={!!busy} className={`${btn} ${sendFirst ? 'border border-zari/70 text-rose hover:bg-white/10' : 'zari-button text-wine-deep'}`}>
               {busy === 'png' ? <Loader2 className="size-4 animate-spin" /> : <ImageDown className="size-4" />}
-              <span>
+              <span className={sendFirst ? 'sr-only sm:not-sr-only' : ''}>
                 Download <span className="hidden sm:inline">image</span>
               </span>
             </button>
@@ -190,14 +201,19 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
               <span className="hidden sm:inline">({invite.pages.length} {invite.pages.length === 1 ? 'page' : 'pages'})</span>
             </button>
             {canShare && (
-              <button onClick={() => run('share')} disabled={!!busy} aria-label="Share" className={`${btn} border border-zari/70 text-rose hover:bg-white/10`}>
+              <button onClick={() => run('share')} disabled={!!busy} aria-label="Send the card" className={`${btn} ${sendFirst ? 'zari-button text-wine-deep' : 'border border-zari/70 text-rose hover:bg-white/10'}`}>
                 {busy === 'share' ? <Loader2 className="size-4 animate-spin" /> : <Share2 className="size-4" />}
-                <span className="hidden sm:inline">Share</span>
+                <span className={sendFirst ? '' : 'hidden sm:inline'}>{sendFirst ? 'Send' : 'Share'}</span>
               </button>
             )}
           </div>
         </div>
       </header>
+      {inApp && (
+        <p role="note" className="border-b border-zari/40 bg-paper px-4 py-2.5 text-center text-sm text-ink/80 sm:px-6">
+          Inside an app like Instagram or Facebook, downloads can fail. Tap <strong className="font-medium">⋯</strong> and choose <strong className="font-medium">Open in browser</strong> to save your card.
+        </p>
+      )}
 
       {/* An ivory workbench on the left, and the card on a velvet display on the right. */}
       <main className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_min(var(--pane,min(46vw,640px)),calc(100vw-420px))]" style={split.style}>

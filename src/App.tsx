@@ -4,7 +4,7 @@ import Editor from './Editor'
 import { EVENTS, LANGS, SYMBOLS } from './i18n'
 import { carryDetails, isEdited, liveId, loadDrafts, newInvite, saveDrafts, templateById, TEMPLATES, type Template } from './templates'
 import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang, type SymbolId } from './types'
-import { Hero, HERO_CARD, HERO_LANGS, HeroDemo, preview, Wordmark } from './Hero'
+import { Hero, HERO_CARD, HERO_LANGS, HeroDemo, preview, QUICK_H, Wordmark } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
 import { track } from './analytics'
 import { land, sitePath, siteView } from './siteRoutes'
@@ -19,6 +19,8 @@ const Showcase = lazy(() => import('./site/Websites').then((m) => ({ default: m.
 const isEditor = () => location.hash === '#edit'
 const isSite = () => sitePath(location.pathname)
 // Static template pages link to #template/<id> to open that design. Consumed once, so StrictMode's re-run is a no-op.
+// A link can set the cards' language (?lang=gu, e.g. the Instagram bio), since browsers here almost all report English.
+const urlLang = LANG_IDS.find((l) => l === new URLSearchParams(location.search).get('lang'))
 let linked = location.hash.startsWith('#template/') ? TEMPLATES.find((t) => t.id === liveId(location.hash.slice(10))) : undefined
 
 export default function App() {
@@ -123,11 +125,10 @@ function Preview({ t }: { t: Template }) {
   return <img src={preview(t.id)} width={540} height={960} loading="lazy" alt={`${t.name}, ${EVENTS[t.event]} invitation card`} onError={() => setLive(true)} className="design-card h-auto w-full" />
 }
 
-// Plain facts about the maker. Downloads and live websites are the owner's real totals on 2026-11-22 (Google
-// Analytics download events, the sites table), rounded down; raise them as they grow. Once the worker's live count
-// (/api/stats) passes the floor it shows instead. The rating is the visitors' own (Reviews.tsx). Never invented numbers.
-const DOWNLOADS = '9,000+'
-const SITES_FLOOR = 100
+// Plain facts about the maker, each traceable to a real source. The live-websites count is the worker's own
+// (/api/stats) and shows once it is big enough to mean something; the rating is the visitors' own (Reviews.tsx).
+// No download total: GA counts too few so far, and a rounded-up guess would be an invented number.
+const SITES_MIN = 25
 const MIN_REVIEWS = 5
 function Numbers() {
   const [sites, setSites] = useState(0)
@@ -140,8 +141,7 @@ function Numbers() {
         .then((d) => setSites(d.sites ?? 0), () => {})
   }, [])
   const items: [string, string][] = [
-    [DOWNLOADS, 'cards downloaded'],
-    [sites > SITES_FLOOR ? sites.toLocaleString('en-IN') : `${SITES_FLOOR}+`, 'wedding websites live'],
+    ...(sites >= SITES_MIN ? [[sites.toLocaleString('en-IN'), 'wedding websites live'] as [string, string]] : []),
     ...(rating ? [[`${rating[0].toFixed(1)}★`, `from ${rating[1]} families' reviews`] as [string, string]] : []),
     [String(TEMPLATES.length), 'card designs'],
     [String(LANG_IDS.length), 'languages, typed in English'],
@@ -172,8 +172,9 @@ function Numbers() {
 // until the visitor picks one (or never, under reduced motion).
 function LiveCard({ onOpen, onPick }: { onOpen: (t: Template, lang?: Lang) => void; onPick: (l: Lang) => void }) {
   const t = templateById(HERO_CARD)
-  const [lang, setLang] = useState<string>('gu')
-  const [picked, setPicked] = useState(false)
+  const heroLang = HERO_LANGS.find(([l]) => l === urlLang)?.[0]
+  const [lang, setLang] = useState<string>(heroLang ?? 'gu')
+  const [picked, setPicked] = useState(!!heroLang)
   const inv = useMemo(() => newInvite(t, lang as Lang), [t, lang])
   useEffect(() => {
     if (picked || matchMedia('(prefers-reduced-motion: reduce)').matches) return
@@ -300,7 +301,7 @@ const ORDER = [
 const rank = (t: Template) => (ORDER.includes(t.id) ? ORDER.indexOf(t.id) : ORDER.length + Number(!t.featured))
 
 function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang) => void; draft: Invite | null; drafts: Invite[] }) {
-  const [lang, setLang] = useState<Lang | 'all'>('all')
+  const [lang, setLang] = useState<Lang | 'all'>(urlLang ?? 'all')
   const [symbol, setSymbol] = useState<SymbolId | 'all'>('all')
   const [event, setEvent] = useState<EventType | 'all'>('all')
   // How far the prerendered hero's intro has run, so React's copy picks it up mid-way instead of replaying it.
@@ -339,15 +340,41 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
     <div className="min-h-screen">
       <div className="scroll-progress" aria-hidden />
       <SlimHeader draftName={draftName} />
-      <Hero draftName={draftName} elapsed={elapsed} demo={<LiveCard onOpen={onOpen} onPick={setLang} />} />
+      <Hero
+        draftName={draftName}
+        elapsed={elapsed}
+        demo={<LiveCard onOpen={onOpen} onPick={setLang} />}
+        onCta={(which) => track('hero_cta', { which })}
+        quick={
+          <nav aria-label="Most opened designs" className={`intro mt-8 md:hidden ${QUICK_H}`} style={{ animationDelay: 'calc(600ms + var(--t0, 0ms))' }}>
+            <p className="text-sm text-rose/65">Most opened designs</p>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              {shown.slice(0, 4).map((t) => (
+                <a
+                  key={t.id}
+                  href={`templates/${t.id}.html`}
+                  onClick={(e) => {
+                    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button) return
+                    e.preventDefault()
+                    track('quick_pick', { template: t.id })
+                    onOpen(t, lang === 'all' ? undefined : lang)
+                  }}
+                  className="block overflow-hidden rounded ring-1 ring-zari/40"
+                >
+                  <img src={preview(t.id)} width={540} height={960} alt={`Make ${t.name}`} className="aspect-[9/16] h-auto w-full object-cover" />
+                </a>
+              ))}
+            </div>
+          </nav>
+        }
+      />
       <ZariBorder />
-      <Numbers />
 
       <section id="templates" className="mx-auto max-w-6xl scroll-mt-2 px-4 pb-24 pt-16 sm:px-6">
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-6">
           <h2 className="reveal font-display text-[40px] leading-none tracking-[-0.015em] sm:text-[56px]">Invitation cards</h2>
           <div className="grid w-full grid-cols-2 items-center gap-3 sm:flex sm:w-auto sm:flex-wrap">
-            <select aria-label="Language" value={lang} onChange={(e) => setLang(e.target.value as Lang | 'all')} className={select}>
+            <select aria-label="Language" value={lang} onChange={(e) => (setLang(e.target.value as Lang | 'all'), track('gallery_filter', { type: 'lang', value: e.target.value }))} className={select}>
               <option value="all">Any language</option>
               {LANG_IDS.map((l) => (
                 <option key={l} value={l}>
@@ -355,7 +382,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
                 </option>
               ))}
             </select>
-            <select aria-label="God or sacred symbol" value={symbol} onChange={(e) => setSymbol(e.target.value as SymbolId | 'all')} className={select}>
+            <select aria-label="God or sacred symbol" value={symbol} onChange={(e) => (setSymbol(e.target.value as SymbolId | 'all'), track('gallery_filter', { type: 'symbol', value: e.target.value }))} className={select}>
               <option value="all">Any symbol</option>
               {SYMBOL_IDS.map((s) => (
                 <option key={s} value={s}>
@@ -393,7 +420,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
               {(['all', ...EVENT_IDS] as const).map((e) => (
                 <button
                   key={e}
-                  onClick={() => setEvent(e)}
+                  onClick={() => (setEvent(e), track('gallery_filter', { type: 'event', value: e }))}
                   aria-pressed={event === e}
                   className={`event-tab relative px-3.5 pb-3.5 pt-1 text-[15px] transition-colors ${event === e ? 'text-wine' : 'text-ink/60 hover:text-ink'}`}
                 >
@@ -448,13 +475,14 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
         )}
         {short && (
           <div className="mt-14 text-center">
-            <button onClick={() => setAll(true)} className="rounded-full bg-wine px-8 py-3.5 text-[15px] text-rose hover:bg-wine-deep">
+            <button onClick={() => (setAll(true), track('show_all'))} className="rounded-full bg-wine px-8 py-3.5 text-[15px] text-rose hover:bg-wine-deep">
               Show all {shown.length} card designs
             </button>
           </div>
         )}
       </section>
 
+      <Numbers />
       <ZariBorder />
       <section id="websites" className="velvet scroll-mt-2 text-rose">
         <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
