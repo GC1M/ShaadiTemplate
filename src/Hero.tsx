@@ -196,7 +196,10 @@ export const HERO_CARD = 'sandhya-kankotri'
 // which is the thing no printer's catalogue does. Both products are named in the headline copy and the buttons;
 // the phone beside the card is the website. `demo` is the live card (App.tsx); the prerendered copy shows its
 // cover image in the same box, so nothing moves when React takes over.
-export function Hero({ draftName, elapsed = 0, demo }: { draftName?: string | null; elapsed?: number; demo?: ReactNode }) {
+// Phones see the hero card and buttons before the gallery, which starts screens further down; the most opened designs
+// sit right under the buttons there (`quick`, drawn by App.tsx). The prerendered page keeps their room so nothing jumps.
+export const QUICK_H = 'h-[168px]'
+export function Hero({ draftName, elapsed = 0, demo, quick, onCta }: { draftName?: string | null; elapsed?: number; demo?: ReactNode; quick?: ReactNode; onCta?: (which: string) => void }) {
   return (
     <div className="velvet text-rose" style={{ '--t0': `${-Math.round(elapsed)}ms` } as CSSProperties}>
       <SiteHeader />
@@ -209,13 +212,14 @@ export function Hero({ draftName, elapsed = 0, demo }: { draftName?: string | nu
             Make the card for WhatsApp and the printing press, and a wedding website with every function, the venue map and RSVPs. Free, with no login.
           </p>
           <div className="intro mt-9 flex flex-wrap items-center gap-x-6 gap-y-4" style={{ animationDelay: 'calc(500ms + var(--t0, 0ms))' }}>
-            <a href="#templates" className="zari-button shine relative inline-flex min-h-13 items-center overflow-hidden rounded-full px-8 text-[16px] font-medium text-wine-deep">
+            <a href="#templates" onClick={() => onCta?.('card')} className="zari-button shine relative inline-flex min-h-13 items-center overflow-hidden rounded-full px-8 text-[16px] font-medium text-wine-deep">
               Make your invitation card
             </a>
-            <a href="/websites/" className="inline-flex min-h-13 items-center rounded-full border border-zari/70 px-7 text-[16px] text-rose hover:border-zari hover:bg-zari/10">
+            <a href="/websites/" onClick={() => onCta?.('website')} className="inline-flex min-h-13 items-center rounded-full border border-zari/70 px-7 text-[16px] text-rose hover:border-zari hover:bg-zari/10">
               Make a wedding website
             </a>
           </div>
+          {quick ?? <div className={`mt-8 md:hidden ${QUICK_H}`} />}
           {draftName && (
             <p className="intro mt-6 text-[15px] text-rose/70" style={{ animationDelay: 'calc(600ms + var(--t0, 0ms))' }}>
               Your card is saved on this phone.{' '}
