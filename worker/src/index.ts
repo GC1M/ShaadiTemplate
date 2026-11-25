@@ -280,12 +280,23 @@ const arr = <T>(v: unknown, max: number, f: (x: any) => T) => (Array.isArray(v) 
 const DATA_URL = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+=*)$/
 
 // Background music: one of the built-in tracks (src/site/music.tsx) or a YouTube video, kept as a plain youtu.be
-// link (the site plays it in YouTube's own player).
+// link (the site plays it in YouTube's own player), with the looped part as ?start=&end= in seconds (YouTube's
+// own ?t= counts as the start).
 const music = (v: unknown) => {
   if (typeof v !== 'string') return undefined
   if (/^track:[a-z]{1,12}$/.test(v)) return v
   const id = v.trim().match(/^(?:https?:\/\/)?(?:www\.|m\.|music\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})(?:[?&#/]|$)/)?.[1]
-  return id ? `https://youtu.be/${id}` : undefined
+  if (!id) return undefined
+  const q = new URLSearchParams(v.split(/[?#]/).slice(1).join('&'))
+  const secs = (x: string | null) => {
+    const m = x?.match(/^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s?)?$/)
+    const n = m ? Number(m[1] ?? 0) * 3600 + Number(m[2] ?? 0) * 60 + Number(m[3] ?? 0) : 0
+    return n > 0 && n <= 36000 ? n : 0
+  }
+  const start = secs(q.get('start')) || secs(q.get('t'))
+  const end = secs(q.get('end'))
+  const part = [start && `start=${start}`, end > start && `end=${end}`].filter(Boolean).join('&')
+  return `https://youtu.be/${id}${part ? `?${part}` : ''}`
 }
 
 // Keeps only the fields the site draws, trimmed to sane lengths. Photos must be new uploads (data URLs) or ones

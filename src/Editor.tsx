@@ -137,21 +137,23 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       .filter(Boolean)
       .join('-') || t.id
 
-  // Renders pages off-screen at full size, then captures them.
-  const [exportPages, setExportPages] = useState<Page[] | null>(null)
+  // Renders every page off-screen at full size in this shape, then captures them.
+  const [exportFormat, setExportFormat] = useState<Format | null>(null)
   const run = async (kind: 'png' | 'pdf' | 'share') => {
     setBusy(kind)
     track('export_start', { kind, template: invite.templateId, inapp: inApp })
+    // The PDF is for printing, so it always comes out 5x7 in, even from a card shaped for phones.
+    const format = kind === 'pdf' ? 'print' : invite.format
     // Mount the off-screen pages (and run their auto-fit layout effects) before capturing.
-    flushSync(() => setExportPages(kind === 'png' ? [page] : invite.pages))
+    flushSync(() => setExportFormat(format))
     try {
       const m = await import('./pdf')
       const el = exportRef.current!
       if (kind === 'pdf') {
-        save(await m.buildPdf(el, invite.format, `${slug}-invitation`))
+        save(await m.buildPdf(el, format, `${slug}-invitation`))
         setToast('PDF downloaded')
       } else {
-        const files = await m.buildPngs(el, invite.format, kind === 'png' ? `${slug}-page-${index + 1}` : `${slug}-invitation`)
+        const files = await m.buildPngs(el, format, `${slug}-invitation`)
         if (kind === 'share' && navigator.canShare?.({ files })) {
           await navigator.share({ files, title: 'Wedding invitation', text: 'Made free at shaaditemplate.com' }).catch((e) => {
             if (e.name !== 'AbortError') throw e
@@ -161,14 +163,14 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           setToast(files.length > 1 ? `${files.length} images downloaded` : 'Image downloaded')
         }
       }
-      track('export', { kind, format: invite.format, pages: invite.pages.length, template: invite.templateId })
+      track('export', { kind, format, pages: invite.pages.length, template: invite.templateId })
     } catch (e) {
       console.error(e)
-      track('export_failed', { kind, format: invite.format, template: invite.templateId, error: String(e).slice(0, 150) })
+      track('export_failed', { kind, format, template: invite.templateId, error: String(e).slice(0, 150) })
       setToast('Could not create the file. Please try again.')
     } finally {
       setBusy('')
-      setExportPages(null)
+      setExportFormat(null)
     }
   }
 
@@ -192,13 +194,14 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           <div className="ml-auto flex gap-2">
             <button onClick={() => run('png')} disabled={!!busy} className={`${btn} ${sendFirst ? 'border border-zari/70 text-rose hover:bg-white/10' : 'zari-button text-wine-deep'}`}>
               {busy === 'png' ? <Loader2 className="size-4 animate-spin" /> : <ImageDown className="size-4" />}
-              <span className={sendFirst ? 'sr-only sm:not-sr-only' : ''}>
-                Download <span className="hidden sm:inline">image</span>
-              </span>
+              <span className="sm:hidden">Save</span>
+              <span className="hidden sm:inline">Download {invite.pages.length > 1 ? `${invite.pages.length} images` : 'image'}</span>
             </button>
             <button onClick={() => run('pdf')} disabled={!!busy} className={`${btn} border border-zari/70 text-rose hover:bg-white/10`}>
-              {busy === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />} PDF
-              <span className="hidden sm:inline">({invite.pages.length} {invite.pages.length === 1 ? 'page' : 'pages'})</span>
+              {busy === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
+              <span>
+                <span className="hidden sm:inline">Print</span> PDF
+              </span>
             </button>
             {canShare && (
               <button onClick={() => run('share')} disabled={!!busy} aria-label="Send the card" className={`${btn} ${sendFirst ? 'zari-button text-wine-deep' : 'border border-zari/70 text-rose hover:bg-white/10'}`}>
@@ -247,8 +250,8 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                     value={invite.format}
                     onChange={(format) => set({ format })}
                     options={[
-                      { id: 'story', label: 'Phone 9:16' },
-                      { id: 'print', label: 'Print 5:7' },
+                      { id: 'story', label: 'For WhatsApp' },
+                      { id: 'print', label: 'For printing (5x7 in)' },
                     ]}
                   />
                 </Control>
@@ -269,7 +272,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                 <label className="flex items-start gap-3 rounded-md bg-wine/[0.04] p-4 text-[15px] text-ink/85 ring-1 ring-wine/10">
                   <input type="checkbox" checked={phonetic} onChange={(e) => setPhonetic(e.target.checked)} className="mt-1 size-4 shrink-0 accent-wine pointer-coarse:size-6 pointer-coarse:mt-0" />
                   <span>
-                    Type in English letters and get {LANGS[L].native}. Press space to accept a word, Esc to keep English.
+                    Type in English letters and get {LANGS[L].native}. Press space to accept a word, or tap the English word in the list to keep it.
                     <span className="mt-1 block text-[13px] text-ink/55">Each word you type is sent to Google's transliteration service.</span>
                   </span>
                 </label>
@@ -421,11 +424,11 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
         </aside>
       </main>
 
-      {exportPages && (
+      {exportFormat && (
         <div ref={exportRef} aria-hidden className="pointer-events-none fixed top-0" style={{ left: -100000 }}>
-          {exportPages.map((p) => (
+          {invite.pages.map((p) => (
             <div key={p.id}>
-              <CardPage invite={invite} page={p} />
+              <CardPage invite={{ ...invite, format: exportFormat }} page={p} />
             </div>
           ))}
         </div>
@@ -497,9 +500,9 @@ function DatePicker({ lang, onPick }: { lang: Lang; onPick: (date: string) => vo
     if (i) onPick(formatDate(i, f, lang))
   }
   return (
-    <div className="flex flex-wrap items-end gap-4">
+    <div className="mt-2 flex flex-wrap items-end gap-x-4 gap-y-2">
       <label className="block">
-        <span className="text-[13px] text-ink/65">Pick a date</span>
+        <span className="text-[13px] text-ink/65">Choose from calendar</span>
         <input type="date" value={iso} onChange={(e) => pick(e.target.value, fmt)} className={`${inputCls} w-auto`} />
       </label>
       <label className="block">
@@ -540,9 +543,11 @@ function CoverForm({ p, on, lang, phonetic }: { p: CoverPage; on: (patch: Partia
         {person('groom', 'Groom')}
       </div>
       {f('Word between the names', 'joiner')}
-      <DatePicker lang={lang} onPick={(date) => on({ date })} />
       <div className="grid gap-4 sm:grid-cols-2">
-        {f('Date & day', 'date')}
+        <div>
+          {f('Date & day', 'date')}
+          <DatePicker lang={lang} onPick={(date) => on({ date })} />
+        </div>
         {f('Time / Shubh Muhurat', 'time')}
         {f('Venue name', 'venue')}
         {f('Full address', 'address')}
