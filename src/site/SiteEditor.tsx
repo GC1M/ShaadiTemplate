@@ -783,9 +783,9 @@ const Step = ({ n, title }: { n: number; title: string }) => (
   </h2>
 )
 
-// Background music, next to the design because it sets the site's feel: off, a built-in instrumental (starts with
-// the guest's first tap), one of the ready-picked film songs or any YouTube song (both play in YouTube's player when
-// the guest taps "Play our song"). Each instrumental and film song can be heard here before choosing it.
+// Background music, next to the design because it sets the site's feel: off, one of the ready-picked film songs or
+// any YouTube song (both play in YouTube's player when the guest taps "Play our song"). Each film song can be heard
+// here before choosing it. The instrumentals are no longer offered; a site that already has one keeps it here.
 function MusicField({ value, onChange }: { value?: string; onChange: (v: string | undefined) => void }) {
   const [yt, setYt] = useState(!!value && !value.startsWith('track:') && !SONGS.some((s) => s.link === value))
   const clip = yt && value ? youTubeClip(value) : undefined
@@ -832,7 +832,7 @@ function MusicField({ value, onChange }: { value?: string; onChange: (v: string 
         </div>
       ))}
       {hearing && <SongSample key={hearing} link={SONGS.find((s) => s.id === hearing)!.link} />}
-      {TRACKS.map((t) => (
+      {TRACKS.filter((t) => value === `track:${t.id}`).map((t) => (
         <div key={t.id} className={`${row} ${ring(choice === `track:${t.id}`)}`}>
           <label className="flex flex-1 cursor-pointer items-center gap-3">
             <input type="radio" name="music" checked={choice === `track:${t.id}`} onChange={() => pick(`track:${t.id}`)} className="size-4 accent-wine" />
@@ -859,7 +859,7 @@ function MusicField({ value, onChange }: { value?: string; onChange: (v: string 
         </div>
       )}
       {SONGS.some((s) => s.link === value) && <p className="text-[13px] text-ink/55">Plays from YouTube when a guest taps "Play our song", looping just this part of the song, with no video.</p>}
-      {!yt && !SONGS.some((s) => s.link === value) && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts when a guest first taps the page and shows only a small pause button, no video.</p>}
+      {value?.startsWith('track:') && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts when a guest first taps the page and shows only a small pause button, no video.</p>}
     </fieldset>
   )
 }
