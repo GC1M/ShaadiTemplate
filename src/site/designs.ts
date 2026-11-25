@@ -1,5 +1,6 @@
 import type { SymbolId } from '../types'
 import { PEOPLE, SHOTS, type Photo } from './photos'
+import { song } from './music'
 
 // The sample wedding website designs, in the order the gallery shows them. Every couple, family and story here is
 // fictional demo content; the venues are real places so the map links work.
@@ -117,6 +118,7 @@ export const LOOKS: Look[] = [
       venue: 'City Palace, Jaipur',
       invite: 'With the blessings of Shri Ganesh and our elders, we joyfully invite you to celebrate the wedding of our children.',
       rsvpBy: '15 November',
+      music: song('lamhon-1'),
       story: [
         { year: '2018', title: 'Two seats on the Shatabdi', body: 'Delhi to Jaipur, one window seat, one argument about it, and four hours of talking after.', photo: SHOTS.silhouette },
         { year: '2022', title: 'The long way round', body: 'Her in Bengaluru, him in London, and every festival spent counting down to the next visit home.', photo: SHOTS.sunsetTree },
@@ -198,6 +200,7 @@ export const LOOKS: Look[] = [
       venue: 'The Lodhi, Lodhi Road, New Delhi',
       invite: 'With the blessings of our elders, the Malhotra and Khanna families invite you to celebrate with us.',
       rsvpBy: '1 January',
+      music: song('kalank'),
       story: [
         { year: '2017', title: 'Saturday Debate Club', body: 'She won the argument; he asked for a rematch over coffee. Neither remembers the topic.', photo: SHOTS.silhouette },
         { year: '2020', title: 'Long Distance Lockdown', body: 'Delhi to Pune on video every night at ten, with the same cup of chai on both screens.', photo: SHOTS.sunsetTree },
@@ -239,6 +242,7 @@ export const LOOKS: Look[] = [
       venue: 'BrijRama Palace, Darbhanga Ghat, Varanasi',
       invite: 'By the grace of Mahadev and with the blessings of our elders, we invite you to our wedding on the ghats of Kashi.',
       rsvpBy: '15 October',
+      music: song('kalank'),
       story: [
         { year: '2016', title: 'Same Train Every Diwali', body: 'Delhi to Varanasi, the same coach, four Diwalis in a row before either of them said hello.', photo: SHOTS.silhouette },
         { year: '2019', title: 'Kachori At Dawn', body: 'Their first date was breakfast at five in the morning in a lane only he knew.', photo: SHOTS.sunsetTree },
@@ -272,6 +276,7 @@ export const LOOKS: Look[] = [
       venue: 'The Leela Palace, Lake Pichola, Udaipur',
       invite: 'With the blessings of our families, we would love you to be with us in Udaipur as we marry.',
       rsvpBy: '1 October',
+      music: song('lamhon-2'),
       story: [
         { year: '2016', title: 'A borrowed umbrella', body: 'First week of college in Pune, the monsoon came early, and Arjun had the only umbrella at the bus stop. Ananya kept it for a month.', photo: SHOTS.silhouette },
         { year: '2019', title: 'Bengaluru to Delhi', body: 'Two jobs, two cities, and three years of video calls that started with “have you eaten?”', photo: SHOTS.sunsetTree },
@@ -302,6 +307,7 @@ export const LOOKS: Look[] = [
       venue: 'Ranjit’s Svaasa, Amritsar',
       invite: 'With Waheguru’s grace and our families’ blessings, we invite you to our Anand Karaj in Amritsar.',
       rsvpBy: '15 December',
+      music: song('uchiyaan'),
       story: [
         { year: '2018', title: 'Bhangra practice', body: 'Two left feet in the same college bhangra team. The coach paired them so they would stop ruining everyone else’s steps.', photo: SHOTS.bazaar },
         { year: '2022', title: 'Toronto winters', body: 'Harjot moved for work; Simran sent pinnis by post every Lohri so he would come home.', photo: SHOTS.sunsetTree },
@@ -391,6 +397,7 @@ export const LOOKS: Look[] = [
       venue: 'Taj Mahal Lucknow, Gomti Nagar',
       invite: 'By the grace of Allah and with our families’ duas, we invite you to our nikah in Lucknow.',
       rsvpBy: '10 September',
+      music: song('lamhon-1'),
       story: [
         { year: '2016', title: 'A shared bookshelf', body: 'The same Urdu poetry book, borrowed from the same library, one week apart. Her notes were in the margins.', photo: SHOTS.silhouette },
         { year: '2021', title: 'Eid in two cities', body: 'Sheer khurma over video call, Lucknow to Hyderabad, three years running.', photo: SHOTS.sunsetTree },
@@ -420,6 +427,7 @@ export const LOOKS: Look[] = [
       venue: 'Sunder Nursery, New Delhi',
       invite: 'We are getting married in the garden, and we would love you there.',
       rsvpBy: '15 January',
+      music: song('uchiyaan'),
       story: [
         { year: '2019', title: 'Same studio, different desks', body: 'Two architects, one shared printer that never worked. They fixed it together. Eventually.', photo: SHOTS.lodhi },
         { year: '2023', title: 'Saturday walks', body: 'Lodhi Garden at 7 am, chai at 8, every week for four years.', photo: SHOTS.embrace },
@@ -455,6 +463,7 @@ export const LOOKS: Look[] = [
       venue: 'City Palace, Udaipur',
       invite: 'With the blessings of Shri Ganesh and our elders, the Chundawat and Mehta families invite you to the wedding of their children.',
       rsvpBy: '15 October',
+      music: song('lamhon-2'),
       story: [
         { year: '2018', title: 'Rain at Saheliyon ki Bari', body: 'A monsoon afternoon at Saheliyon ki Bari, one umbrella between two strangers, and a long walk to find a rickshaw.', photo: SHOTS.silhouette },
         { year: '2021', title: 'Letters across two cities', body: 'Her in Jaipur, him in Pune, and a postcard every Sunday that both families pretended not to read.', photo: SHOTS.sunsetTree },
@@ -500,6 +509,7 @@ export const LOOKS: Look[] = [
       invite: 'With the blessings of our elders, our two families invite you to light the diyas with us at our wedding.',
       note: 'The courtyard is only full once you are in it. Come early, stay late, and dance with our grandmothers.',
       rsvpBy: '10 January',
+      music: song('lamhon-1'),
       story: [
         { year: '2022', title: 'The wrong train', body: 'He boarded the Ajmer Shatabdi by mistake, she had the seat he thought was his, and neither of them got off at the right station.', photo: SHOTS.silhouette },
         { year: '2024', title: 'Kite season', body: 'Two Makar Sankrantis on her family’s terrace in the walled city, and he still cannot fly a patang.', photo: SHOTS.embrace },

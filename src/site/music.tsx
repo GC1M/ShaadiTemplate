@@ -35,6 +35,15 @@ export const youTubeClip = (url: string) => {
   return { id, start: start ?? 0, end: end && end > (start ?? 0) ? end : undefined }
 }
 export const clipLink = (id: string, start = 0, end?: number) => `https://youtu.be/${id}${start || end ? `?${new URLSearchParams({ ...(start && { start: String(start) }), ...(end && { end: String(end) }) })}` : ''}`
+// Ready-picked parts of film songs, offered in the editor and played on the sample sites. Stored on a site as the
+// plain YouTube link, so each plays like a song the couple pasted.
+export const SONGS = [
+  { id: 'lamhon-1', name: 'In Lamhon Ke Daaman Mein (Jodhaa Akbar), part 1', link: clipLink('ve4IQMlTMuY', 40, 112) },
+  { id: 'lamhon-2', name: 'In Lamhon Ke Daaman Mein (Jodhaa Akbar), part 2', link: clipLink('ve4IQMlTMuY', 204, 275) },
+  { id: 'kalank', name: 'Kalank title track (Kalank)', link: clipLink('jsb9BUJaiUY', 226, 293) },
+  { id: 'uchiyaan', name: 'Uchiyaan Dewaraan (Baari 2)', link: clipLink('-Z3Y3EcpJi4', 233, 285) },
+]
+export const song = (id: string) => SONGS.find((s) => s.id === id)!.link
 // 65 -> "1:05", and back.
 export const clock = (n: number) => `${Math.floor(n / 60)}:${String(Math.floor(n % 60)).padStart(2, '0')}`
 export const unclock = (v: string) => {
