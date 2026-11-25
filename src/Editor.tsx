@@ -387,8 +387,9 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                 ]}
               />
             </div>
-            {/* Every page in one scrollable column, like a PDF viewer. Click a page to edit it. */}
-            <div ref={previewRef} className="relative max-h-[85svh] min-h-0 flex-1 space-y-8 overflow-auto px-5 pb-10 pt-4 sm:px-8 lg:max-h-none">
+            {/* Every page in one column, like a PDF viewer. Click a page to edit it. On phones the pages run in the page's
+                own scroll (a second scroll box inside it confused people); only desktop's sticky panel scrolls by itself. */}
+            <div ref={previewRef} className="relative min-h-0 flex-1 space-y-8 overflow-x-auto px-5 pb-10 pt-4 sm:px-8 lg:overflow-auto">
               {invite.pages.map((p, i) => (
                 <button
                   key={p.id}

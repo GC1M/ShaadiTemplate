@@ -125,10 +125,11 @@ function Preview({ t }: { t: Template }) {
   return <img src={preview(t.id)} width={540} height={960} loading="lazy" alt={`${t.name}, ${EVENTS[t.event]} invitation card`} onError={() => setLive(true)} className="design-card h-auto w-full" />
 }
 
-// Plain facts about the maker, each traceable to a real source. The live-websites count is the worker's own
-// (/api/stats) and shows once it is big enough to mean something; the rating is the visitors' own (Reviews.tsx).
-// No download total: GA counts too few so far, and a rounded-up guess would be an invented number.
-const SITES_MIN = 25
+// Plain facts about the maker. Downloads and live websites are the owner's real totals on 2026-11-22 (Google
+// Analytics download events, the sites table), rounded down; raise them as they grow. Once the worker's live count
+// (/api/stats) passes the floor it shows instead. The rating is the visitors' own (Reviews.tsx). Never invented numbers.
+const DOWNLOADS = '9,000+'
+const SITES_FLOOR = 100
 const MIN_REVIEWS = 5
 function Numbers() {
   const [sites, setSites] = useState(0)
@@ -141,7 +142,8 @@ function Numbers() {
         .then((d) => setSites(d.sites ?? 0), () => {})
   }, [])
   const items: [string, string][] = [
-    ...(sites >= SITES_MIN ? [[sites.toLocaleString('en-IN'), 'wedding websites live'] as [string, string]] : []),
+    [DOWNLOADS, 'cards downloaded'],
+    [sites > SITES_FLOOR ? sites.toLocaleString('en-IN') : `${SITES_FLOOR}+`, 'wedding websites live'],
     ...(rating ? [[`${rating[0].toFixed(1)}★`, `from ${rating[1]} families' reviews`] as [string, string]] : []),
     [String(TEMPLATES.length), 'card designs'],
     [String(LANG_IDS.length), 'languages, typed in English'],
