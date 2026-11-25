@@ -218,7 +218,7 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
               </button>
             </li>
           ))}
-          <li className="ml-auto self-center px-2 text-xs text-stone-500">Tap another spelling · Esc closes</li>
+          <li className="ml-auto self-center px-2 text-xs text-stone-500">Tap another spelling<span className="pointer-coarse:hidden"> · Esc closes</span></li>
         </ul>
       )}
       {on && word && options.length > 0 && (
@@ -227,6 +227,21 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
           aria-label="Suggestions"
           className="absolute left-0 right-0 z-30 mt-1 flex flex-wrap gap-1 rounded-lg bg-white p-1.5 shadow-lg ring-1 ring-stone-200"
         >
+          {/* Phones have no Esc key, so the English word itself is the first choice. */}
+          <li>
+            <button
+              type="button"
+              role="option"
+              aria-selected={false}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                setWord('')
+              }}
+              className="rounded-md px-3 py-1.5 text-base pointer-coarse:min-h-11 text-stone-800 hover:bg-stone-100"
+            >
+              {word} <span className="text-xs text-stone-500">(keep English)</span>
+            </button>
+          </li>
           {options.map((o, i) => (
             <li key={o}>
               <button
@@ -244,7 +259,7 @@ export function TransliterateInput({ value, onChange, lang, enabled = true, mult
               </button>
             </li>
           ))}
-          <li className="ml-auto self-center px-2 text-xs text-stone-500">Space to accept · Esc keeps “{word}”</li>
+          <li className="ml-auto self-center px-2 text-xs text-stone-500">Space to accept<span className="pointer-coarse:hidden"> · Esc keeps “{word}”</span></li>
         </ul>
       )}
     </div>

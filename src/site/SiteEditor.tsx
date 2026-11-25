@@ -7,7 +7,7 @@ import { go, LOOKS, lookById, type Content, type Look } from './designs'
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
-import { TRACKS, youTubeId } from './music'
+import { TRACKS, youTubeClip, clipLink, clock, unclock, useClipPlayer, type Track } from './music'
 import { Segmented, useSplit } from '../ui'
 
 // The wedding website editor: /websites/<design>/edit starts a new site from a design, /w/<slug>/edit#<key>
@@ -33,6 +33,7 @@ const fresh = (l: Look): Content => ({
   ...l.demo,
   nativeNames: undefined,
   invocation: undefined,
+  families: ['', ''],
   story: l.demo.story.map(({ photo: _, ...s }) => s),
   meet: l.demo.meet?.map(() => ({ bio: '' })),
   events: l.demo.events.map(({ photo: _, ...e }, i) => ({ ...e, id: `e${i}`, map: '' })),
@@ -133,14 +134,6 @@ async function shrink(file: File, alt: string): Promise<Photo> {
     c.width = c.height = 0
     shrinking--
   }
-}
-
-// Some in-app browsers answer confirm() with "cancel" at once, without showing it, which would make the step
-// impossible there. An answer faster than a person could give counts as yes. Only for prompts where yes is harmless.
-// ponytail: a timing guess; swap for an in-page confirm step if it ever misfires.
-const ask = (message: string) => {
-  const t = performance.now()
-  return confirm(message) || performance.now() - t < 50
 }
 
 // For a draft too big to store: without the photos not yet published, so the words survive a reload.
@@ -293,6 +286,14 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
   }, [draft.slug, draft.key])
   // How to reach the couple and how they found us, asked with a first publish (all optional, see Reach).
   const [reach, setReach] = useState({ email: '', phone: '', marketing: false, heard: '' })
+  // What a first publish stops for once (see publish): sample words guests would read as the couple's, and no way
+  // to send the edit link again.
+  const [warned, setWarned] = useState(false)
+  const left = leftovers(c)
+  const checks = [
+    ...(left.length ? [`These still have the design's sample words, which guests will read as yours: ${left.join(', ')}.`] : []),
+    ...(!reach.email.trim() && !reach.phone.trim() ? ["There's no email or WhatsApp number to send your edit link to. If you lose it, you can't change your site."] : []),
+  ]
   const [justPublished, setJustPublished] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -308,15 +309,12 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
 
   const publish = async (e: FormEvent) => {
     e.preventDefault()
-    // A first publish with the design's sample words still in asks first: guests would read them as the couple's.
-    const left = leftovers(c)
     if (shrinking) return setError('A photo is still being added. Try again in a moment.')
-    if (!draft.key && left.length && !ask(`These still have the design's sample words: ${left.join(', ')}. Guests will see them as written. Publish anyway?`)) return
-    // Without an email or WhatsApp a lost edit link means a site that can't be changed, so a first publish asks once.
-    if (!draft.key && !reach.email.trim() && !reach.phone.trim() && !ask("You haven't added an email or WhatsApp number. If you lose your edit link, you can't change your site. Publish anyway?")) {
-      const box = document.getElementById('reach-email')
-      box?.scrollIntoView({ block: 'center' })
-      box?.focus({ preventScroll: true })
+    // A first publish with sample words still in, or with no way to send the edit link, stops once and lists them
+    // above the button (an in-page step: some in-app browsers skip confirm() without showing it).
+    if (!draft.key && checks.length && !warned) {
+      setWarned(true)
+      setTimeout(() => document.getElementById('before-publish')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 30)
       return
     }
     setBusy(true)
@@ -420,7 +418,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
             {draft.key && <Replies slug={draft.slug} edit={draft.key} events={c.events} />}
 
             <section className="space-y-5">
-              <Step n={1} title="Design and address" />
+              <Step n={1} title="Design, music and address" />
               <label className="block">
                 <span className="text-[13px] text-ink/65">Design</span>
                 <select value={draft.look} onChange={(e) => pickLook(e.target.value)} className={`${inputCls} select-chevron pr-10`}>
@@ -431,6 +429,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                   ))}
                 </select>
               </label>
+              <MusicField value={c.music} onChange={(music) => up(() => ({ music }))} />
               {draft.key ? (
                 <p className="text-[15px] text-ink/75">
                   Your address: <strong className="font-medium">shaaditemplate.com/w/{draft.slug}</strong>
@@ -466,13 +465,13 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
               <div className="grid gap-4 sm:grid-cols-2">
                 {[0, 1].map((i) => (
                   <div key={i} className="space-y-4">
-                    <Text label={i ? 'Second name' : 'First name'} value={c.couple[i]} onChange={(v) => pair('couple', i, v)} required maxLength={40} />
-                    <Text label="Family, as guests pick it in the RSVP" value={c.families[i]} onChange={(v) => pair('families', i, v)} maxLength={80} />
+                    <Text label={i ? "Groom's first name" : "Bride's first name"} value={c.couple[i]} onChange={(v) => pair('couple', i, v)} required maxLength={40} />
+                    <Text label="Family name guests pick in the RSVP (optional)" value={c.families[i]} onChange={(v) => pair('families', i, v)} placeholder={c.couple[i] ? `${c.couple[i]}’s family` : 'Sharma family'} maxLength={80} />
                     <Text label="Son or daughter of" value={c.parents[i]} onChange={(v) => pair('parents', i, v)} multiline maxLength={300} />
                   </div>
                 ))}
               </div>
-              <Text label="Invitation line" value={c.invite} onChange={(invite) => up(() => ({ invite }))} multiline maxLength={400} />
+              <Text label="Invitation line (optional)" value={c.invite} onChange={(invite) => up(() => ({ invite }))} multiline maxLength={400} />
               <Text label="Your names in your own language (optional)" value={c.nativeNames ?? ''} onChange={(nativeNames) => up(() => ({ nativeNames }))} placeholder="अदिति संग विहान" maxLength={80} />
               <Text label="Invocation on the opening screen (optional)" value={c.invocation ?? ''} onChange={(invocation) => up(() => ({ invocation }))} placeholder="श्री गणेशाय नमः" maxLength={80} />
             </section>
@@ -481,7 +480,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
               <Step n={3} title="Where and when" />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Text label="City (optional)" value={c.city} onChange={(city) => up(() => ({ city }))} maxLength={60} />
-                <Text label="Reply by" value={c.rsvpBy} onChange={(rsvpBy) => up(() => ({ rsvpBy }))} placeholder="15 November" maxLength={40} />
+                <Text label="Reply by (optional)" value={c.rsvpBy} onChange={(rsvpBy) => up(() => ({ rsvpBy }))} placeholder="15 November" maxLength={40} />
               </div>
               <Text label="Main venue (optional, the map link searches for this)" value={c.venue} onChange={(venue) => up(() => ({ venue }))} maxLength={160} />
               <Text label="Travel and stay, shown under the venue (optional)" value={c.stay ?? ''} onChange={(stay) => up(() => ({ stay }))} placeholder="Rooms are held at the hotel until 1 November. Mention our names when you book." multiline rows={2} maxLength={300} />
@@ -501,8 +500,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                       </label>
                     </div>
                     {tooFar(e.date) && <p className="text-[13px] text-maroon">Choose a date up to a year from today, by {new Date(`${lastDay}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}.</p>}
-                    <Text label="Time and place, in words (optional)" value={e.where} onChange={(where) => item('events', i, { where })} placeholder="7 pm, in the palace lawns" maxLength={120} />
-                    <Text label="Note for guests" value={e.note} onChange={(note) => item('events', i, { note })} maxLength={300} />
+                    <Text label="Place within the venue (optional)" value={e.where} onChange={(where) => item('events', i, { where })} placeholder="in the palace lawns" maxLength={120} />
+                    <Text label="Note for guests (optional)" value={e.note} onChange={(note) => item('events', i, { note })} maxLength={300} />
                     <Text label="Directions (optional): a Google Maps link or the address" value={e.map ?? ''} onChange={(map) => item('events', i, { map })} placeholder="https://maps.app.goo.gl/…" maxLength={500} />
                     {photoField('Photo', e.photo, (photo) => item('events', i, { photo }), e.name)}
                     <div className="flex flex-wrap gap-2">
@@ -630,17 +629,27 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
             <section className="space-y-5">
               <Step n={6} title="Notes for guests" />
               <Text label="A note from the two of you (optional)" value={c.note ?? ''} onChange={(note) => up(() => ({ note }))} multiline maxLength={400} />
-              <Text label="Things to note, one per line" value={c.notes.join('\n')} onChange={(v) => up(() => ({ notes: v.split('\n').slice(0, 20) }))} multiline rows={4} />
+              <Text label="Things to note, one per line (optional)" value={c.notes.join('\n')} onChange={(v) => up(() => ({ notes: v.split('\n').slice(0, 20) }))} multiline rows={4} />
               <Text label="With best compliments from, one per line (optional)" value={(c.compliments ?? []).join('\n')} onChange={(v) => up(() => ({ compliments: v.split('\n').slice(0, 20) }))} multiline rows={3} />
-              <MusicField value={c.music} onChange={(music) => up(() => ({ music }))} />
             </section>
 
             {!draft.key && <Reach value={reach} onChange={setReach} />}
 
             <section className="space-y-3 border-t border-zari/40 pt-8">
+              {warned && !draft.key && checks.length > 0 && (
+                <div id="before-publish" role="alert" className="space-y-2 rounded-md bg-rose/40 p-4 ring-1 ring-maroon/25">
+                  <p className="font-medium text-maroon">Before you publish</p>
+                  <ul className="list-disc space-y-1 pl-5 text-[15px] text-ink/80">
+                    {checks.map((x) => (
+                      <li key={x}>{x}</li>
+                    ))}
+                  </ul>
+                  <p className="text-[13px] text-ink/60">Fix them above, or publish as it is.</p>
+                </div>
+              )}
               <button type="submit" disabled={busy} className={`${btn} zari-button px-6 text-wine-deep`}>
                 {busy && <Loader2 className="size-4 animate-spin" aria-hidden />}
-                {draft.key ? 'Save changes' : 'Publish free'}
+                {draft.key ? 'Save changes' : warned && checks.length ? 'Publish anyway' : 'Publish free'}
               </button>
               <p className="text-[13px] text-ink/60">
                 By publishing you agree to our{' '}
@@ -752,44 +761,96 @@ const Step = ({ n, title }: { n: number; title: string }) => (
   </h2>
 )
 
-// Background music: off, a built-in instrumental (starts with the guest's first tap), or any YouTube song (plays
-// in YouTube's player when the guest taps "Play our song").
+// Background music, next to the design because it sets the site's feel: off, a built-in instrumental (starts with
+// the guest's first tap) or any YouTube song (plays in YouTube's player when the guest taps "Play our song"). Each
+// instrumental can be heard here before choosing it.
 function MusicField({ value, onChange }: { value?: string; onChange: (v: string | undefined) => void }) {
   const [yt, setYt] = useState(!!value && !value.startsWith('track:'))
-  const id = yt && value ? youTubeId(value) : undefined
+  const clip = yt && value ? youTubeClip(value) : undefined
+  const id = clip?.id
+  const sample = useRef<HTMLAudioElement>(null)
+  const [playing, setPlaying] = useState<string | null>(null)
+  const listen = (t: Track) => {
+    const a = sample.current
+    if (!a) return
+    if (playing === t.id) return a.pause()
+    a.src = t.src
+    a.play().catch(() => setPlaying(null))
+  }
+  const choice = yt ? 'youtube' : (value ?? '')
+  const pick = (v: string) => {
+    setYt(v === 'youtube')
+    onChange(v === 'youtube' || !v ? undefined : v)
+  }
+  const row = 'flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 ring-1 transition'
+  const ring = (on: boolean) => (on ? 'bg-paper ring-wine/40' : 'ring-wine/10 hover:ring-wine/25')
   return (
-    <div className="space-y-3">
-      <label className="block">
-        <span className="text-[13px] text-ink/65">Background music (optional)</span>
-        <select
-          value={yt ? 'youtube' : (value ?? '')}
-          onChange={(e) => {
-            const v = e.target.value
-            setYt(v === 'youtube')
-            onChange(v === 'youtube' || !v ? undefined : v)
-          }}
-          className={`${inputCls} select-chevron pr-10`}
-        >
-          <option value="">No music</option>
-          {TRACKS.map((t) => (
-            <option key={t.id} value={`track:${t.id}`}>
-              {t.name} (free to use)
-            </option>
-          ))}
-          <option value="youtube">A song of your choice from YouTube</option>
-        </select>
+    <fieldset className="space-y-2">
+      <legend className="text-[13px] text-ink/65">Background music (optional)</legend>
+      <audio ref={sample} onPlay={() => setPlaying(TRACKS.find((t) => sample.current?.src === t.src)?.id ?? null)} onPause={() => setPlaying(null)} onEnded={() => setPlaying(null)} />
+      <label className={`${row} ${ring(choice === '')}`}>
+        <input type="radio" name="music" checked={choice === ''} onChange={() => pick('')} className="size-4 accent-wine" />
+        No music
       </label>
-      {value?.startsWith('track:') && <audio controls src={TRACKS.find((t) => `track:${t.id}` === value)?.src} preload="none" className="w-full" />}
+      {TRACKS.map((t) => (
+        <div key={t.id} className={`${row} ${ring(choice === `track:${t.id}`)}`}>
+          <label className="flex flex-1 cursor-pointer items-center gap-3">
+            <input type="radio" name="music" checked={choice === `track:${t.id}`} onChange={() => pick(`track:${t.id}`)} className="size-4 accent-wine" />
+            {t.name}
+          </label>
+          <button type="button" onClick={() => listen(t)} aria-label={`${playing === t.id ? 'Stop' : 'Listen to'} ${t.name}`} className="rounded-full px-3 py-1 text-[13px] text-wine ring-1 ring-wine/20 hover:bg-wine/5 pointer-coarse:min-h-11">
+            {playing === t.id ? 'Stop' : 'Listen'}
+          </button>
+        </div>
+      ))}
+      <label className={`${row} ${ring(yt)}`}>
+        <input type="radio" name="music" checked={yt} onChange={() => pick('youtube')} className="size-4 accent-wine" />
+        A song of your choice from YouTube
+      </label>
       {yt && (
-        <>
+        <div className="space-y-2 pt-1">
           <Text label="YouTube link" value={value ?? ''} onChange={(v) => onChange(v)} placeholder="https://youtu.be/…" maxLength={200} />
           <p className="text-[13px] text-ink/60">
             {value && !id
               ? 'That doesn’t look like a YouTube video link. Copy it from Share on the video.'
-              : 'Guests tap “Play our song” and it plays in a small YouTube player. Some music labels block their videos on other sites; if yours won’t play in the preview, pick another upload of the song.'}
+              : 'It starts in a small YouTube player when a guest first taps your site, and plays the part you choose below over and over. Some music labels block their videos on other sites; if yours won’t play here, pick another upload of the song.'}
           </p>
-        </>
+          {clip && <ClipPicker key={clip.id} {...clip} onChange={(s, e) => onChange(clipLink(clip.id, s, e))} />}
+        </div>
       )}
+      {!yt && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts when a guest first taps the page.</p>}
+    </fieldset>
+  )
+}
+
+// Pick the part of the song that loops: play the video, tap "Starts here" and "Ends here" (or type the times).
+function ClipPicker({ id, start, end, onChange }: { id: string; start: number; end?: number; onChange: (start: number, end?: number) => void }) {
+  const box = useRef<HTMLDivElement>(null)
+  const player = useClipPlayer(box, id, start, end, { width: 280, height: 200 })
+  const now = () => Math.floor(player.current?.getCurrentTime() ?? 0)
+  const replay = () => player.current?.loadVideoById({ videoId: id, startSeconds: start, endSeconds: end })
+  const time = (label: string, v: number | undefined, set: (n: number | undefined) => void, mark: () => void) => (
+    <div className="flex items-end gap-2">
+      <label className="block">
+        <span className="text-[13px] text-ink/65">{label}</span>
+        <input key={v} defaultValue={v === undefined ? '' : clock(v)} placeholder={v === undefined ? 'end of song' : '0:00'} inputMode="numeric" onBlur={(e) => set(e.target.value.trim() ? unclock(e.target.value) : undefined)} className={`${inputCls} w-28`} />
+      </label>
+      <button type="button" onClick={mark} className={`${small} mb-px`}>
+        Set to now
+      </button>
+    </div>
+  )
+  return (
+    <div className="space-y-3 rounded-md p-3 ring-1 ring-wine/10">
+      <p className="text-[13px] text-ink/65">Choose the part that loops. Play the video, then tap Set to now where the part should start and end.</p>
+      <div ref={box} className="h-[200px] w-[280px] max-w-full overflow-hidden rounded bg-black" />
+      <div className="flex flex-wrap gap-4">
+        {time('Starts at', start, (n) => onChange(n ?? 0, end && end > (n ?? 0) ? end : undefined), () => onChange(now(), end && end > now() ? end : undefined))}
+        {time('Ends at', end, (n) => onChange(start, n && n > start ? n : undefined), () => onChange(start, now() > start ? now() : undefined))}
+      </div>
+      <button type="button" onClick={replay} className={small}>
+        Play the loop
+      </button>
     </div>
   )
 }
@@ -904,6 +965,10 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
         <div className="mt-2 flex flex-wrap gap-2">
           <a href={mail} className={small}>
             <Mail className="size-4" aria-hidden /> Email it to me
+          </a>
+          {/* Sent to their own chat ("Message yourself"), where couples keep things. */}
+          <a href={`https://wa.me/?text=${encodeURIComponent(`Our wedding website's secret edit link (keep it private, anyone with it can change the site):\n${edit}`)}`} target="_blank" rel="noreferrer" className={small}>
+            Save to my WhatsApp
           </a>
           <button type="button" onClick={() => copy(edit, setNote)} className={small}>
             <Copy className="size-4" aria-hidden /> Copy

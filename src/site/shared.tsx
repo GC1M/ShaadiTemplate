@@ -189,16 +189,22 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [party, setParty] = useState(saved?.party ?? 1)
+  // Coming or not is its own first choice, so nobody replies "coming to everything" by leaving the ticks alone.
+  const [coming, setComing] = useState(saved ? saved.events.length > 0 : true)
+  const [pickError, setPickError] = useState<{ at: 'side' | 'events'; msg: string } | null>(null)
 
   const submit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const f = new FormData(e.currentTarget)
     const name = String(f.get('name')).trim()
-    const events = f.getAll('events').map(String)
+    const events = coming ? f.getAll('events').map(String) : []
     if (!name) {
       ;(e.currentTarget.elements.namedItem('name') as HTMLInputElement).focus()
       return setError('Add your name so the families know who is coming.')
     }
+    // No side is picked for the guest: a skipped choice would count everyone as the first family.
+    if (!f.get('side')) return setPickError({ at: 'side', msg: 'Choose whose side you are with.' })
+    if (coming && !events.length) return setPickError({ at: 'events', msg: 'Tick the celebrations you’ll come to, or choose “Sorry, can’t make it”.' })
     const guest = saved?.guest ?? (crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`)
     const r: Rsvp = { name, side: String(f.get('side')), events, party, note: String(f.get('note')).trim(), guest }
     if (slug) {
@@ -262,27 +268,60 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
                 {[
                   ['a', d.families[0]],
                   ['b', d.families[1]],
-                  ['both', 'Both, somehow'],
+                  ['both', 'Both families'],
                 ].map(([v, label]) => (
                   <label key={v} className="ov-chip">
-                    <input type="radio" name="side" value={v} defaultChecked={(saved?.side ?? 'a') === v} className="sr-only" />
+                    <input type="radio" name="side" value={v} defaultChecked={saved?.side === v} onChange={() => setPickError(null)} className="sr-only" />
+                    {label}
+                  </label>
+                ))}
+              </div>
+              {pickError?.at === 'side' && (
+                <span className="ov-error" role="alert">
+                  {pickError.msg}
+                </span>
+              )}
+            </fieldset>
+            <fieldset>
+              <legend className="ov-label">Are you coming?</legend>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {[
+                  [true, 'Yes, I’ll be there'],
+                  [false, 'Sorry, can’t make it'],
+                ].map(([v, label]) => (
+                  <label key={String(v)} className="ov-chip">
+                    <input
+                      type="radio"
+                      name="coming"
+                      checked={coming === v}
+                      onChange={() => {
+                        setComing(v as boolean)
+                        setPickError(null)
+                      }}
+                      className="sr-only"
+                    />
                     {label}
                   </label>
                 ))}
               </div>
             </fieldset>
-            <fieldset>
-              <legend className="ov-label">Which celebrations? Leave all unticked if you can’t come.</legend>
+            <fieldset hidden={!coming}>
+              <legend className="ov-label">Which celebrations?</legend>
               <div className="mt-4 flex flex-wrap gap-3">
                 {d.events.map((e) => (
                   <label key={e.id} className="ov-chip">
-                    <input type="checkbox" name="events" value={e.id} defaultChecked={saved ? saved.events.includes(e.id) : true} className="sr-only" />
+                    <input type="checkbox" name="events" value={e.id} defaultChecked={saved?.events.length ? saved.events.includes(e.id) : true} onChange={() => setPickError(null)} className="sr-only" />
                     {e.name}
                   </label>
                 ))}
               </div>
+              {pickError?.at === 'events' && (
+                <span className="ov-error" role="alert">
+                  {pickError.msg}
+                </span>
+              )}
             </fieldset>
-            <div>
+            <div hidden={!coming}>
               <span className="ov-label" id="party-l">
                 How many of you, including you?
               </span>
