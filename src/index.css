@@ -199,7 +199,8 @@ html:is([data-view='editor'], [data-view='site']) :is(#site-info, #site-closing,
 @media (max-width: 599px) {
   .hero-scene { flex-direction: column; align-items: center; gap: 40px; }
   .scene-mandap { width: 100%; max-width: 400px; flex: none; }
-  .scene-gate { width: 85%; max-width: 320px; flex: none; margin-top: 0; }
+  /* On phones the gateway would push the gallery another screen down; the header and hero buttons link the websites. */
+  .scene-gate { display: none; }
 }
 
 /* The mandap (viewBox 600x900) draws itself; the card stands on its platform (top edge at y 840) between the
