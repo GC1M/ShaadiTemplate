@@ -7,6 +7,7 @@ import { go, LOOKS, lookById, type Content, type Look } from './designs'
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
+import { TRACKS, youTubeId } from './music'
 import { Segmented, useSplit } from '../ui'
 
 // The wedding website editor: /websites/<design>/edit starts a new site from a design, /w/<slug>/edit#<key>
@@ -24,13 +25,15 @@ const inputCls = 'mt-1.5 w-full rounded-md border border-wine/20 bg-paper px-3.5
 const btn = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium disabled:opacity-60 pointer-coarse:min-h-11'
 const small = 'inline-flex items-center gap-1.5 rounded-full border border-wine/25 px-3 py-1.5 text-sm text-wine hover:bg-wine/5 pointer-coarse:min-h-11'
 
-// A look's demo words, without its photos (anything left out shows the design's own photo) and without the demo
-// couple's names in their script, which nobody should publish by leaving the box alone.
+// A look's demo words, without its photos (anything left out shows the design's own photo) and without what
+// nobody should publish by leaving the box alone: the demo couple's names in their script, their invocation (a
+// god that may not be the couple's) and their bios.
 const fresh = (l: Look): Content => ({
   ...l.demo,
   nativeNames: undefined,
+  invocation: undefined,
   story: l.demo.story.map(({ photo: _, ...s }) => s),
-  meet: l.demo.meet?.map(({ photo: _, ...m }) => m),
+  meet: l.demo.meet?.map(() => ({ bio: '' })),
   events: l.demo.events.map(({ photo: _, ...e }, i) => ({ ...e, id: `e${i}` })),
   photos: { gallery: [] },
 })
@@ -70,6 +73,8 @@ export function leftovers(c: Content): string[] {
     ['your story', any((d) => d.story.flatMap((x) => [x.title, x.body]), c.story.flatMap((x) => [x.title, x.body]))],
     ['note from the two of you', any((d) => [d.note], [c.note])],
     ['things to note', any((d) => d.notes, c.notes)],
+    ['invocation', any((d) => [d.invocation], [c.invocation])],
+    ['about the two of you', any((d) => d.meet?.map((m) => m.bio) ?? [], c.meet?.map((m) => m.bio) ?? [])],
     ['best compliments', any((d) => d.compliments ?? [], c.compliments ?? [])],
   ]
   return found.filter(([, on]) => on).map(([name]) => name)
@@ -85,6 +90,7 @@ const prep = (c: Content): Content => ({
   invocation: c.invocation?.trim() || undefined,
   note: c.note?.trim() || undefined,
   stay: c.stay?.trim() || undefined,
+  music: c.music?.trim() || undefined,
 })
 
 // After a save: the server's copy (uploaded photos now have addresses), keeping the lines and bios as typed.
@@ -474,10 +480,10 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
             <section className="space-y-5">
               <Step n={3} title="Where and when" />
               <div className="grid gap-4 sm:grid-cols-2">
-                <Text label="City" value={c.city} onChange={(city) => up(() => ({ city }))} required maxLength={60} />
+                <Text label="City (optional)" value={c.city} onChange={(city) => up(() => ({ city }))} maxLength={60} />
                 <Text label="Reply by" value={c.rsvpBy} onChange={(rsvpBy) => up(() => ({ rsvpBy }))} placeholder="15 November" maxLength={40} />
               </div>
-              <Text label="Venue (the map link searches for this)" value={c.venue} onChange={(venue) => up(() => ({ venue }))} maxLength={160} />
+              <Text label="Main venue (optional, the map link searches for this)" value={c.venue} onChange={(venue) => up(() => ({ venue }))} maxLength={160} />
               <Text label="Travel and stay, shown under the venue (optional)" value={c.stay ?? ''} onChange={(stay) => up(() => ({ stay }))} placeholder="Rooms are held at the hotel until 1 November. Mention our names when you book." multiline rows={2} maxLength={300} />
               <div className="space-y-4">
                 {c.events.map((e, i) => (
@@ -497,6 +503,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                     {tooFar(e.date) && <p className="text-[13px] text-maroon">Choose a date up to a year from today, by {new Date(`${lastDay}T00:00:00Z`).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })}.</p>}
                     <Text label="Time and place, in words (optional)" value={e.where} onChange={(where) => item('events', i, { where })} placeholder="7 pm, in the palace lawns" maxLength={120} />
                     <Text label="Note for guests" value={e.note} onChange={(note) => item('events', i, { note })} maxLength={300} />
+                    <Text label="Directions (optional): a Google Maps link or the address" value={e.map ?? ''} onChange={(map) => item('events', i, { map })} placeholder="https://maps.app.goo.gl/…" maxLength={500} />
                     {photoField('Photo', e.photo, (photo) => item('events', i, { photo }), e.name)}
                     <div className="flex flex-wrap gap-2">
                       {i > 0 && (
@@ -623,8 +630,9 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
             <section className="space-y-5">
               <Step n={6} title="Notes for guests" />
               <Text label="A note from the two of you (optional)" value={c.note ?? ''} onChange={(note) => up(() => ({ note }))} multiline maxLength={400} />
-              <Text label="Things to note, one per line" value={c.notes.join('\n')} onChange={(v) => up(() => ({ notes: v.split('\n') }))} multiline rows={4} />
-              <Text label="With best compliments from, one per line (optional)" value={(c.compliments ?? []).join('\n')} onChange={(v) => up(() => ({ compliments: v.split('\n') }))} multiline rows={3} />
+              <Text label="Things to note, one per line" value={c.notes.join('\n')} onChange={(v) => up(() => ({ notes: v.split('\n').slice(0, 20) }))} multiline rows={4} />
+              <Text label="With best compliments from, one per line (optional)" value={(c.compliments ?? []).join('\n')} onChange={(v) => up(() => ({ compliments: v.split('\n').slice(0, 20) }))} multiline rows={3} />
+              <MusicField value={c.music} onChange={(music) => up(() => ({ music }))} />
             </section>
 
             {!draft.key && <Reach value={reach} onChange={setReach} />}
@@ -743,6 +751,48 @@ const Step = ({ n, title }: { n: number; title: string }) => (
     {title}
   </h2>
 )
+
+// Background music: off, a built-in instrumental (starts with the guest's first tap), or any YouTube song (plays
+// in YouTube's player when the guest taps "Play our song").
+function MusicField({ value, onChange }: { value?: string; onChange: (v: string | undefined) => void }) {
+  const [yt, setYt] = useState(!!value && !value.startsWith('track:'))
+  const id = yt && value ? youTubeId(value) : undefined
+  return (
+    <div className="space-y-3">
+      <label className="block">
+        <span className="text-[13px] text-ink/65">Background music (optional)</span>
+        <select
+          value={yt ? 'youtube' : (value ?? '')}
+          onChange={(e) => {
+            const v = e.target.value
+            setYt(v === 'youtube')
+            onChange(v === 'youtube' || !v ? undefined : v)
+          }}
+          className={`${inputCls} select-chevron pr-10`}
+        >
+          <option value="">No music</option>
+          {TRACKS.map((t) => (
+            <option key={t.id} value={`track:${t.id}`}>
+              {t.name} (free to use)
+            </option>
+          ))}
+          <option value="youtube">A song of your choice from YouTube</option>
+        </select>
+      </label>
+      {value?.startsWith('track:') && <audio controls src={TRACKS.find((t) => `track:${t.id}` === value)?.src} preload="none" className="w-full" />}
+      {yt && (
+        <>
+          <Text label="YouTube link" value={value ?? ''} onChange={(v) => onChange(v)} placeholder="https://youtu.be/…" maxLength={200} />
+          <p className="text-[13px] text-ink/60">
+            {value && !id
+              ? 'That doesn’t look like a YouTube video link. Copy it from Share on the video.'
+              : 'Guests tap “Play our song” and it plays in a small YouTube player. Some music labels block their videos on other sites; if yours won’t play in the preview, pick another upload of the song.'}
+          </p>
+        </>
+      )}
+    </div>
+  )
+}
 
 function Text({ label, value, onChange, multiline, rows = 3, ...rest }: { label: string; value: string; onChange: (v: string) => void; multiline?: boolean; rows?: number; required?: boolean; maxLength?: number; placeholder?: string }) {
   return (

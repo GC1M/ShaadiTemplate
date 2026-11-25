@@ -279,6 +279,15 @@ const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice
 const arr = <T>(v: unknown, max: number, f: (x: any) => T) => (Array.isArray(v) ? v.slice(0, max).map(f) : [])
 const DATA_URL = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+=*)$/
 
+// Background music: one of the built-in tracks (src/site/music.tsx) or a YouTube video, kept as a plain youtu.be
+// link (the site plays it in YouTube's own player).
+const music = (v: unknown) => {
+  if (typeof v !== 'string') return undefined
+  if (/^track:[a-z]{1,12}$/.test(v)) return v
+  const id = v.trim().match(/^(?:https?:\/\/)?(?:www\.|m\.|music\.)?(?:youtube\.com\/(?:watch\?(?:.*&)?v=|shorts\/|embed\/|live\/)|youtu\.be\/)([\w-]{11})(?:[?&#/]|$)/)?.[1]
+  return id ? `https://youtu.be/${id}` : undefined
+}
+
 // Keeps only the fields the site draws, trimmed to sane lengths. Photos must be new uploads (data URLs) or ones
 // already stored for this site; any other URL is dropped.
 function clean(raw: any, ownPhoto: (src: string) => boolean, saved = new Set<string>()) {
@@ -298,14 +307,15 @@ function clean(raw: any, ownPhoto: (src: string) => boolean, saved = new Set<str
     meet: Array.isArray(c.meet) ? arr(c.meet, 2, (m) => ({ bio: str(m?.bio, 500), photo: photo(m?.photo) })) : undefined,
     // All blank lines is no list at all: an empty one would draw an empty "With best compliments from".
     compliments: (() => {
-      const xs = Array.isArray(c.compliments) ? arr(c.compliments, 10, (x) => str(x, 160)).filter(Boolean) : []
+      const xs = Array.isArray(c.compliments) ? arr(c.compliments, 20, (x) => str(x, 160)).filter(Boolean) : []
       return xs.length ? xs : undefined
     })(),
     nativeNames: str(c.nativeNames, 80) || undefined,
     invocation: str(c.invocation, 80) || undefined,
     note: str(c.note, 400) || undefined,
     stay: str(c.stay, 300) || undefined,
-    notes: arr(c.notes, 10, (x) => str(x, 300)).filter(Boolean),
+    music: music(c.music),
+    notes: arr(c.notes, 20, (x) => str(x, 300)).filter(Boolean),
     city: str(c.city, 60),
     venue: str(c.venue, 160),
     invite: str(c.invite, 400),
@@ -318,6 +328,7 @@ function clean(raw: any, ownPhoto: (src: string) => boolean, saved = new Set<str
       time: /^([01]\d|2[0-3]):[0-5]\d$/.test(e?.time) ? e.time : '',
       where: str(e?.where, 120),
       note: str(e?.note, 300),
+      map: str(e?.map, 500) || undefined,
       photo: photo(e?.photo),
     })),
     mainEvent: Number.isInteger(c.mainEvent) && c.mainEvent >= 0 && c.mainEvent < 8 ? c.mainEvent : undefined,

@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode, type RefObject } from 'react'
-import { mainOf, type Design } from '../designs'
+import { invokesGanesh, mainOf, mapsUrl, type Design } from '../designs'
 import { Blessings, RsvpForm, downloadIcs, jump, reducedMotion, useLenis } from '../shared'
 import { istDate, SiteFooter, SiteNav, themeVars, type SiteProps } from '../WeddingSite'
 import '../organza.css'
 import '../site.css'
 import './mahal.css'
+import { Music } from '../music'
 
 // Mahal at Dusk: a painted palace that swells as the guest scrolls, elephants walking into the invitation card, and a
 // curtain the bride and groom pull open on the couple. Every word and photo comes from the Design; the art is the
@@ -16,10 +17,10 @@ const clamp = (n: number) => Math.min(1, Math.max(0, n))
 // The painted icon for a function, by its name; anything unknown gets the diya.
 const ICONS: [RegExp, string][] = [
   [/haldi|pithi|turmeric|ubtan|mayun/i, 'haldi'],
-  [/meh[ea]n?di|henna/i, 'mehendi'],
+  [/meh[ae]?n?d[hi]|mendhi|henna/i, 'mehendi'],
   [/sangeet|cocktail|garba|dandiya|party|dinner|mixer/i, 'cocktail'],
   [/recep|walima/i, 'reception'],
-  [/shaadi|wedding|viva+h|phera|nikah|lagna|melap|kalyanam|anand|marriage|ceremony/i, 'shaadi'],
+  [/shaadi|wedding|viva+h|phera|nikah|lagna|melap|kalyanam|anand|marriage/i, 'shaadi'],
 ]
 const iconOf = (name: string) => ICONS.find(([re]) => re.test(name))?.[1] ?? 'sagan'
 
@@ -158,7 +159,7 @@ function Hero({ d }: { d: Design }) {
           {d.nativeNames && <p className="mh-native">{d.nativeNames}</p>}
           {main && (
             <p className="mh-when">
-              {main.date.split(', ').pop()} · {d.city}
+              {[main.date.split(', ').pop(), d.city].filter(Boolean).join(' · ')}
             </p>
           )}
           {main && <Countdown key={main.start} to={main.start} />}
@@ -222,7 +223,7 @@ function Invite({ d }: { d: Design }) {
         <div className="mh-card mh-in">
           {d.invocation && (
             <>
-              <img className="mh-ganesha" src={art('elements/element-6')} width={266} height={280} alt="Shri Ganesh" loading="lazy" />
+              {invokesGanesh(d.invocation) && <img className="mh-ganesha" src={art('elements/element-6')} width={266} height={280} alt="Shri Ganesh" loading="lazy" />}
               <p className="mh-invocation">{d.invocation}</p>
             </>
           )}
@@ -279,6 +280,11 @@ function Events({ d }: { d: Design }) {
               <button type="button" onClick={() => downloadIcs(e, d)}>
                 Add to calendar
               </button>
+              {e.map && (
+                <a href={e.map} target="_blank" rel="noreferrer">
+                  Directions
+                </a>
+              )}
             </p>
           </li>
         ))}
@@ -438,12 +444,14 @@ function Things({ d, maps }: { d: Design; maps: string }) {
     <section id="things" className="mh-things">
       <Head eye="Good to know" title="Things to" em="Know" />
       <ul className="mh-tiles">
-        <Tile label="Venue" icon={<><path d="M16 3a10 10 0 0 1 10 10c0 9-10 18-10 18S6 22 6 13A10 10 0 0 1 16 3z" /><circle cx="16" cy="13" r="3.5" /></>}>
-          <p>{d.venue}</p>
-          <a href={maps} target="_blank" rel="noreferrer" className="mh-link">
-            Open in Google Maps
-          </a>
-        </Tile>
+        {d.venue && (
+          <Tile label="Venue" icon={<><path d="M16 3a10 10 0 0 1 10 10c0 9-10 18-10 18S6 22 6 13A10 10 0 0 1 16 3z" /><circle cx="16" cy="13" r="3.5" /></>}>
+            <p>{d.venue}</p>
+            <a href={maps} target="_blank" rel="noreferrer" className="mh-link">
+              Open in Google Maps
+            </a>
+          </Tile>
+        )}
         {d.stay && (
           <Tile label="Stay" icon={<path d="M4 26V10m0 10h24v6M4 20v-4h24v4M8 16v-3h6v3" />}>
             <p>{d.stay}</p>
@@ -481,20 +489,24 @@ export default function Mahal({ d, mode, slug }: SiteProps) {
   useLenis()
   const root = useRef<HTMLDivElement>(null)
   useReveal(root, d)
-  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.venue)}`
+  const maps = mapsUrl(d.venue)
   const main = mainOf(d)
-  const links = [['invite', 'Invitation'], ...(d.events.length ? [['events', 'Events']] : []), ['story', 'Story'], ['things', 'Venue'], ['rsvp', 'RSVP']]
+  // The curtain and story only when there is something behind them, and the details only when there are some.
+  const hasCouple = d.story.some((s) => s.title.trim() || s.body.trim()) || !!d.meet?.some((m) => m.bio.trim()) || !!d.note
+  const hasThings = !!(d.venue || d.stay || d.rsvpBy || d.notes.length || d.compliments?.length)
+  const links = [['invite', 'Invitation'], ...(d.events.length ? [['events', 'Events']] : []), ...(hasCouple ? [['story', 'Story']] : []), ...(hasThings ? [['things', d.venue ? 'Venue' : 'Details']] : []), ['rsvp', 'RSVP']]
 
   return (
     <div ref={root} className="ov mh" style={themeVars(d)}>
       <SiteNav d={d} mode={mode} links={links} show className="mh-nav" namesClass="mh-nav-names" />
+      <Music music={d.music} />
 
       <Hero d={d} />
       <Invite d={d} />
       <Events d={d} />
-      <Story d={d} />
+      {hasCouple && <Story d={d} />}
       <Gallery d={d} />
-      <Things d={d} maps={maps} />
+      {hasThings && <Things d={d} maps={maps} />}
 
       <div className="mh-rsvp">
         <img className="mh-rsvp-toran" src={art('backgrounds/background-4')} alt="" loading="lazy" />

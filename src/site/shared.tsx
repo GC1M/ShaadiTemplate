@@ -52,7 +52,7 @@ export function downloadIcs(e: WeddingEvent, d: Design) {
     `DTSTART:${fromIst(e.start)}`,
     `DTEND:${fromIst(e.end)}`,
     `SUMMARY:${icsText(`${e.name}: ${d.couple.join(' and ')}`)}`,
-    `LOCATION:${icsText(d.venue)}`,
+    `LOCATION:${icsText(e.place || d.venue)}`,
     `DESCRIPTION:${icsText([e.time, e.note].filter(Boolean).join('. '))}`,
     'END:VEVENT',
     'END:VCALENDAR',
@@ -60,7 +60,7 @@ export function downloadIcs(e: WeddingEvent, d: Design) {
   // In-app browsers (Instagram, Facebook, Android WebView) ignore downloads, so the button would do nothing there:
   // they get Google Calendar's add-event page instead.
   if (/\bwv\b|FBAN|FBAV|Instagram|Line\//.test(navigator.userAgent)) {
-    const q = new URLSearchParams({ action: 'TEMPLATE', text: `${e.name}: ${d.couple.join(' and ')}`, dates: `${fromIst(e.start)}/${fromIst(e.end)}`, location: d.venue, details: [e.time, e.note].filter(Boolean).join('. ') })
+    const q = new URLSearchParams({ action: 'TEMPLATE', text: `${e.name}: ${d.couple.join(' and ')}`, dates: `${fromIst(e.start)}/${fromIst(e.end)}`, location: e.place || d.venue, details: [e.time, e.note].filter(Boolean).join('. ') })
     return void window.open(`https://calendar.google.com/calendar/render?${q}`, '_blank')
   }
   const a = document.createElement('a')
@@ -228,7 +228,7 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
           <div className="ov-rise mt-14 flex flex-col items-center text-center" aria-live="polite">
             <Knot />
             <p className="ov-display mt-6 text-[clamp(2rem,4vw,3rem)] italic">
-              {saved.events.length ? `See you in ${d.city}, ${saved.name}.` : `We’ll miss you, ${saved.name}.`}
+              {saved.events.length ? `See you ${d.city ? `in ${d.city}` : 'there'}, ${saved.name}.` : `We’ll miss you, ${saved.name}.`}
             </p>
             <p className="mt-3 text-(--ov-mogra)/75">
               {saved.events.length
