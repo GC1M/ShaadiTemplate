@@ -205,6 +205,35 @@
     display: flex;
   }
 }
+/* A sample's own controls, floating at the bottom right so they read as apart from the couple's site. */
+.st-sample {
+  position: fixed;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  right: 1rem;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.375rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ov-kohl) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--ov-zari) 35%, transparent);
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.18);
+  color: var(--ov-mogra);
+  font-size: 0.9rem;
+  opacity: 0;
+  transform: translateY(150%);
+  transition:
+    opacity 600ms 1.4s ease,
+    transform 600ms 1.4s ease;
+}
+.st-sample[data-show] {
+  opacity: 1;
+  transform: none;
+}
 .st-use {
   min-height: 40px;
   display: inline-flex;

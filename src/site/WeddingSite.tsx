@@ -756,27 +756,27 @@ export function Report({ slug }: { slug: string }) {
   )
 }
 
-// The bar every design shares: back to the designs (or the couple's names on their own site), the section links,
-// and on a sample "Make yours free" and the design switcher. Bespoke designs pass their own links.
+// The bar every design shares: the couple's names and the section links, the same on a sample as on a published site.
+// A sample adds a floating pill at the bottom right (back to the designs, "Make yours free", the design switcher), apart from
+// the site so visitors don't take it for part of the couple's website. Bespoke designs pass their own links.
 export function SiteNav({ d, mode, links, show, className = '', namesClass = 'ov-display' }: Pick<SiteProps, 'd' | 'mode'> & { links: string[][]; show: boolean; className?: string; namesClass?: string }) {
   return (
-    <nav aria-label="Sections" className={`st-nav ${className}`} data-show={show || undefined}>
-      {mode === 'demo' ? (
-        <a href="/websites/" className="st-back min-w-11" aria-label="All designs">
-          ←<span className="ml-1.5 hidden sm:inline">All designs</span>
-        </a>
-      ) : (
+    <>
+      <nav aria-label="Sections" className={`st-nav ${className}`} data-show={show || undefined}>
         <span className={`st-back ${namesClass}`}>{d.couple.join(' & ')}</span>
-      )}
-      <div className="st-links">
-        {links.map(([id, label]) => (
-          <a key={id} href={`#${id}`} onClick={(e) => jump(e, id, -64)}>
-            {label}
-          </a>
-        ))}
-      </div>
+        <div className="st-links">
+          {links.map(([id, label]) => (
+            <a key={id} href={`#${id}`} onClick={(e) => jump(e, id, -64)}>
+              {label}
+            </a>
+          ))}
+        </div>
+      </nav>
       {mode === 'demo' && (
-        <div className="flex items-center gap-2">
+        <div className="st-sample" data-show={show || undefined}>
+          <a href="/websites/" className="st-back min-w-11 px-2" aria-label="All designs">
+            ←<span className="ml-1.5 hidden sm:inline">All designs</span>
+          </a>
           {API && (
             <a href={`${designPath(d)}edit/`} className="st-use">
               Make yours free
@@ -785,7 +785,7 @@ export function SiteNav({ d, mode, links, show, className = '', namesClass = 'ov
           <PageSwitch d={d} />
         </div>
       )}
-    </nav>
+    </>
   )
 }
 
