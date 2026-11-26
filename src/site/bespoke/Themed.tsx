@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { API } from '../api'
-import { designPath, invokesGanesh, mainOf, mapsUrl, THEME, type Design } from '../designs'
+import { designPath, invokesGanesh, mainOf, mapsUrl, passId, THEME, type Design } from '../designs'
 import { Music } from '../music'
 import { COUPLE, SHOTS } from '../photos'
 import { Blessings, RsvpForm } from '../shared'
@@ -8,7 +8,7 @@ import { SiteFooter, themeVars, type SiteProps } from '../WeddingSite'
 import '../organza.css'
 import '../site.css'
 
-// The themed websites (Night Call, Web Line, Forge Heart): each is its own hand-built page with its own music in
+// The themed websites (Night Call, Web Line, Forge Heart, Vice Nights): each is its own hand-built page with its own music in
 // public/microsites/<id>/, shown here full screen in a frame. Its sample page is the demo; for a couple's site or
 // the editor's preview this sends the couple's words in (public/microsites/fill.js fills the page), and the page's
 // RSVP and blessings buttons open the site's own forms here, so replies reach the couple like on every design.
@@ -27,7 +27,7 @@ function content(d: Design, preview: boolean) {
     notes: d.notes,
     compliments: d.compliments ?? [],
     story: d.story.map(({ year, title, body }) => ({ year, title, body })),
-    events: d.events.map((e) => ({ name: e.name, date: e.date, time: e.time, note: e.note, map: e.map ?? '', start: e.start, main: e.id === main?.id })),
+    events: d.events.map((e) => ({ id: passId(e.name), name: e.name, date: e.date, time: e.time, note: e.note, map: e.map ?? '', start: e.start, main: e.id === main?.id })),
     main: { name: main?.name ?? '', date: main?.date ?? '', time: main?.time ?? '', start: main?.start ?? '' },
     venue: d.venue,
     venueName: d.venue.split(',')[0].trim(),
@@ -46,13 +46,28 @@ function content(d: Design, preview: boolean) {
   }
 }
 
+// A guest pass, from a link the couple made for one guest (SiteEditor.tsx): ?guest=Rohan%20Shah&events=sangeet,wedding.
+// The name is plain text, at most 40 characters; event ids that match none of this site's functions are dropped.
+function guestPass(d: Design) {
+  const q = new URLSearchParams(location.search)
+  const guest = (q.get('guest') ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40)
+  const ids = (q.get('events') ?? '').toLowerCase().split(',').map((s) => s.trim())
+  const events = d.events.filter((e) => ids.includes(passId(e.name)))
+  return guest || events.length ? { guest, events: events.map((e) => passId(e.name)), picks: events.map((e) => e.id) } : null
+}
+
 export default function Themed({ d, mode, slug }: SiteProps) {
   const frame = useRef<HTMLIFrameElement>(null)
   const [open, setOpen] = useState<'rsvp' | 'bless' | 'about' | null>(null)
   const back = useRef<Element | null>(null)
   const data = useMemo(() => (mode === 'demo' ? null : content(d, mode === 'preview')), [d, mode])
+  const pass = useMemo(() => (mode === 'preview' ? null : guestPass(d)), [d, mode])
   useEffect(() => {
-    const send = () => data && frame.current?.contentWindow?.postMessage({ type: 'microsite-content', data }, location.origin)
+    const send = () => {
+      const w = frame.current?.contentWindow
+      if (data) w?.postMessage({ type: 'microsite-content', data }, location.origin)
+      if (pass) w?.postMessage({ type: 'microsite-pass', pass: { guest: pass.guest, events: pass.events } }, location.origin)
+    }
     const on = (e: MessageEvent) => {
       if (e.source !== frame.current?.contentWindow) return
       if (e.data?.type === 'microsite-ready') send()
@@ -66,7 +81,7 @@ export default function Themed({ d, mode, slug }: SiteProps) {
     addEventListener('message', on)
     send()
     return () => removeEventListener('message', on)
-  }, [data])
+  }, [data, pass])
   const close = () => {
     setOpen(null)
     ;(back.current as HTMLElement | null)?.focus?.()
@@ -114,7 +129,23 @@ export default function Themed({ d, mode, slug }: SiteProps) {
           <button type="button" onClick={close} autoFocus aria-label="Back to the invitation" className="fixed right-3 top-3 z-10 grid size-11 place-items-center rounded-full bg-black/60 text-2xl text-white">
             ×
           </button>
-          {open === 'rsvp' ? <RsvpForm d={d} slug={slug} /> : open === 'bless' ? <Blessings d={d} slug={slug} /> : <div className="h-20" />}
+          {open === 'rsvp' ? (
+            <RsvpForm
+              d={d}
+              slug={slug}
+              prefill={pass ? { name: pass.guest, events: pass.picks } : undefined}
+              // Vice Nights shows the reply as its own full-screen "mission passed".
+              onDone={
+                d.bespoke === 'vicenights'
+                  ? (r) => {
+                      setOpen(null)
+                      frame.current?.focus()
+                      frame.current?.contentWindow?.postMessage({ type: 'microsite-rsvp-done', name: r.name, coming: r.events.length > 0 }, location.origin)
+                    }
+                  : undefined
+              }
+            />
+          ) : open === 'bless' ? <Blessings d={d} slug={slug} /> : <div className="h-20" />}
           <footer className="px-6 pb-16 text-center text-sm opacity-75">
             <SiteFooter d={d} mode={mode} slug={slug} />
           </footer>

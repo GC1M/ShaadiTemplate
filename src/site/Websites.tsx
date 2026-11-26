@@ -74,7 +74,7 @@ function Phone({ d }: { d: Design }) {
   )
 }
 
-// The themed websites (comic noir, superhero comic, armoured tech), each its own page with its own music, get a
+// The themed websites (comic noir, superhero comic, armoured tech, open-world game), each its own page with its own music, get a
 // section of their own after the rest.
 const THEMED = DESIGNS.filter((d) => d.cover?.startsWith('/microsites/'))
 
@@ -156,7 +156,7 @@ export default function Websites() {
           ))}
         </ul>
         <h2 className="mt-24 font-display text-[clamp(2rem,5vw,3rem)] leading-[1.05]">Themed websites</h2>
-        <p className="mt-4 max-w-[58ch] text-rose/80">Comic-book and movie-night designs with every function, the families and RSVP. Make one yours like any other design.</p>
+        <p className="mt-4 max-w-[58ch] text-rose/80">Comic-book, movie-night and game-style designs with every function, the families and RSVP. Make one yours like any other design.</p>
         <ul className="mt-10 grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
           {THEMED.map((d) => (
             <li key={d.id}>

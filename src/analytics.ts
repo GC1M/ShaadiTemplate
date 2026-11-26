@@ -19,7 +19,14 @@ const CONSENT_REGIONS = 'AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU M
 
 // The address as analytics may see it: never with a wedding website's edit key (App.tsx takes it off on arrival;
 // this covers both shapes a link can carry it in, should one slip through).
-const href = () => location.href.replace(/\?k=[a-f0-9]+|(\/w\/[a-z0-9-]+\/edit\/?)#.*/, '$1')
+// Nor with a guest pass's name and functions (?guest=…&events=…, site/bespoke/Themed.tsx).
+const href = () => {
+  const u = new URL(location.href.replace(/\?k=[a-f0-9]+|(\/w\/[a-z0-9-]+\/edit\/?)#.*/, '$1'))
+  if (!u.searchParams.has('guest') && !u.searchParams.has('events')) return u.href
+  u.searchParams.delete('guest')
+  u.searchParams.delete('events')
+  return u.href
+}
 
 const load = (src: string) => document.head.appendChild(Object.assign(document.createElement('script'), { async: true, src }))
 

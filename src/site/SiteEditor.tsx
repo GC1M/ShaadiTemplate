@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type Rea
 import { track } from '../analytics'
 import { Wordmark } from '../Hero'
 import { api, editKey, editLink, lean, liveLink } from './api'
-import { go, LOOKS, lookById, THEME, type Content, type Look } from './designs'
+import { go, LOOKS, lookById, passId, THEME, type Content, type Look } from './designs'
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
@@ -741,8 +741,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
 
             <section className="space-y-5">
               <Step n={5} title="Your story" />
-              {/* Two themed designs have no story section. */}
-              {['nightcall', 'forgeheart'].includes(lookById(draft.look)?.bespoke ?? '') && <p className="text-[15px] text-ink/70">This design has no story section, so anything here stays off your site. Pick another design to tell your story.</p>}
+              {/* Three themed designs have no story section. */}
+              {['nightcall', 'forgeheart', 'vicenights'].includes(lookById(draft.look)?.bespoke ?? '') && <p className="text-[15px] text-ink/70">This design has no story section, so anything here stays off your site. Pick another design to tell your story.</p>}
               {c.story.map((s, i) => (
                 <fieldset key={i} className="space-y-3 rounded-md bg-paper/70 p-4 ring-1 ring-wine/10">
                   <legend className="sr-only">Chapter {i + 1}</legend>
@@ -1180,6 +1180,53 @@ const copy = (text: string, done: (s: string) => void) =>
     .then(() => navigator.clipboard.writeText(text))
     .then(() => done('Copied'), () => done('Select the link and copy it'))
 
+// Vice Nights: a link per guest that greets them by name, picks out the functions they are invited to and fills
+// in their RSVP (bespoke/Themed.tsx). Made here and copied; nothing is saved.
+// ponytail: the guest list lives only in this panel; keep it with the site's content if couples want it back later.
+function GuestPasses({ live, events }: { live: string; events: string[] }) {
+  const [names, setNames] = useState('')
+  const [left, setLeft] = useState<Record<string, string[]>>({}) // functions a guest is not invited to
+  const [note, setNote] = useState('')
+  const guests = [...new Set(names.split('\n').map((n) => n.replace(/\s+/g, ' ').trim().slice(0, 40)).filter(Boolean))]
+  const link = (g: string) => {
+    const on = events.filter((e) => !left[g]?.includes(e))
+    return `${live}?guest=${encodeURIComponent(g)}${on.length && on.length < events.length ? `&events=${on.map(passId).join(',')}` : ''}`
+  }
+  const toggle = (g: string, e: string) => setLeft((l) => ({ ...l, [g]: l[g]?.includes(e) ? l[g].filter((x) => x !== e) : [...(l[g] ?? []), e] }))
+  return (
+    <details className="rounded-md bg-paper/70 p-4 ring-1 ring-wine/10">
+      <summary className="cursor-pointer font-medium">Guest passes</summary>
+      <p className="mt-2 text-[14px] text-ink/70">A link for each guest: the site greets them by name, shows which functions they are invited to and fills in their RSVP.</p>
+      <label className="mt-3 block text-[14px]">
+        Guest names, one per line
+        <textarea value={names} onChange={(e) => setNames(e.target.value)} rows={4} placeholder={'Rohan Shah\nPriya Nair'} className={inputCls} />
+      </label>
+      <ul className="mt-3 space-y-4">
+        {guests.map((g) => (
+          <li key={g} className="space-y-2">
+            <p className="font-medium">{g}</p>
+            <fieldset className="flex flex-wrap gap-x-4 gap-y-1 text-[14px]">
+              <legend className="sr-only">Functions {g} is invited to</legend>
+              {events.map((e) => (
+                <label key={e} className="inline-flex items-center gap-1.5">
+                  <input type="checkbox" checked={!left[g]?.includes(e)} onChange={() => toggle(g, e)} />
+                  {e}
+                </label>
+              ))}
+            </fieldset>
+            <button type="button" onClick={() => copy(link(g), (s) => setNote(`${g}: ${s}`))} className={small}>
+              <Copy className="size-4" aria-hidden /> Copy {g.split(' ')[0]}'s link
+            </button>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-[13px] text-ink/60" role="status">
+        {note}
+      </p>
+    </details>
+  )
+}
+
 // The live link and the secret edit link, shown big right after publishing and small after that.
 function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
   const live = liveLink(draft.slug)
@@ -1224,6 +1271,7 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
         </div>
       </div>
       <Contact slug={draft.slug} edit={draft.key!} />
+      {lookById(draft.look)?.bespoke === 'vicenights' && <GuestPasses live={live} events={draft.content.events.map((e) => e.name).filter(Boolean)} />}
       {left.length > 0 && (
         <p className="rounded-md bg-wine/5 p-3 text-[14px] text-wine">
           Still the design's sample words: {left.join(', ')}. Change them below and press Save changes.
