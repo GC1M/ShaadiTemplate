@@ -86,7 +86,7 @@ class Boundary extends Component<{ children: ReactNode }, { failed: boolean }> {
 
 // A wedding website page loads only the website code, not the card gallery and editor. The page's static content
 // stays in #root until the app is ready, so nothing shifts while the chunk loads.
-const { default: App } = await (sitePath(location.pathname) ? import('./SiteApp') : import('./App')).catch((e) => {
+const { default: App } = await (/^\/reel\/?$/.test(location.pathname) ? import('./reel/Reel') : sitePath(location.pathname) ? import('./SiteApp') : import('./App')).catch((e) => {
   if (!reloadOnce()) throw e
   return new Promise<never>(() => {}) // reloading
 })
