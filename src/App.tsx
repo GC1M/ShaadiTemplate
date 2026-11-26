@@ -294,16 +294,34 @@ function SentOnWhatsApp() {
   )
 }
 
-// Gallery order: featured designs first, each group by GA4 template_open count (doc/analytics, newest report), most
-// opened first; ties keep the older order. Re-rank whenever a new report lands (see CLAUDE.md). Unlisted designs follow.
-// Opens 23 Nov 2026 (28 days): van-utsav 21, sandhya 19, raj-mahel 15, mor-bagh 10, soneri-jharokha 9, kamal-saath 4,
-// then one each, then the new featured marigold-arch and rani-damask mehndi (no opens yet); neel-gulab 4, bal-gopal 2, pietra-dura 2, then one each (ties keep the 22 Nov order).
+// GA4 template_open count per design, 28 days to 25 Nov 2026 (doc/analytics/agent-brief.md, the newest report).
+// Replace it whenever a new report lands (see CLAUDE.md); it ranks the event tabs and, by hand, ORDER below.
+const OPENS: Record<string, number> = {
+  'sandhya-kankotri': 27, 'van-utsav-kankotri': 27, 'raj-mahel-kankotri': 22, 'mor-bagh-kankotri': 14,
+  'soneri-jharokha-kankotri': 12, 'kamal-saath-chandla': 6, 'neel-gulab-kankotri': 4, 'bal-gopal-simant': 3,
+  'neel-sagar-chandla': 3, 'korvai-silk': 2, 'meadow-vows-engagement': 2, 'patola-sagai': 2, 'pietra-dura-walima': 2,
+  'aaina-mahal': 1, 'bagh-chhatri-chandla': 1, 'gulabi-mamta-simant': 1, 'harmandir-gold-leaf': 1, 'haryali-simant': 1,
+  'kalire-chunni': 1, 'mor-pankh-simant': 1, 'rangeen-mor-simant': 1, 'rose-arch-engagement': 1,
+}
+// Event tabs: by average opens per design in that event, most first; ties keep the EVENT_IDS order. 25 Nov: wedding
+// 9.1, reception 1.0, engagement 0.9, baby shower 0.9, then save the date, haldi, mehendi and sangeet with none yet.
+const avgOpens = (e: EventType) => {
+  const ts = TEMPLATES.filter((t) => t.event === e)
+  return ts.reduce((n, t) => n + (OPENS[t.id] ?? 0), 0) / (ts.length || 1)
+}
+const EVENT_TABS = [...EVENT_IDS].sort((a, b) => avgOpens(b) - avgOpens(a))
+
+// Gallery order: featured designs first, each group by OPENS, most opened first; ties keep the older order. Re-rank
+// whenever a new report lands (see CLAUDE.md). Unlisted designs follow. 25 Nov: van-utsav and sandhya 27, raj-mahel
+// 22, mor-bagh 14, soneri-jharokha 12, kamal-saath 6, neel-sagar 3, meadow-vows 2, gulabi-mamta and rose-arch 1, then
+// hindolo, siyaram-toran, marigold-arch and rani-damask with none; neel-gulab 4, bal-gopal 3, pietra-dura, patola and
+// korvai 2, then one each.
 const ORDER = [
   'van-utsav-kankotri', 'sandhya-kankotri', 'raj-mahel-kankotri', 'mor-bagh-kankotri', 'soneri-jharokha-kankotri',
-  'kamal-saath-chandla', 'neel-sagar-chandla', 'gulabi-mamta-simant', 'meadow-vows-engagement', 'hindolo-simant',
-  'rose-arch-engagement', 'siyaram-toran-chandla', 'marigold-arch-mehndi', 'rani-damask-mehndi',
-  'neel-gulab-kankotri', 'bal-gopal-simant', 'pietra-dura-walima', 'aaina-mahal', 'bagh-chhatri-chandla',
-  'harmandir-gold-leaf', 'kalire-chunni', 'patola-sagai', 'rangeen-mor-simant',
+  'kamal-saath-chandla', 'neel-sagar-chandla', 'meadow-vows-engagement', 'gulabi-mamta-simant', 'rose-arch-engagement',
+  'hindolo-simant', 'siyaram-toran-chandla', 'marigold-arch-mehndi', 'rani-damask-mehndi',
+  'neel-gulab-kankotri', 'bal-gopal-simant', 'pietra-dura-walima', 'patola-sagai', 'korvai-silk', 'aaina-mahal',
+  'bagh-chhatri-chandla', 'harmandir-gold-leaf', 'kalire-chunni', 'rangeen-mor-simant', 'haryali-simant', 'mor-pankh-simant',
 ]
 const rank = (t: Template) => (ORDER.includes(t.id) ? ORDER.indexOf(t.id) : ORDER.length + Number(!t.featured))
 
@@ -442,7 +460,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
         <div className="sticky top-14 z-20 -mx-4 bg-rose/90 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
           <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
             <div className="flex min-w-max gap-1 border-b border-wine/15 pt-3" role="group" aria-label="Invitation type">
-              {(['all', ...EVENT_IDS] as const).map((e) => (
+              {(['all', ...EVENT_TABS] as const).map((e) => (
                 <button
                   key={e}
                   onClick={() => (setEvent(e), track('gallery_filter', { type: 'event', value: e }))}

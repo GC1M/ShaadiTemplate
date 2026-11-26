@@ -42,7 +42,7 @@ A template change is not done until its SEO surface matches it, in the same PR. 
 
 ## Gallery order (strict)
 
-The gallery order lives in `ORDER` in `src/App.tsx`. Featured designs come first, then the rest, and within each group designs are ranked by how often they are opened (GA4 `template_open` count in the newest report under `doc/analytics/`, main checkout), most opened first; ties keep the previous order. Whenever a new analytics report lands, or a template is featured, unfeatured, added or removed, re-rank `ORDER` from the latest numbers and update the dated opens comment above it.
+The gallery order lives in `ORDER` in `src/App.tsx`. Featured designs come first, then the rest, and within each group designs are ranked by how often they are opened (GA4 `template_open` count in the newest report under `doc/analytics/`, main checkout), most opened first; ties keep the previous order. The event tabs (Save the Date, Engagement, Wedding...) are ranked by the average opens per design in each event (the event's total opens divided by its number of designs), most first, with ties in `EVENT_IDS` order; they follow `OPENS` on their own. Whenever a new analytics report lands, or a template is featured, unfeatured, added or removed, replace `OPENS` with the latest per-design counts, re-rank `ORDER` from them and update the dated comments above both.
 
 ## Website music (strict)
 
