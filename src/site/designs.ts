@@ -666,7 +666,7 @@ export const LOOKS: Look[] = [
     theme: { bg: '#1a0b24', raised: '#2b1240', accent: '#ff4f9a', text: '#fff1dc', soft: '#e9d3c2', display: '"Anton", Impact, sans-serif', script: CORMORANT },
     demo: {
       invocation: '|| Shri Ganeshaya Namah ||',
-      couple: ['Vihaan', 'Kiara'],
+      couple: ['Bhupen', 'Kiara'],
       families: ['The Mehra family', 'The Kapoor family'],
       parents: ['Son of Mrs. Sunita and Mr. Rakesh Mehra', 'Daughter of Mrs. Anjali and Mr. Vikram Kapoor'],
       city: 'Goa',

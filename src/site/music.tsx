@@ -52,7 +52,7 @@ export const unclock = (v: string) => {
 }
 
 // YouTube's player script, loaded once, for looping just the chosen part (its own loop goes back to 0:00).
-type YTPlayer = { getCurrentTime(): number; seekTo(s: number, ahead: boolean): void; playVideo(): void; pauseVideo(): void; loadVideoById(o: { videoId: string; startSeconds?: number; endSeconds?: number }): void; destroy(): void }
+type YTPlayer = { getCurrentTime(): number; seekTo(s: number, ahead: boolean): void; playVideo(): void; pauseVideo(): void; isMuted(): boolean; unMute(): void; getPlayerState(): number; loadVideoById(o: { videoId: string; startSeconds?: number; endSeconds?: number }): void; destroy(): void }
 type YTApi = { Player: new (el: HTMLElement, o: object) => YTPlayer; PlayerState: { ENDED: number } }
 let api: Promise<YTApi> | undefined
 const loadYT = () =>
@@ -188,17 +188,29 @@ function ClipPill({ id, start, end }: { id: string; start: number; end?: number 
     autoplay: true,
     width: 200,
     height: 200,
+    // Where the browser blocks sound, YouTube may start the song muted instead, so playing only counts once it is heard.
     onState: (st) => {
-      setOn(st === 1)
-      if (st === 1) setPlayed(true)
+      const heard = st === 1 && !player.current?.isMuted()
+      setOn(heard)
+      if (heard) setPlayed(true)
     },
   })
+  // Before YouTube's player is ready it has none of these, and the next tap tries again.
+  const play = () => {
+    player.current?.unMute?.()
+    player.current?.playVideo?.()
+    // Unmuting a song that was already playing muted brings no new state from YouTube.
+    if (player.current?.getPlayerState?.() === 1) {
+      setOn(true)
+      setPlayed(true)
+    }
+  }
   useEffect(() => {
-    // Browsers usually block sound until a tap, so until the song has played once every tap tries again; a tap on
-    // the music button itself is left to the button.
+    // Browsers usually block sound until a tap, so until the song has been heard every tap tries again (and unmutes
+    // it); a tap on the music button itself is left to the button.
     if (played) return
     const KEYS = ['pointerup', 'keydown']
-    const go = (e: Event) => !(e.target as Element | null)?.closest?.('[data-music]') && player.current?.playVideo()
+    const go = (e: Event) => !(e.target as Element | null)?.closest?.('[data-music]') && play()
     KEYS.forEach((k) => addEventListener(k, go))
     return () => KEYS.forEach((k) => removeEventListener(k, go))
   }, [played, player])
@@ -211,7 +223,7 @@ function ClipPill({ id, start, end }: { id: string; start: number; end?: number 
   return (
     <>
       <div ref={box} aria-hidden className="pointer-events-none fixed bottom-0 left-0 -z-10 size-[200px] opacity-0" />
-      <button type="button" data-music onClick={() => (on ? player.current?.pauseVideo() : player.current?.playVideo())} aria-pressed={on} className={pill}>
+      <button type="button" data-music onClick={() => (on ? player.current?.pauseVideo() : play())} aria-pressed={on} className={pill}>
         <span aria-hidden>{on ? '❚❚' : '♪'}</span> {on ? 'Pause our song' : 'Play our song'}
       </button>
     </>
