@@ -74,8 +74,12 @@ function Phone({ d }: { d: Design }) {
   )
 }
 
+// The themed websites (comic noir, superhero comic, armoured tech), each its own page with its own music, get a
+// section of their own after the rest.
+const THEMED = DESIGNS.filter((d) => d.cover?.startsWith('/microsites/'))
+
 // The painted designs lead the page; the rest keep the order of designs.ts.
-const SHOWN = [...DESIGNS.filter((d) => d.bespoke), ...DESIGNS.filter((d) => !d.bespoke)]
+const SHOWN = [...DESIGNS.filter((d) => d.bespoke && !THEMED.includes(d)), ...DESIGNS.filter((d) => !d.bespoke)]
 
 // The home page's websites section (App.tsx, loaded on demand): the two painted designs first, as on this page,
 // then two from other traditions, then the way to the rest. Scrolls sideways on phones, where four phone frames don't fit across.
@@ -136,6 +140,32 @@ export default function Websites() {
                 </div>
                 <h2 className="mt-6 font-display text-2xl">{d.name}</h2>
                 <p className="mt-1 text-sm uppercase tracking-[0.14em] text-zari">{d.tradition}</p>
+                <p className="mt-2 text-rose/75">{d.blurb}</p>
+              </a>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {API && (
+                  <a href={`${designPath(d)}edit/`} className="zari-button inline-flex min-h-11 items-center rounded-full px-5 text-sm font-medium text-wine-deep">
+                    Make yours free
+                  </a>
+                )}
+                <a href={designPath(d)} className="inline-flex min-h-11 items-center rounded-full border border-zari px-5 text-sm text-zari hover:bg-zari hover:text-wine-deep">
+                  Live preview →
+                </a>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <h2 className="mt-24 font-display text-[clamp(2rem,5vw,3rem)] leading-[1.05]">Themed websites</h2>
+        <p className="mt-4 max-w-[58ch] text-rose/80">Comic-book and movie-night designs with every function, the families and RSVP. Make one yours like any other design.</p>
+        <ul className="mt-10 grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
+          {THEMED.map((d) => (
+            <li key={d.id}>
+              <a href={designPath(d)} className="group block">
+                <div className="transition-transform duration-500 group-hover:-translate-y-1.5">
+                  <Phone d={d} />
+                </div>
+                <h3 className="mt-6 font-display text-2xl">{d.name}</h3>
+                <p className="mt-1 text-sm uppercase tracking-[0.14em] text-zari">{d.tradition.split(' · ')[0].replace(/ wedding$/, '')}</p>
                 <p className="mt-2 text-rose/75">{d.blurb}</p>
               </a>
               <div className="mt-4 flex flex-wrap gap-3">

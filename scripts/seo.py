@@ -75,11 +75,13 @@ def share_image(path, headline, cards):
     for line in wrap(d, headline, big, 500)[:4]:
         d.text((64, y), line, font=big, fill=ROSE)
         y += 70
-    d.text((64, 520), 'Free · No login · WhatsApp image and print PDF', font=font('bodoni-moda/files/bodoni-moda-latin-400-normal.woff', 24), fill=ZARI)
+    site = any(isinstance(c, Path) for c in cards)  # a themed website's own screen, not card previews
+    d.text((64, 520), 'Free wedding website · RSVP · One link for every guest' if site else 'Free · No login · WhatsApp image and print PDF', font=font('bodoni-moda/files/bodoni-moda-latin-400-normal.woff', 24), fill=ZARI)
     cards = cards[:3]
     slots = {1: [(0, 0)], 2: [(-1, -5), (1, 5)], 3: [(-1, -7), (0, 0), (1, 7)]}[len(cards)]
     for i in sorted(range(len(cards)), key=lambda i: slots[i][0] == 0):  # the middle card goes on top
-        card = Image.open(PUBLIC / 'templates/previews' / f'{cards[i]}.webp').convert('RGBA').resize((270, 480), Image.LANCZOS)
+        src = cards[i] if isinstance(cards[i], Path) else PUBLIC / 'templates/previews' / f'{cards[i]}.webp'
+        card = Image.open(src).convert('RGBA').resize((270, 480), Image.LANCZOS)
         card = card.rotate(-slots[i][1], expand=True, resample=Image.BICUBIC)
         img.paste(card, (920 + slots[i][0] * 108 - card.width // 2, 315 - card.height // 2), card)
     path.parent.mkdir(exist_ok=True)
@@ -94,15 +96,21 @@ def website_images():
     shots = {name: args for name, args in re.findall(r"^  (\w+): commons\((.*)\),$", (ROOT / 'src/site/photos.ts').read_text(), re.M)}
     cache = ROOT / 'node_modules/.cache/og-src'
     cache.mkdir(parents=True, exist_ok=True)
-    looks = []
+    looks, themed_looks = [], {}
     for block in re.split(r"^    id: '", designs, flags=re.M)[1:]:
         look = re.match(r"[\w-]+", block).group(0)
         name = re.search(r"^    name: '([^']+)'", block, re.M).group(1)
         tradition = re.search(r"^    tradition: '([^']+)'", block, re.M).group(1).split(' · ')[0]
+        kind = tradition if 'wedding' in tradition.lower() else f'{tradition} wedding'
+        themed = re.search(r"^    cover: '/(microsites/[\w-]+/cover\.webp)'", block, re.M)
+        if themed:  # a themed website: its own opening screen beside the name
+            share_image(PUBLIC / 'og' / f'websites-{look}.jpg', name, [PUBLIC / themed.group(1)])
+            themed_looks[f'websites-{look}'] = f'{SITE}/og/websites-{look}.jpg'
+            continue
         hero = re.search(r"photos: \{ hero: SHOTS\.(\w+)", block).group(1)
         path, width, _alt, by, licence, *pos = [a.strip().strip("'") for a in re.findall(r"\s*('[^']*'|[^,]+)", shots[hero])]
-        looks.append((look, name, tradition if 'wedding' in tradition.lower() else f'{tradition} wedding', path, int(width), by, licence, (pos or ['center'])[0]))
-    out = {}
+        looks.append((look, name, kind, path, int(width), by, licence, (pos or ['center'])[0]))
+    out = dict(themed_looks)
     for slug, headline, sub, path, width, by, licence, pos in [('websites', 'Free wedding website designs', 'RSVP and every function on one link', *looks[0][3:])] + \
             [(f'websites-{look}', name, f'A free {kind} website', *rest) for look, name, kind, *rest in looks]:
         file = path.rsplit('/', 1)[1]
