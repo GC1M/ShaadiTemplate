@@ -124,7 +124,8 @@ function TrackPlayer({ t }: { t: Track }) {
     }
     const stop = () => KEYS.forEach((k) => removeEventListener(k, start))
     KEYS.forEach((k) => addEventListener(k, start))
-    audio.current?.play().then(stop, () => {})
+    // Not in the editor's preview, where the couple is typing: there it waits for a tap or the button.
+    if (!location.pathname.startsWith('/websites/preview')) audio.current?.play().then(stop, () => {})
     // A guest who switches to WhatsApp shouldn't keep hearing it.
     const hide = () => document.hidden && audio.current?.pause()
     document.addEventListener('visibilitychange', hide)

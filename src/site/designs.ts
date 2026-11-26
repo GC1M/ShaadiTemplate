@@ -1,5 +1,5 @@
 import type { SymbolId } from '../types'
-import { PEOPLE, SHOTS, type Photo } from './photos'
+import { COUPLE, PEOPLE, SHOTS, type Photo } from './photos'
 import { song } from './music'
 
 // The sample wedding website designs, in the order the gallery shows them. Every couple, family and story here is
@@ -34,8 +34,9 @@ export type Look = {
   // A save-the-date the guest reveals with a tap.
   dateReveal?: boolean
   // A design with its own painted scenes, drawn by its own component in site/bespoke/ instead of the shared
-  // sections; cover is its opening screen for the designs page (public/site-art/<id>/cover.webp).
-  bespoke?: 'mahal' | 'aangan'
+  // sections; cover is its opening screen for the designs page (public/site-art/<id>/cover.webp). The themed
+  // websites are their own pages in public/microsites/<id>/ (site/bespoke/Themed.tsx), shown apart on the designs page.
+  bespoke?: 'mahal' | 'aangan' | 'nightcall' | 'webline' | 'forgeheart'
   cover?: string
   demo: Content
 }
@@ -63,7 +64,8 @@ export type Content = {
   note?: string
   // Optional line under the venue: where to stay, how to get there.
   stay?: string
-  // Optional background music: `track:<id>` (site/music.tsx) or a YouTube link.
+  // Optional background music: `track:<id>` (site/music.tsx) or a YouTube link. A themed website's own track is
+  // THEME (its public/microsites/<id>/theme.mp3).
   music?: string
   // Sections the couple turned off. Only the ones a design draws whatever the couple writes; the rest go away
   // when left blank. date: the save-the-date countdown; gallery: Aangan's gallery (it falls back to the cover photo).
@@ -96,6 +98,9 @@ export type Design = Omit<Look, 'demo'> &
     rsvpPhoto: Photo
     blessPhoto: Photo
   }
+
+// A themed website's own soundtrack, shaped like a track id so saved sites keep it (worker/src/index.ts).
+export const THEME = 'track:theme'
 
 const CORMORANT = '"Cormorant Garamond", Georgia, serif'
 const PINYON = '"Pinyon Script", cursive'
@@ -528,6 +533,126 @@ export const LOOKS: Look[] = [
         { name: 'Vidaai', date: '2028-02-14', time: '10:00', where: '10 am, at the haveli gate', note: 'Come and see Naina off. Bring tissues.', photo: SHOTS.diyaLedge },
       ],
       photos: { hero: SHOTS.twirl, venue: SHOTS.amerCourt, rsvp: SHOTS.diyaLedge, bless: SHOTS.diyaLedge, gallery: [SHOTS.embrace, SHOTS.bazaar, SHOTS.silhouette, SHOTS.ring] },
+    },
+  },
+  {
+    id: 'nightcall',
+    name: 'Night Call',
+    blurb: 'A rainy city at night, a searchlight in the sky and a save-the-night card.',
+    tradition: 'Comic noir wedding · Mumbai',
+    layout: 'veil',
+    bespoke: 'nightcall',
+    cover: '/microsites/nightcall/cover.webp',
+    theme: { bg: '#140a12', raised: '#21101b', accent: '#ff3b4a', text: '#f4e9ee', soft: '#ffd3d8', display: '"Oswald", Impact, sans-serif', script: CORMORANT },
+    demo: {
+      invocation: '|| Shri Ganeshaya Namah ||',
+      music: THEME,
+      couple: ['Kabir', 'Anaya'],
+      families: ['The Malhotra family', 'The Desai family'],
+      parents: ['Son of Mrs. Neeta and Mr. Sanjay Malhotra', 'Daughter of Mrs. Rekha and Mr. Arvind Desai'],
+      city: 'Mumbai',
+      venue: 'Taj Lands End, Bandstand, Bandra West, Mumbai',
+      invite: 'Together with their families, Mr. Sanjay and Mrs. Neeta Malhotra and Mr. Arvind and Mrs. Rekha Desai request the honour of your presence at the wedding of their children.',
+      note: 'The city has seen a lot of nights. This is the one we want you there for. Come early, stay late, and answer the call.',
+      notes: [
+        'Valet parking is at the main porch of the hotel on Bandstand.',
+        'The sea breeze picks up after dark. Bring a shawl for the wedding lawns.',
+        'Children are welcome at every function.',
+      ],
+      rsvpBy: '1 February',
+      story: [
+        { year: '2019', title: 'Two umbrellas, one bus stop', body: 'A July downpour in Bandra, one broken umbrella and the longest wait for the 220 bus.', photo: COUPLE },
+        { year: '2026', title: 'Lights over the sea link', body: 'He asked on the promenade as the city lights came on, with both families pretending to jog past.', photo: COUPLE },
+      ],
+      mainEvent: 3,
+      events: [
+        { name: 'Haldi', date: '2027-02-18', time: '11:00', where: '11 am, on the poolside lawns', note: 'Turmeric, marigolds and a lot of laughing.', photo: SHOTS.marigold },
+        { name: 'Mehendi', date: '2027-02-18', time: '16:00', where: '4 pm, in the courtyard', note: 'Henna, chai and the first round of family stories.', photo: SHOTS.henna },
+        { name: 'Sangeet', date: '2027-02-19', time: '20:00', where: '8 pm, in the ballroom', note: 'Both families take the floor. Rehearsals were optional.', photo: SHOTS.diyaLedge },
+        { name: 'Wedding', date: '2027-02-20', time: '19:00', where: '7 pm, on the sea-facing lawns', note: 'Seven pheras under the night sky, then dinner by the sea.', photo: SHOTS.diyas },
+        { name: 'Reception', date: '2027-02-21', time: '20:00', where: '8 pm, on the rooftop terrace', note: 'Dinner, music and one last dance over the city.', photo: SHOTS.sunsetTree },
+      ],
+      photos: { hero: COUPLE, venue: SHOTS.diyas, rsvp: SHOTS.diyaLedge, bless: SHOTS.marigold, gallery: [] },
+    },
+  },
+  {
+    id: 'webline',
+    name: 'Web Line',
+    blurb: 'A comic-book issue: a skyscraper cover, panel pages and a web shot where you tap.',
+    tradition: 'Superhero comic wedding · Bengaluru',
+    layout: 'veil',
+    bespoke: 'webline',
+    cover: '/microsites/webline/cover.webp',
+    theme: { bg: '#0b1d5c', raised: '#132a78', accent: '#ff4a5e', text: '#f7f1e3', soft: '#f4dfa0', display: '"Bangers", Impact, sans-serif', script: CORMORANT },
+    demo: {
+      invocation: '|| Shri Ganeshaya Namah ||',
+      music: THEME,
+      couple: ['Aarav', 'Ishita'],
+      families: ['The Rao family', 'The Bansal family'],
+      parents: ['Son of Mrs. Lata and Mr. Prakash Rao', 'Daughter of Mrs. Kavita and Mr. Manoj Bansal'],
+      city: 'Bengaluru',
+      venue: 'ITC Gardenia, Residency Road, Bengaluru',
+      invite: 'Mr. Prakash and Mrs. Lata Rao and Mr. Manoj and Mrs. Kavita Bansal request the honour of your presence as their children team up for life.',
+      note: 'Every hero needs a crew. Ours is you. Come for the vows, stay for the dancing, and bring your best rooftop moves.',
+      notes: [
+        'Parking is in the hotel basement, entry from Residency Road.',
+        'Bengaluru evenings in March are mild. No shawls needed, dancing shoes are.',
+        'Children are welcome at every function.',
+      ],
+      rsvpBy: '15 February',
+      story: [
+        { year: '2020', title: 'Crossed paths', body: 'Two people reaching for the last copy of the same comic in a Church Street bookshop. Neither let go.', photo: COUPLE },
+        { year: '2026', title: 'The question', body: 'He asked on a rooftop under a full moon, with a banner his cousins held upside down.', photo: COUPLE },
+      ],
+      mainEvent: 3,
+      events: [
+        { name: 'Haldi', date: '2027-03-04', time: '11:00', where: '11 am, at the garden terrace', note: 'Turmeric, marigolds and a lot of laughing.', photo: SHOTS.marigold },
+        { name: 'Mehendi', date: '2027-03-04', time: '16:00', where: '4 pm, in the courtyard', note: 'Henna, music and a long golden afternoon.', photo: SHOTS.henna },
+        { name: 'Sangeet', date: '2027-03-05', time: '20:00', where: '8 pm, in the ballroom', note: 'Choreography is optional. Dancing is not.', photo: SHOTS.diyaLedge },
+        { name: 'Wedding', date: '2027-03-06', time: '19:00', where: '7 pm, in the grand hall', note: 'Seven vows, then one very good party.', photo: SHOTS.diyas },
+        { name: 'Reception', date: '2027-03-07', time: '20:00', where: '8 pm, on the rooftop', note: 'Dinner under the open sky, then one last dance.', photo: SHOTS.sunsetTree },
+      ],
+      photos: { hero: COUPLE, venue: SHOTS.diyas, rsvp: SHOTS.diyaLedge, bless: SHOTS.marigold, gallery: [] },
+    },
+  },
+  {
+    id: 'forgeheart',
+    name: 'Forge Heart',
+    blurb: 'Red and gold armour and a helmet that builds itself as you scroll.',
+    tradition: 'Armoured tech wedding · New Delhi',
+    layout: 'veil',
+    bespoke: 'forgeheart',
+    cover: '/microsites/forgeheart/cover.webp',
+    theme: { bg: '#16191e', raised: '#21252c', accent: '#d9b36a', text: '#efe8da', soft: '#c9ced6', display: '"Cinzel", Georgia, serif', script: CORMORANT },
+    demo: {
+      invocation: '|| Shri Ganeshaya Namah ||',
+      music: THEME,
+      couple: ['Vivaan', 'Meera'],
+      families: ['The Khanna family', 'The Arora family'],
+      parents: ['Son of Mrs. Pooja and Mr. Rajiv Khanna', 'Daughter of Mrs. Nisha and Mr. Sameer Arora'],
+      city: 'New Delhi',
+      venue: 'The Leela Palace, Chanakyapuri, New Delhi',
+      invite: 'Mr. Rajiv and Mrs. Pooja Khanna and Mr. Sameer and Mrs. Nisha Arora, with the love of both families, request the honour of your presence at the wedding of their children.',
+      note: 'Two families who once lived a few streets apart are about to become one very loud household. Come as you are, and stay as long as the music does.',
+      notes: [
+        'Valet parking is at the hotel porch on Diplomatic Enclave.',
+        'Delhi evenings in April are warm. Light fabrics for the lawns.',
+        'Children are welcome at every function.',
+      ],
+      rsvpBy: '1 April',
+      story: [
+        { year: '2018', title: 'First contact', body: 'A college robotics fest, one borrowed soldering iron and a project that only worked when both of them held it.', photo: COUPLE },
+        { year: '2026', title: 'Systems go', body: 'He asked in the workshop where they met, with a ring the robot was supposed to hand over and dropped.', photo: COUPLE },
+      ],
+      mainEvent: 3,
+      events: [
+        { name: 'Haldi', date: '2027-04-15', time: '11:00', where: '11 am, at the garden terrace', note: 'Turmeric, marigolds and a lot of laughing.', photo: SHOTS.marigold },
+        { name: 'Mehendi', date: '2027-04-15', time: '16:00', where: '4 pm, in the courtyard', note: 'Henna, music and a long golden afternoon.', photo: SHOTS.henna },
+        { name: 'Sangeet', date: '2027-04-16', time: '20:00', where: '8 pm, in the ballroom', note: 'Choreography is optional. Dancing is not.', photo: SHOTS.diyaLedge },
+        { name: 'Wedding', date: '2027-04-17', time: '19:00', where: '7 pm, in the grand hall', note: 'Seven vows, then one very good party.', photo: SHOTS.diyas },
+        { name: 'Reception', date: '2027-04-18', time: '20:00', where: '8 pm, on the rooftop', note: 'Dinner under the open sky, then one last dance.', photo: SHOTS.sunsetTree },
+      ],
+      photos: { hero: COUPLE, venue: SHOTS.diyas, rsvp: SHOTS.diyaLedge, bless: SHOTS.marigold, gallery: [] },
     },
   },
 ]

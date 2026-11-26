@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Web Line: superhero comic wedding website · ShaadiTemplate</title>
-<meta name="description" content="A superhero comic-book wedding website: a skyscraper cover, panel pages, a moonlit rooftop, every function, family and RSVP.">
-<link rel="canonical" href="https://shaaditemplate.com/microsites/webline/">
+<title>Aarav &amp; Ishita, 6 March 2027, Bengaluru · Web Line wedding website</title>
+<script src="/microsites/fill.js" defer></script>
+<meta name="description" content="Aarav and Ishita's wedding on Saturday, 6 March 2027 at ITC Gardenia, Bengaluru: a superhero comic-book wedding website with every function, the families and RSVP.">
+<meta name="robots" content="noindex">
 <meta name="theme-color" content="#0B1D5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -268,7 +269,7 @@ a{color:inherit}
 
 /* web shot */
 .webs{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:50;overflow:visible}
-.thwip{
+.zap{
   position:fixed;z-index:51;pointer-events:none;left:0;top:0;
   font:clamp(2.2rem,5vw,3.4rem)/1 var(--f-sfx);letter-spacing:.04em;color:var(--paper-hi);
   -webkit-text-stroke:2px var(--ink);
@@ -368,6 +369,18 @@ a{color:inherit}
 .gl-done .vertigo,.gl-done > svg.art{visibility:hidden}
 .glshot{position:fixed;left:0;top:0;pointer-events:none;z-index:50;filter:drop-shadow(0 0 .7px rgba(0,0,0,.9)) drop-shadow(2px 5px 3px rgba(0,0,0,.35))}
 
+/* couple-editable extras */
+[hidden]{display:none !important}
+.masthead,.lead h3{max-width:100%}
+.cover-frame > *,.leads > *{min-width:0}
+.ev-map{display:inline-block;margin-top:10px;color:var(--gold-hi);font:italic 600 1.1rem/1.3 var(--f-serif)}
+.btn-bless{background:var(--blue);color:var(--paper-hi);box-shadow:5px 5px 0 var(--red);cursor:pointer}
+.btn-bless:hover{box-shadow:8px 8px 0 var(--red)}
+.reply{margin-top:16px;font:italic 600 1.15rem/1.4 var(--f-serif);color:var(--gold-hi)}
+.list{margin:0;padding:clamp(22px,3vw,34px) clamp(22px,3vw,34px) clamp(22px,3vw,34px) 2.6em;display:grid;gap:10px;font:600 1.25rem/1.45 var(--f-serif)}
+.list li::marker{color:var(--red);font-family:var(--f-sfx)}
+.list > *{position:relative;z-index:2}
+.photo-slot img{object-position:50% 28%}
 @media (max-width:860px){
   .meet,.prop,.events,.venue,.leads,.family,.contacts{grid-template-columns:1fr}
   .events > *,.events > :nth-child(n+4){grid-column:auto}
@@ -409,17 +422,6 @@ a{color:inherit}
 <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <script src="/analytics.js" defer></script>
-<meta property="og:type" content="website" />
-<meta property="og:site_name" content="ShaadiTemplate" />
-<meta property="og:locale" content="en_IN" />
-<meta property="og:title" content="Web Line: superhero comic wedding website" />
-<meta property="og:description" content="A superhero comic-book wedding website: a skyscraper cover, panel pages, a moonlit rooftop, every function, family and RSVP." />
-<meta property="og:url" content="https://shaaditemplate.com/microsites/webline/" />
-<meta property="og:image" content="https://shaaditemplate.com/og/microsites-webline.jpg" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content="Web Line: superhero comic wedding website: ShaadiTemplate invitation designs" />
-<meta name="twitter:card" content="summary_large_image" />
 <!-- /seo -->
 </head>
 <body>
@@ -453,14 +455,13 @@ a{color:inherit}
     <div class="cover-shade"></div>
 
     <div class="trade">
-      <div class="corner-box"><span class="no">No.</span><span class="num">1</span><span class="mo">Feb 2027</span></div>
+      <div class="corner-box"><span class="no">No.</span><span class="num">1</span><span class="mo"><span data-f="main.mon">Mar</span> <span data-f="main.year">2027</span></span></div>
       <p class="edition">#1 Collector's Edition</p>
       <div class="price"><span>Price</span><strong>One RSVP</strong></div>
     </div>
 
     <div class="cover-mid">
-      <!-- SAMPLE names -->
-      <h1 class="masthead"><span class="mh" data-t="Arjun"><span class="foil">Arjun</span></span><span class="amp" aria-label="and">&amp;</span><span class="mh" data-t="Myra"><span class="foil">Myra</span></span></h1>
+      <h1 class="masthead" data-fit><span class="mh" data-t="Aarav"><span class="foil" data-f="couple.0">Aarav</span></span><span class="amp" aria-label="and">&amp;</span><span class="mh" data-t="Ishita"><span class="foil" data-f="couple.1">Ishita</span></span></h1>
       <p class="cover-sub">The wedding issue</p>
     </div>
 
@@ -469,7 +470,7 @@ a{color:inherit}
       <p class="tap-hint">Tap anywhere to shoot a web. Scroll to turn the page.</p>
       <div class="burst">
         <svg viewBox="0 0 200 200" aria-hidden="true"><polygon data-star="16,96,72" fill="#C8102E" stroke="#000" stroke-width="6" stroke-linejoin="round"/></svg>
-        <p><small>Save the date</small><strong>14.02.27</strong></p>
+        <p><small>Save the date</small><strong data-f="main.dmy">06.03.27</strong></p>
       </div>
     </div>
   </div>
@@ -484,52 +485,44 @@ a{color:inherit}
       <defs><radialGradient id="gCalm"><stop offset=".55" stop-color="#0B1D5C"/><stop offset="1" stop-color="#0B1D5C" stop-opacity="0"/></radialGradient></defs>
       <ellipse cx="500" cy="200" rx="330" ry="170" fill="url(#gCalm)"/>
     </svg>
-    <p class="mantra" lang="hi-Latn">|| Shri Ganeshaya Namah ||</p>
-    <p class="shlok" lang="sa-Latn">Vakratunda Mahakaya Suryakoti Samaprabha<br>Nirvighnam Kuru Me Deva Sarva Karyeshu Sarvada</p>
-    <h2 class="bless" id="t-bless">With the blessings of our grandparents</h2>
-    <!-- SAMPLE names -->
-    <p class="elders">Smt. Savitri &amp; Shri Mohan Kapoor<br>Smt. Kamla &amp; Shri Hari Mehra</p>
-    <!-- SAMPLE names -->
-    <p class="host">Mr. Rakesh &amp; Mrs. Sunita Mehra and Mr. Vikram &amp; Mrs. Anjali Kapoor request the honour of your presence as their children, Arjun and Myra, team up for life.</p>
+    <p class="mantra" lang="hi-Latn" data-f="invocation" data-f-opt>|| Shri Ganeshaya Namah ||</p>
+    <p class="shlok" lang="sa-Latn" data-f-if="ganesh">Vakratunda Mahakaya Suryakoti Samaprabha<br>Nirvighnam Kuru Me Deva Sarva Karyeshu Sarvada</p>
+    <h2 class="bless" id="t-bless">With the blessings of</h2>
+    <p class="elders"><span data-f="families.0">The Rao family</span> &amp; <span data-f="families.1">The Bansal family</span></p>
+    <!-- SAMPLE -->
+    <p class="elders" data-f-sample>Smt. Savitri &amp; Shri Mohan Rao<br>Smt. Usha &amp; Shri Ramesh Bansal</p>
+    <p class="host" data-f="invite">Mr. Prakash and Mrs. Lata Rao and Mr. Manoj and Mrs. Kavita Bansal request the honour of your presence as their children team up for life.</p>
   </div>
 </section>
 
 <!-- PAGE: the couple (SAMPLE parent names, edit freely) -->
 <section class="page" aria-labelledby="t-leads">
-  <div class="pg-head"><h2 class="pg-title misreg" id="t-leads">The leads</h2><p class="pg-no">Page 2</p></div>
+  <div class="pg-head"><h2 class="pg-title misreg" id="t-leads">The leads</h2><p class="pg-no">Page <span class="pgn">2</span></p></div>
   <div class="grid leads">
     <div class="panel lead lead-a pop ht" style="--tilt:-1deg">
       <p class="role">The groom</p>
-      <h3 class="misreg">Arjun</h3>
-      <p class="kin">Son of Mr. Rakesh &amp; Mrs. Sunita Mehra</p>
+      <h3 class="misreg" data-fit data-f="couple.0">Aarav</h3>
+      <p class="kin" data-f="parents.0" data-f-opt>Son of Mrs. Lata and Mr. Prakash Rao</p>
     </div>
-    <figure class="panel photo pop" style="--tilt:.6deg">
+    <figure class="panel photo pop" style="--tilt:.6deg" data-f-if="photo">
       <div class="photo-slot">
-        <!-- To use a real photo, replace the svg below with:
-             <img src="couple.jpg" alt="Arjun and Myra" width="800" height="1000"> -->
-        <svg class="art" viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Placeholder for a photo of Arjun and Myra">
-          <rect width="400" height="500" fill="#0B1D5C"/>
-          <circle cx="200" cy="190" r="150" fill="#1B3FAB"/>
-          <g fill="#000">
-            <circle cx="248" cy="258" r="34"/><circle cx="268" cy="232" r="15"/><path d="M234 284h28v34c48 8 78 70 82 182H152c4-112 34-174 82-182z"/>
-            <circle cx="164" cy="236" r="39"/><path d="M148 268h32v32c56 8 88 80 92 200H56c4-120 36-192 92-200z"/>
-          </g>
-          <rect width="400" height="500" fill="url(#dInk)" opacity=".18"/>
-        </svg>
-        <figcaption class="photo-note">Sample photo. Yours goes here</figcaption>
+        <img src="/templates/couple-sample.jpg" data-f-src="photo" alt="The couple" width="1200" height="1607" loading="lazy">
+        <!-- SAMPLE -->
+        <figcaption class="photo-note" data-f-sample>Sample photo. Yours goes here</figcaption>
       </div>
     </figure>
     <div class="panel lead lead-m pop ht" style="--tilt:1deg">
       <p class="role">The bride</p>
-      <h3 class="misreg">Myra</h3>
-      <p class="kin">Daughter of Mr. Vikram &amp; Mrs. Anjali Kapoor</p>
+      <h3 class="misreg" data-fit data-f="couple.1">Ishita</h3>
+      <p class="kin" data-f="parents.1" data-f-opt>Daughter of Mrs. Kavita and Mr. Manoj Bansal</p>
     </div>
   </div>
 </section>
 
 <!-- PAGE: how they met -->
-<section class="page" aria-labelledby="t-meet">
-  <div class="pg-head"><h2 class="pg-title misreg" id="t-meet">Crossed paths</h2><p class="pg-no">Page 3</p></div>
+<section class="page" aria-labelledby="t-meet" data-f-if="story.0">
+  <div class="pg-head"><h2 class="pg-title misreg" id="t-meet" data-f="story.0.title">Crossed paths</h2><p class="pg-no">Page <span class="pgn">3</span>, <span data-f="story.0.year">2020</span></p></div>
+  <p class="fam-intro" data-f="story.0.body">Two people reaching for the last copy of the same comic in a Church Street bookshop. Neither let go.</p>
   <div class="grid meet">
     <figure class="panel pA pop" style="--tilt:-.5deg;margin:0">
       <svg class="art" viewBox="0 0 800 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -556,7 +549,7 @@ a{color:inherit}
         <use href="#figF" x="582" y="174" width="41" height="108" style="color:#00A3E0" transform="translate(-3 0)"/>
         <use href="#figF" x="582" y="174" width="41" height="108" style="color:#EFEADF"/>
       </svg>
-      <figcaption class="cap">Same city. Same corner. Same hurry.</figcaption>
+      <figcaption class="cap" data-f-sample>Same city. Same corner. Same hurry.</figcaption>
     </figure>
 
     <div class="panel pB pop ht" style="--tilt:1.2deg">
@@ -570,7 +563,7 @@ a{color:inherit}
         <g fill="#5A3317" stroke="#000" stroke-width="3"><circle cx="270" cy="52" r="9"/><circle cx="246" cy="30" r="6"/><circle cx="292" cy="20" r="5"/><circle cx="352" cy="138" r="7"/></g>
       </svg>
       <p class="sfx" aria-hidden="true">Bump!</p>
-      <p class="cap">One collision on a crowded crossing.</p>
+      <p class="cap">One collision nobody planned.</p>
     </div>
 
     <div class="panel pC pop ht" style="--tilt:-1deg">
@@ -582,16 +575,17 @@ a{color:inherit}
         <use href="#figM" x="56" y="96" width="120" height="320" style="color:#000"/>
         <use href="#figF" x="214" y="110" width="120" height="320" style="color:#000"/>
       </svg>
-      <p class="bubble b1">Sorry!</p>
-      <p class="bubble b2 tr">No, I'm sorry.</p>
-      <p class="cap">Two apologies, one spilled coffee, and a conversation that never really ended.</p>
+      <p class="bubble b1" data-f-sample>Sorry!</p>
+      <p class="bubble b2 tr" data-f-sample>No, I'm sorry.</p>
+      <p class="cap">Two apologies and a conversation that never really ended.</p>
     </div>
   </div>
 </section>
 
 <!-- PAGE: proposal -->
-<section class="page" aria-labelledby="t-ask">
-  <div class="pg-head"><h2 class="pg-title misreg" id="t-ask">The question</h2><p class="pg-no">Page 4</p></div>
+<section class="page" aria-labelledby="t-ask" data-f-if="story.1">
+  <div class="pg-head"><h2 class="pg-title misreg" id="t-ask" data-f="story.1.title">The question</h2><p class="pg-no">Page <span class="pgn">4</span>, <span data-f="story.1.year">2026</span></p></div>
+  <p class="fam-intro" data-f="story.1.body">He asked on a rooftop under a full moon, with a banner his cousins had spelled wrong.</p>
   <div class="grid prop">
     <figure class="panel pP pop" style="--tilt:.6deg;margin:0">
       <svg class="art" viewBox="0 0 600 800" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -615,9 +609,9 @@ a{color:inherit}
         <use href="#star4" x="330" y="470" width="30" height="30" style="color:#F4DFA0"/>
         <use href="#star4" x="360" y="452" width="14" height="14" style="color:#F4DFA0"/>
       </svg>
-      <figcaption class="cap c1">He asked upside down.</figcaption>
+      <figcaption class="cap c1" data-f-sample>He asked from the rooftop ledge.</figcaption>
       <p class="bubble">Yes!</p>
-      <p class="cap c2">She answered right side up.</p>
+      <p class="cap c2" data-f-sample>She said yes before he finished.</p>
     </figure>
 
     <div class="panel pR pop ht" style="--tilt:-1.4deg">
@@ -632,7 +626,7 @@ a{color:inherit}
         <path d="M186 110l14 30 14-30M176 122h48" fill="none" stroke="#000" stroke-width="2"/>
       </svg>
       <p class="sfx" aria-hidden="true">Shing!</p>
-      <p class="cap">One ring, held very carefully.</p>
+      <p class="cap" data-f-sample>One ring, held very carefully.</p>
     </div>
 
     <div class="panel pK pop ht" style="--tilt:1deg">
@@ -641,9 +635,9 @@ a{color:inherit}
         <g transform="rotate(-5 200 150)">
           <rect x="128" y="42" width="150" height="196" fill="#fff" stroke="#000" stroke-width="5"/>
           <rect x="128" y="42" width="150" height="46" fill="#1B3FAB" stroke="#000" stroke-width="5"/>
-          <text x="203" y="76" text-anchor="middle" font-family="Big Shoulders Display, Impact, sans-serif" font-weight="900" font-size="30" fill="#FFFBF2" letter-spacing="3">FEB</text>
-          <text x="203" y="188" text-anchor="middle" font-family="Big Shoulders Display, Impact, sans-serif" font-weight="900" font-size="96" fill="#000">14</text>
-          <text x="203" y="220" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-style="italic" font-weight="600" font-size="22" fill="#000">2027</text>
+          <text x="203" y="76" text-anchor="middle" font-family="Big Shoulders Display, Impact, sans-serif" font-weight="900" font-size="30" fill="#FFFBF2" letter-spacing="3" id="cal-mon">MAR</text>
+          <text x="203" y="188" text-anchor="middle" font-family="Big Shoulders Display, Impact, sans-serif" font-weight="900" font-size="96" fill="#000" data-f="main.day">6</text>
+          <text x="203" y="220" text-anchor="middle" font-family="Cormorant Garamond, Georgia, serif" font-style="italic" font-weight="600" font-size="22" fill="#000" data-f="main.year">2027</text>
           <path d="M150 128c20-28 90-30 110-4 18 26 2 70-50 74-46 3-72-20-66-50 3-16 18-28 40-34" fill="none" stroke="#C8102E" stroke-width="7" stroke-linecap="round"/>
         </g>
       </svg>
@@ -655,16 +649,16 @@ a{color:inherit}
 <!-- SPLASH -->
 <section class="splash ht" aria-labelledby="t-splash">
   <div class="splash-box panel pop" style="--tilt:-1.5deg">
-    <h2 class="splash-line misreg" id="t-splash">With great love comes a great many relatives.</h2>
+    <h2 class="splash-line misreg" id="t-splash">Two families. One very big team.</h2>
     <p class="splash-sub">Every one of them is invited. So are you.</p>
   </div>
 </section>
 
 <!-- PAGE: events (SAMPLE dates and venues) -->
 <section class="page" aria-labelledby="t-ev">
-  <div class="pg-head"><h2 class="pg-title misreg" id="t-ev">Five scenes</h2><p class="pg-no">Page 5, in order of appearance</p></div>
-  <div class="grid events">
-    <article class="panel ev ev-0 pop ht" style="--tilt:.8deg">
+  <div class="pg-head"><h2 class="pg-title misreg" id="t-ev"><span id="ev-count">Five</span> scenes</h2><p class="pg-no">Page <span class="pgn">5</span>, in order of appearance</p></div>
+  <div class="grid events" data-f-each="events">
+    <article class="panel ev ev-0 pop ht" data-f-item style="--tilt:.8deg">
       <svg class="art" viewBox="0 0 300 470" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <g transform="translate(236 112)" fill="none" stroke="#7F0A1C" stroke-width="2.5" opacity=".45">
           <g data-rot="18"><ellipse cx="0" cy="-40" rx="10" ry="22"/></g>
@@ -673,11 +667,11 @@ a{color:inherit}
       </svg>
       <span class="ev-no">01</span>
       <p class="sfx" aria-hidden="true">Splash!</p>
-      <h3 class="misreg">Haldi</h3>
-      <div class="plate"><p class="when">12 Feb, 11 AM</p><p class="where">The Garden Terrace</p><p class="what">Turmeric, laughter and a lot of yellow hands.</p><p class="wear">Wear: yellow you do not mind staining.</p></div>
+      <h3 class="misreg" data-f=".name">Haldi</h3>
+      <div class="plate"><p class="when" data-f=".date">Thursday, 4 March 2027</p><p class="where" data-f=".time">11 am, at the garden terrace</p><p class="what" data-f=".note">Turmeric, marigolds and a lot of laughing.</p><a class="ev-map" data-f-href=".map" data-f-opt hidden target="_blank" rel="noopener">Directions</a><!-- SAMPLE --><p class="wear" data-f-sample>Wear: yellow you do not mind staining.</p></div>
     </article>
 
-    <article class="panel ev ev-1 pop ht" style="--tilt:-1.2deg">
+    <article class="panel ev ev-1 pop ht" data-f-item style="--tilt:-1.2deg">
       <svg class="art" viewBox="0 0 300 470" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <g transform="translate(232 120)" fill="none" stroke="#F4DFA0" stroke-width="2" opacity=".55">
           <g data-rot="12"><ellipse cx="0" cy="-52" rx="13" ry="34"/></g>
@@ -687,11 +681,11 @@ a{color:inherit}
       </svg>
       <span class="ev-no">02</span>
       <p class="sfx" aria-hidden="true">Swirl!</p>
-      <h3 class="misreg">Mehendi</h3>
-      <div class="plate"><p class="when">12 Feb, 4 PM</p><p class="where">The Courtyard</p><p class="what">Henna, chai and stories while the designs dry.</p><p class="wear">Wear: greens and florals.</p></div>
+      <h3 class="misreg" data-f=".name">Mehendi</h3>
+      <div class="plate"><p class="when" data-f=".date">Thursday, 4 March 2027</p><p class="where" data-f=".time">4 pm, in the courtyard</p><p class="what" data-f=".note">Henna, music and a long golden afternoon.</p><!-- SAMPLE --><p class="wear" data-f-sample>Wear: greens and florals.</p></div>
     </article>
 
-    <article class="panel ev ev-2 pop ht" style="--tilt:.9deg">
+    <article class="panel ev ev-2 pop ht" data-f-item style="--tilt:.9deg">
       <svg class="art" viewBox="0 0 300 470" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <g transform="translate(240 110)" fill="none" stroke="#F4DFA0" stroke-width="3" opacity=".55">
           <circle r="22"/><circle r="44" stroke-dasharray="14 8"/><circle r="70" stroke-dasharray="22 10"/><circle r="98" stroke-dasharray="30 12"/>
@@ -700,22 +694,22 @@ a{color:inherit}
       </svg>
       <span class="ev-no">03</span>
       <p class="sfx" aria-hidden="true">Boom-chak!</p>
-      <h3 class="misreg">Sangeet</h3>
-      <div class="plate"><p class="when">13 Feb, 8 PM</p><p class="where">The Ballroom</p><p class="what">Both families face off on the dance floor.</p><p class="wear">Wear: sequins, shine and shoes you can dance in.</p></div>
+      <h3 class="misreg" data-f=".name">Sangeet</h3>
+      <div class="plate"><p class="when" data-f=".date">Friday, 5 March 2027</p><p class="where" data-f=".time">8 pm, in the ballroom</p><p class="what" data-f=".note">Choreography is optional. Dancing is not.</p><!-- SAMPLE --><p class="wear" data-f-sample>Wear: sequins, shine and shoes you can dance in.</p></div>
     </article>
 
-    <article class="panel ev ev-3 pop ht" style="--tilt:-.7deg">
+    <article class="panel ev ev-3 pop ht" data-f-item data-main="true" style="--tilt:-.7deg">
       <svg class="art" viewBox="0 0 300 470" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
         <g transform="translate(222 118)" stroke="#D9B45A" stroke-width="2" opacity=".5"><g data-rot="24"><line x1="0" y1="-62" x2="0" y2="-120"/></g></g>
         <g transform="translate(222 118)" fill="none" stroke-width="7"><circle cx="-17" r="30" stroke="url(#gFoil)"/><circle cx="17" r="30" stroke="url(#gFoil)"/></g>
       </svg>
       <span class="ev-no">04</span>
       <p class="sfx" aria-hidden="true">I do!</p>
-      <h3 class="misreg">Wedding</h3>
-      <div class="plate"><p class="when">14 Feb, 7 PM</p><p class="where">The Grand Hall</p><p class="what">Seven rounds of the sacred fire, then dinner.</p><p class="wear">Wear: traditional, in reds, golds and jewel tones.</p></div>
+      <h3 class="misreg" data-f=".name">Wedding</h3>
+      <div class="plate"><p class="when" data-f=".date">Saturday, 6 March 2027</p><p class="where" data-f=".time">7 pm, in the grand hall</p><p class="what" data-f=".note">Seven vows, then one very good party.</p><!-- SAMPLE --><p class="wear" data-f-sample>Wear: traditional, in reds, golds and jewel tones.</p></div>
     </article>
 
-    <article class="panel ev ev-4 pop ht" style="--tilt:.6deg">
+    <article class="panel ev ev-4 pop ht" data-f-item style="--tilt:.6deg">
       <svg class="art" viewBox="0 0 450 470" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
         <g fill="#F4DFA0" opacity=".7">
           <use href="#star4" x="300" y="60" width="26" height="26" style="color:#F4DFA0"/>
@@ -726,8 +720,8 @@ a{color:inherit}
       </svg>
       <span class="ev-no">05</span>
       <p class="sfx" aria-hidden="true">Cheers!</p>
-      <h3 class="misreg">Reception</h3>
-      <div class="plate"><p class="when">15 Feb, 8 PM</p><p class="where">The Rooftop</p><p class="what">Dinner under the skyline and a first dance as newlyweds.</p><p class="wear">Wear: black tie, with a little sparkle.</p></div>
+      <h3 class="misreg" data-f=".name">Reception</h3>
+      <div class="plate"><p class="when" data-f=".date">Sunday, 7 March 2027</p><p class="where" data-f=".time">8 pm, on the rooftop</p><p class="what" data-f=".note">Dinner under the open sky, then one last dance.</p><!-- SAMPLE --><p class="wear" data-f-sample>Wear: black tie, with a little sparkle.</p></div>
     </article>
   </div>
 </section>
@@ -742,51 +736,61 @@ a{color:inherit}
       <div class="unit"><span class="num" id="cd-m">00</span><span class="lbl">Minutes</span></div>
       <div class="unit"><span class="num" id="cd-s">00</span><span class="lbl">Seconds</span></div>
     </div>
-    <p class="count-foot" id="cd-foot">Vows at 7 PM on Sunday, 14 February 2027.</p>
+    <p class="count-foot" id="cd-foot">Vows at <span data-f="main.clock">7 PM</span> on <span data-f="main.date">Saturday, 6 March 2027</span>.</p>
   </div>
 </section>
 
-<!-- PAGE: family (SAMPLE names, edit freely) -->
-<section class="page" aria-labelledby="t-fam">
-  <div class="pg-head"><h2 class="pg-title misreg" id="t-fam">Awaiting your presence</h2><p class="pg-no">Page 6</p></div>
+<!-- PAGE: family (SAMPLE: hidden on a couple's site) -->
+<section class="page" aria-labelledby="t-fam" data-f-sample>
+  <div class="pg-head"><h2 class="pg-title misreg" id="t-fam">Awaiting your presence</h2><p class="pg-no">Page <span class="pgn">6</span></p></div>
   <p class="fam-intro">Two families, one guest list. These are the people waiting to hug you at the door.</p>
   <div class="grid family">
     <div class="panel side side-b pop ht" style="--tilt:-.7deg">
       <h3 class="misreg">The bride's side</h3>
       <dl>
-        <div><dt>Grandparents</dt><dd>Smt. Savitri &amp; Shri Mohan Kapoor</dd></div>
-        <div><dt>Parents</dt><dd>Mrs. Anjali &amp; Mr. Vikram Kapoor</dd></div>
-        <div><dt>Siblings</dt><dd>Rhea Kapoor &amp; Kabir Kapoor</dd></div>
+        <div><dt>Grandparents</dt><dd>Smt. Usha &amp; Shri Ramesh Bansal</dd></div>
+        <div><dt>Parents</dt><dd>Mrs. Kavita &amp; Mr. Manoj Bansal</dd></div>
+        <div><dt>Siblings</dt><dd>Tanya Bansal &amp; Kunal Bansal</dd></div>
       </dl>
     </div>
     <div class="panel side side-g pop ht" style="--tilt:.7deg">
       <h3 class="misreg">The groom's side</h3>
       <dl>
-        <div><dt>Grandparents</dt><dd>Smt. Kamla &amp; Shri Hari Mehra</dd></div>
-        <div><dt>Parents</dt><dd>Mrs. Sunita &amp; Mr. Rakesh Mehra</dd></div>
-        <div><dt>Siblings</dt><dd>Ishaan Mehra &amp; Tara Mehra</dd></div>
+        <div><dt>Grandparents</dt><dd>Smt. Savitri &amp; Shri Mohan Rao</dd></div>
+        <div><dt>Parents</dt><dd>Mrs. Lata &amp; Mr. Prakash Rao</dd></div>
+        <div><dt>Siblings</dt><dd>Nikhil Rao &amp; Diya Rao</dd></div>
       </dl>
     </div>
   </div>
 </section>
 
 <!-- PAGE: letter from the families -->
-<section class="page" aria-labelledby="t-letter">
-  <div class="pg-head"><h2 class="pg-title misreg" id="t-letter">A note from home</h2><p class="pg-no">Page 7</p></div>
+<section class="page" aria-labelledby="t-letter" data-f-if="note">
+  <div class="pg-head"><h2 class="pg-title misreg" id="t-letter">A note from home</h2><p class="pg-no">Page <span class="pgn">7</span></p></div>
   <div class="panel letter pop ht" style="--tilt:-.3deg">
-    <div class="mono" role="img" aria-label="Monogram of Arjun and Myra"><span>A<em>&amp;</em>M</span></div>
+    <div class="mono" id="mono" role="img" aria-label="Monogram of Aarav and Ishita"><span><b id="mono-a" style="font:inherit">A</b><em>&amp;</em><b id="mono-b" style="font:inherit">I</b></span></div>
     <div class="letter-body">
-      <p>Our two families have shared tea, arguments over cricket and one very long engagement dinner, and somewhere along the way we became one family.</p>
-      <p>Arjun and Myra would not be who they are without the people reading this, so it would not feel like a wedding without you in the room.</p>
-      <p>Come hungry, bring your dancing shoes, and stay as long as the music does.</p>
-      <p class="sign">With love, the Mehra and Kapoor families</p>
+      <p data-f="note">Every hero needs a crew. Ours is you. Come for the vows, stay for the dancing, and bring your best rooftop moves.</p>
+      <p class="sign">With love, <span data-f="families.0">The Rao family</span> and <span data-f="families.1">The Bansal family</span></p>
     </div>
   </div>
 </section>
 
-<!-- PAGE: reader questions -->
-<section class="page" aria-labelledby="t-faq">
-  <div class="pg-head"><h2 class="pg-title misreg" id="t-faq">Letters page</h2><p class="pg-no">Page 8</p></div>
+<!-- PAGE: things to note (a couple's site only) -->
+<section class="page" aria-labelledby="t-notes" hidden data-f-if="notes">
+  <div class="pg-head"><h2 class="pg-title misreg" id="t-notes">Things to note</h2><p class="pg-no">Page <span class="pgn">8</span></p></div>
+  <ul class="panel list pop ht" style="--tilt:-.3deg" data-f-each="notes"><li data-f-item data-f="."></li></ul>
+</section>
+
+<!-- PAGE: compliments (a couple's site only) -->
+<section class="page" aria-labelledby="t-comp" hidden data-f-if="compliments">
+  <div class="pg-head"><h2 class="pg-title misreg" id="t-comp">With best compliments from</h2></div>
+  <ul class="panel list pop ht" style="--tilt:.3deg" data-f-each="compliments"><li data-f-item data-f="."></li></ul>
+</section>
+
+<!-- PAGE: reader questions (SAMPLE: hidden on a couple's site) -->
+<section class="page" aria-labelledby="t-faq" data-f-sample>
+  <div class="pg-head"><h2 class="pg-title misreg" id="t-faq">Letters page</h2><p class="pg-no">Page <span class="pgn">8</span></p></div>
   <div class="faq">
     <details><summary>Is there parking?</summary><p>Yes. Each venue has free valet parking, and drivers have a waiting area with food.</p></details>
     <details><summary>What should I wear?</summary><p>Every scene has its own colour hint on the schedule page. Comfortable shoes are a good idea for the Sangeet.</p></details>
@@ -798,7 +802,7 @@ a{color:inherit}
 
 <!-- PAGE: venue -->
 <section class="page" aria-labelledby="t-venue">
-  <div class="pg-head"><h2 class="pg-title misreg">Final scene</h2><p class="pg-no">Page 9</p></div>
+  <div class="pg-head"><h2 class="pg-title misreg">Final scene</h2><p class="pg-no">Page <span class="pgn">9</span></p></div>
   <div class="grid venue">
     <div class="panel pV pop" style="--tilt:-.8deg">
       <svg class="art" id="hall" viewBox="0 0 600 420" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
@@ -823,24 +827,26 @@ a{color:inherit}
     </div>
     <div class="panel vdet pop ht" style="--tilt:.7deg">
       <p class="v-kicker">Join us at</p>
-      <h2 class="v-name" id="t-venue"><span>The Grand Hall</span></h2>
-      <!-- SAMPLE address -->
-      <p class="v-addr">12 Lakeview Road, Bandra West, Mumbai 400050</p>
+      <h2 class="v-name" id="t-venue"><span data-f="venueName">ITC Gardenia</span></h2>
+      <p class="v-addr" data-f="venueRest" data-f-opt>Residency Road, Bengaluru</p>
+      <p class="v-note" data-f="stay" data-f-opt hidden></p>
       <p class="v-note">Every scene plays out under one roof. Tell us you are coming, and we will save you a seat in the front row.</p>
       <div class="btns">
-        <a class="btn btn-dir" href="https://www.google.com/maps/search/?api=1&amp;query=The+Grand+Hall%2C+12+Lakeview+Road%2C+Bandra+West%2C+Mumbai+400050" target="_blank" rel="noopener">Directions</a>
-        <a class="btn btn-rsvp" href="mailto:?subject=RSVP%20Arjun%20%26%20Myra">RSVP</a>
+        <a class="btn btn-dir" href="https://www.google.com/maps/search/?api=1&amp;query=ITC%20Gardenia%2C%20Residency%20Road%2C%20Bengaluru" data-f-href="map" target="_blank" rel="noopener">Directions</a>
+        <a class="btn btn-rsvp" href="#rsvp" data-act="rsvp" data-f-hide="rsvp">RSVP</a>
+        <span data-f-hide="blessings" style="display:contents"><button type="button" class="btn btn-bless" data-act="bless" hidden data-f-if="couple">Leave a blessing</button></span>
       </div>
+      <div data-f-hide="rsvp"><p class="reply" data-f-if="rsvpBy">Kindly reply by <span data-f="rsvpBy">15 February</span>.</p></div>
     </div>
   </div>
-  <!-- SAMPLE contacts, replace names and numbers -->
-  <div class="contacts" role="group" aria-label="Who to call">
+  <!-- SAMPLE contacts -->
+  <div class="contacts" role="group" aria-label="Who to call" data-f-sample>
     <div class="panel contact pop" style="--tilt:-.5deg">
-      <div><p class="who">Rohan Mehra</p><p class="rel">Groom's side</p></div>
+      <div><p class="who">Nikhil Rao</p><p class="rel">Groom's side</p></div>
       <a class="tel" href="tel:+919876543210">+91 98765 43210</a>
     </div>
     <div class="panel contact pop" style="--tilt:.5deg">
-      <div><p class="who">Priya Kapoor</p><p class="rel">Bride's side</p></div>
+      <div><p class="who">Tanya Bansal</p><p class="rel">Bride's side</p></div>
       <a class="tel" href="tel:+919876543211">+91 98765 43211</a>
     </div>
   </div>
@@ -853,13 +859,12 @@ a{color:inherit}
     <div>
       <p class="next">Next issue</p>
       <p class="back-title misreg">Happily ever after</p>
-      <p class="signoff">See you on the fourteenth.</p>
-      <!-- SAMPLE names -->
-      <p class="back-names">Arjun &amp; Myra</p>
+      <p class="signoff">See you on <span data-f="main.day">6</span> <span data-f="main.month">March</span>.</p>
+      <p class="back-names"><span data-f="couple.0">Aarav</span> &amp; <span data-f="couple.1">Ishita</span></p>
     </div>
-    <div class="barcode" aria-hidden="true"><span class="bars"></span><span class="bc-num">14 02 27</span><span class="bc-price">Admit you, plus love</span></div>
+    <div class="barcode" aria-hidden="true"><span class="bars"></span><span class="bc-num" data-f="main.dmy">06.03.27</span><span class="bc-price">Admit you, plus love</span></div>
   </div>
-  <p class="colophon">Issue #1, printed with love for 14 February 2027.</p>
+  <p class="colophon">Issue #1, printed with love for <span data-f="main.day">6</span> <span data-f="main.month">March</span> <span data-f="main.year">2027</span>.</p>
 </footer>
 
 <script>
@@ -1048,7 +1053,7 @@ a{color:inherit}
   }
 
   /* countdown */
-  var target = new Date(2027, 1, 14, 19, 0).getTime();
+  var target = new Date(2027, 2, 6, 19, 0).getTime();
   var cd = {d: document.getElementById("cd-d"), h: document.getElementById("cd-h"), m: document.getElementById("cd-m"), s: document.getElementById("cd-s")};
   function pad(n, l){ n = String(n); while (n.length < l) n = "0" + n; return n; }
   function tick(){
@@ -1063,21 +1068,22 @@ a{color:inherit}
 
   /* signature: tap anywhere to shoot a web line from the nearest bottom corner */
   var webs = document.getElementById("webs");
-  var words = ["Thwip!", "Thwip!", "Thwip!", "Thwp!"];
+  var words = ["Zip!", "Zip!", "Zip!", "Swish!"];
   document.addEventListener("click", function(e){
     if (e.detail === 0) return; /* keyboard activation, not a tap */
-    if (e.target.closest && e.target.closest(".music")) return; /* the music button is not a web target */
+    if (e.target.closest && e.target.closest(".music,[data-act]")) return; /* the music, RSVP and blessing buttons are not web targets */
     shoot(e.clientX, e.clientY);
   });
   /* music: tries to start once the page has loaded, unless the guest muted it before; browsers usually
      block sound until a tap, so until it plays every gesture tries again */
   (function(){
     var btn = document.getElementById("music"), au = document.getElementById("theme");
-    var KEY = "ms-webline-muted", VOL = .6, raf = 0, armed = true, resume = false;
+    var KEY = "ms-webline-muted", VOL = .6, raf = 0, armed = true, resume = false, off = false, preview = false; /* preview: the editor's live preview, never autoplays */
     function muted(){ try { return localStorage.getItem(KEY) === "1"; } catch (e) { return false; } }
     function remember(v){ try { localStorage.setItem(KEY, v ? "1" : "0"); } catch (e) {} }
     function show(on){ btn.setAttribute("aria-pressed", on ? "true" : "false"); }
     function play(){
+      if (off) return Promise.reject(new Error("off"));
       cancelAnimationFrame(raf);
       au.volume = 0;
       var p = au.play();
@@ -1097,21 +1103,78 @@ a{color:inherit}
     function first(e){
       if (!armed) return;
       if (btn.contains(e.target)) return; /* the button's own click decides */
+      if (off || preview) return; /* stays armed, so turning the music back on works again */
       if (muted() || !au.paused) return disarm();
       play().then(disarm, function(){});
     }
-    function auto(){ if (!muted()) play().then(disarm, function(){}); }
-    if (document.readyState === "complete") auto(); else window.addEventListener("load", auto, { once: true });
+    function auto(){ if (!off && !preview && !muted()) play().then(disarm, function(){}); }
+    /* framed (a couple's site or the editor): wait for their content, which may turn the music off; the design's demo sends none, so play after a moment */
+    var autoDone = false;
+    function once(){ if (!autoDone){ autoDone = true; auto(); } }
+    var onLoad = window.parent !== window ? function(){ setTimeout(once, 1200); } : auto;
+    if (document.readyState === "complete") onLoad(); else window.addEventListener("load", onLoad, { once: true });
     GEST.forEach(function(t){ document.addEventListener(t, first, true); });
     btn.addEventListener("click", function(){
       disarm();
-      if (au.paused){ remember(false); play(); } else { remember(true); stop(); }
+      if (au.paused){ remember(false); play().catch(function(){}); } else { remember(true); stop(); }
+    });
+    /* a couple's music: "" plays the theme, "off" none here (the app plays any chosen song itself); sent again on every edit, so both ways */
+    document.addEventListener("microsite:content", function(e){
+      off = e.detail.music === "off";
+      preview = !!e.detail.preview;
+      btn.hidden = off;
+      if (off) stop();
+      once();
     });
     document.addEventListener("visibilitychange", function(){
       if (document.hidden){ resume = !au.paused; if (resume){ cancelAnimationFrame(raf); au.pause(); } }
       else if (resume){ resume = false; play(); }
     });
   })();
+
+  /* long names: shrink the masthead and lead names until they fit */
+  function fit(){
+    document.querySelectorAll("[data-fit]").forEach(function(n){
+      n.style.fontSize = "";
+      for (var i = 0, w, sw; i < 4 && (sw = n.scrollWidth) > (w = n.clientWidth) + 1; i++)
+        n.style.fontSize = (parseFloat(getComputedStyle(n).fontSize) * w / sw * .97).toFixed(1) + "px";
+    });
+  }
+  fit();
+  if (document.fonts) document.fonts.ready.then(fit);
+  window.addEventListener("resize", fit);
+
+  /* a couple's own content (public/microsites/fill.js) */
+  var EVS = [].map.call(document.querySelectorAll(".events > .ev"), function(a){
+    return {art: a.querySelector(".art").cloneNode(true), sfx: a.querySelector(".sfx").textContent};
+  });
+  var COUNT = ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve"];
+  document.addEventListener("microsite:content", function(e){
+    var d = e.detail, main = window.msDate(d.main && d.main.start);
+    if (main){ target = main.getTime(); clearInterval(timer); timer = setInterval(tick, 1000); tick(); }
+    document.querySelector('[aria-labelledby="t-count"]').style.display = main ? "" : "none"; /* no date yet, no countdown to the sample's */
+    document.querySelectorAll(".mh").forEach(function(m, i){ m.setAttribute("data-t", (d.couple || [])[i] || ""); });
+    var a = (d.couple || [])[0] || "", b = (d.couple || [])[1] || "";
+    document.getElementById("mono-a").textContent = a.charAt(0);
+    document.getElementById("mono-b").textContent = b.charAt(0);
+    document.getElementById("mono").setAttribute("aria-label", "Monogram of " + a + " and " + b);
+    document.getElementById("cal-mon").textContent = (d.main && d.main.mon || "").toUpperCase();
+    /* every scene keeps a look of its own: the wedding gets the rings, the rest take turns */
+    var k = 0, list = document.querySelectorAll(".events > .ev");
+    list.forEach(function(n, i){
+      var look = n.getAttribute("data-main") ? 3 : [0, 1, 2, 4][k++ % 4];
+      n.className = n.className.replace(/\bev-\d\b/, "ev-" + look);
+      n.querySelector(".art").replaceWith(EVS[look].art.cloneNode(true));
+      n.querySelector(".sfx").textContent = EVS[look].sfx;
+      n.querySelector(".ev-no").textContent = (i < 9 ? "0" : "") + (i + 1);
+      n.classList.add("in");
+    });
+    document.getElementById("ev-count").textContent = COUNT[list.length] || list.length;
+    /* page numbers follow the pages that are showing */
+    var p = 2;
+    document.querySelectorAll(".pgn").forEach(function(n){ if (!n.closest("[hidden]")) n.textContent = p++; });
+    fit();
+  });
 
   function shoot(x, y){
     var W = window.innerWidth, Hh = window.innerHeight;
@@ -1144,7 +1207,7 @@ a{color:inherit}
     splat.insertBefore(halo, inner);
 
     var word = document.createElement("div");
-    word.className = "thwip";
+    word.className = "zap";
     word.setAttribute("aria-hidden", "true");
     word.textContent = words[Math.floor(Math.random() * words.length)];
     var rot = (Math.random() * 24 - 12).toFixed(1);

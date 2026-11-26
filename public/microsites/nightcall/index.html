@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Night Call: comic noir wedding website · ShaadiTemplate</title>
-<meta name="description" content="A comic-noir wedding website: a rainy city, a searchlight signal, a save-the-night card, every function, family and RSVP.">
-<link rel="canonical" href="https://shaaditemplate.com/microsites/nightcall/">
+<title>Kabir &amp; Anaya, 20 February 2027 · Night Call wedding website</title>
+<meta name="description" content="Kabir and Anaya are getting married in Mumbai on 20 February 2027: a comic-noir wedding website with a rainy city, a searchlight signal, every function from Haldi to the reception, and RSVP.">
+<meta name="robots" content="noindex">
+<script src="/microsites/fill.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500&family=Cormorant+Garamond:ital,wght@1,500&display=swap" rel="stylesheet">
@@ -135,13 +136,13 @@ a{color:inherit}
 .ev{position:relative;display:grid;grid-template-columns:64px 32px 1fr;align-items:start;padding:16px 0;text-align:left}
 .ev:before{content:"";position:relative;z-index:1;grid-column:2;grid-row:1;justify-self:center;margin-top:12px;width:9px;height:9px;transform:rotate(45deg);border:1px solid var(--acc);background:var(--node)}
 .ev:not(:last-child):after{content:"";position:absolute;left:79.5px;top:32px;height:100%;width:1px;background:var(--rule)}
-.ev:has(+.main):after{background:linear-gradient(var(--rule),var(--acc))}
-.ev.main:after{background:linear-gradient(var(--acc),var(--rule))}
-.ev.main:before{background:var(--acc);box-shadow:0 0 10px var(--acc)}
+.ev:has(+[data-main]):after{background:linear-gradient(var(--rule),var(--acc))}
+.ev[data-main]:after{background:linear-gradient(var(--acc),var(--rule))}
+.ev[data-main]:before{background:var(--acc);box-shadow:0 0 10px var(--acc)}
 .ev .n{grid-column:1;grid-row:1;text-align:center;line-height:1}
 .ev .n b{display:block;font:400 2.1rem/1 var(--d);letter-spacing:.02em;color:var(--fig)}
 .ev .n span{display:block;margin-top:.4rem;padding-left:.32em;font:500 .75rem var(--c);letter-spacing:.28em;text-transform:uppercase;color:var(--mute)}
-.ev.main .n b{text-shadow:0 0 14px var(--halo)}
+.ev[data-main] .n b{text-shadow:0 0 14px var(--halo)}
 .ev div{grid-column:3;grid-row:1}
 .ev h3{font:400 1.45rem/1.05 var(--d);letter-spacing:.08em;color:var(--name)}
 .ev p{margin-top:.45rem;font:500 .78rem var(--c);letter-spacing:.2em;text-transform:uppercase;color:var(--ink2)}
@@ -179,7 +180,7 @@ a{color:inherit}
 #details .hd{font:400 clamp(1.8rem,4.4vw,2.4rem)/1 var(--d);letter-spacing:.06em}
 #details .hd:before{content:"";display:block;width:48px;height:1px;margin:0 auto 1.6rem;background:var(--acc)}
 
-/* the couple: groom and bride either side of an arched window, the mehrab of a jharokha at night */
+/* the couple: groom and bride either side of an arched window, the arch of a jharokha at night */
 .couple{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:clamp(24px,4vw,52px);width:min(100%,780px);margin:2.8rem 0 4.6rem}
 .who:first-child{text-align:right}
 .who:last-child{text-align:left}
@@ -263,6 +264,20 @@ a{color:inherit}
   .wedding{font-size:clamp(2.6rem,13vw,3.6rem)}
   .beam.a{width:24vw}.beam.b{width:16vw}
 }
+/* a couple's own words: names in caps whatever they type, long ones shrink to fit (see fit() below) */
+[hidden]{display:none!important}
+.up,.name,.ev h3,.venue h3,.side h3{text-transform:uppercase}
+.fit{max-width:100%}
+.who{min-width:0}
+.rs{display:contents}
+.ev .mp{display:inline-block;margin-top:.5rem;font:500 .75rem var(--c);letter-spacing:.2em;text-transform:uppercase;color:var(--mute);text-underline-offset:4px}
+.stay{max-width:520px;margin:-1rem 0 1.4rem;color:var(--mute)}
+/* the couple's notes and compliments: diamond bullets like the questions */
+.list{list-style:none;width:min(100%,520px);margin:2.4rem 0 0;padding:0;text-align:left;border-top:1px solid var(--hair)}
+.list li{display:flex;gap:18px;padding:14px 6px;border-bottom:1px solid var(--hair);font:italic 500 1.14rem/1.5 var(--s);color:var(--ink2)}
+.list li:before{content:"";flex:none;width:9px;height:9px;margin-top:.55em;transform:rotate(45deg);border:1px solid var(--acc)}
+/* the buttons stop short of the music button's column, so it never sits over them (100vw - 2 x (16 gutter + 48 button + 6)) */
+.btn{width:min(100%,320px,100vw - 140px)}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}}
 </style>
 <!-- seo -->
@@ -271,17 +286,6 @@ a{color:inherit}
 <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <script src="/analytics.js" defer></script>
-<meta property="og:type" content="website" />
-<meta property="og:site_name" content="ShaadiTemplate" />
-<meta property="og:locale" content="en_IN" />
-<meta property="og:title" content="Night Call: comic noir wedding website" />
-<meta property="og:description" content="A comic-noir wedding website: a rainy city, a searchlight signal, a save-the-night card, every function, family and RSVP." />
-<meta property="og:url" content="https://shaaditemplate.com/microsites/nightcall/" />
-<meta property="og:image" content="https://shaaditemplate.com/og/microsites-nightcall.jpg" />
-<meta property="og:image:width" content="1200" />
-<meta property="og:image:height" content="630" />
-<meta property="og:image:alt" content="Night Call: comic noir wedding website: ShaadiTemplate invitation designs" />
-<meta name="twitter:card" content="summary_large_image" />
 <!-- /seo -->
 </head>
 <body>
@@ -291,13 +295,13 @@ a{color:inherit}
   <div class="stage">
 
     <section class="scene on" id="s-title" data-rain="0">
-      <div class="name l" aria-hidden="true">ARJUN</div>
-      <div class="name r" aria-hidden="true">MYRA</div>
+      <div class="name l" aria-hidden="true" data-f="couple.0">Kabir</div>
+      <div class="name r" aria-hidden="true" data-f="couple.1">Anaya</div>
       <div class="center">
         <p class="the">THE</p>
         <h1 class="wedding">WEDDING</h1>
         <p class="year">of the year</p>
-        <span class="visually-hidden" style="position:absolute;left:-9999px">Arjun and Myra</span>
+        <span class="visually-hidden" style="position:absolute;left:-9999px"><span data-f="couple.0">Kabir</span> and <span data-f="couple.1">Anaya</span></span>
       </div>
       <p class="cap cue">Scroll</p>
     </section>
@@ -338,7 +342,7 @@ a{color:inherit}
       </svg>
       <svg class="skyline" id="skyline" viewBox="0 0 1200 300" preserveAspectRatio="none" aria-hidden="true"></svg>
       <div class="center">
-        <h2>ARJUN &amp; MYRA</h2>
+        <h2 class="up fit"><span data-f="couple.0">Kabir</span> &amp; <span data-f="couple.1">Anaya</span></h2>
         <p class="cap">When the night calls, we answer</p>
       </div>
     </section>
@@ -346,7 +350,7 @@ a{color:inherit}
     <section class="scene" id="s-date" data-rain="1">
       <div class="center">
         <p class="cap">Save the night</p>
-        <p class="date neon">14.02.27</p>
+        <p class="date neon" data-f="main.dmy">20.02.27</p>
         <b>BE THERE.</b>
       </div>
     </section>
@@ -356,121 +360,113 @@ a{color:inherit}
 
 <main id="details">
   <!-- invocation: Ganesha, set as a comic caption box -->
-  <div class="caption rv" role="note" aria-label="Invocation">
-    <p class="invoke">|| Shri Ganeshaya Namah ||</p>
-    <p class="shlok">Vakratunda Mahakaya Suryakoti Samaprabha<br>Nirvighnam Kuru Me Deva Sarva Karyeshu Sarvada</p>
+  <div class="caption rv" role="note" aria-label="Invocation" data-f-if="invocation">
+    <p class="invoke" data-f="invocation">|| Shri Ganeshaya Namah ||</p>
+    <p class="shlok" data-f-if="ganesh">Vakratunda Mahakaya Suryakoti Samaprabha<br>Nirvighnam Kuru Me Deva Sarva Karyeshu Sarvada</p>
   </div>
   <p class="cap bless rv">With the blessings of our grandparents</p>
-  <!-- SAMPLE: host names -->
-  <p class="host rv">Together with their families, Mr. Rakesh &amp; Mrs. Sunita Mehra and Mr. Vikram &amp; Mrs. Anjali Kapoor request the honour of your presence at the wedding of</p>
-  <!-- SAMPLE: couple names -->
-  <h2 class="neon rv">ARJUN &amp; MYRA</h2>
+  <p class="host rv" data-f="invite">Together with their families, Mr. Sanjay and Mrs. Neeta Malhotra and Mr. Arvind and Mrs. Rekha Desai request the honour of your presence at the wedding of their children.</p>
+  <h2 class="neon up fit rv"><span data-f="couple.0">Kabir</span> &amp; <span data-f="couple.1">Anaya</span></h2>
 
   <div class="couple">
-    <!-- SAMPLE: groom and parents -->
     <div class="who rv">
-      <h3>ARJUN</h3>
-      <p class="of">son of</p>
-      <p class="pa">Mr. Rakesh &amp; Mrs. Sunita Mehra</p>
+      <h3 class="up fit" data-f="couple.0">Kabir</h3>
+      <p class="pa" data-f="parents.0" data-f-opt>Son of Mrs. Neeta and Mr. Sanjay Malhotra</p>
     </div>
-    <!-- couple photo: replace the <svg> below with <img src="couple.jpg" alt="Arjun and Myra"> -->
-    <div class="frame rv">
-      <svg viewBox="0 0 240 320" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Sample couple photo: two silhouettes under a full moon">
-        <defs>
-          <linearGradient id="win" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1230"/><stop offset=".55" stop-color="#3a1233"/><stop offset="1" stop-color="#8c1f3c"/></linearGradient>
-          <radialGradient id="back" cx=".5" cy=".62" r=".45"><stop offset="0" stop-color="#ff3b4a" stop-opacity=".55"/><stop offset="1" stop-color="#ff3b4a" stop-opacity="0"/></radialGradient>
-        </defs>
-        <rect width="240" height="320" fill="url(#win)"/>
-        <circle cx="164" cy="78" r="30" fill="#e6ecff" opacity=".9"/>
-        <circle cx="164" cy="78" r="46" fill="#b9ccff" opacity=".12"/>
-        <path stroke="#e2d6ff" stroke-opacity=".22" stroke-width="1" d="M30 40l-6 30M72 90l-6 30M118 30l-6 30M200 130l-6 30M48 150l-6 30M214 40l-6 30M150 160l-6 30"/>
-        <rect width="240" height="320" fill="url(#back)"/>
-        <g fill="#12060e">
-          <!-- two figures leaning in: him on the left, her on the right with her hair gathered at the nape -->
-          <circle cx="96" cy="200" r="27"/>
-          <path d="M24 320C26 262 52 240 92 238C132 240 150 262 152 320Z"/>
-          <circle cx="146" cy="206" r="24"/>
-          <circle cx="166" cy="220" r="12"/>
-          <path d="M92 320C96 270 116 250 148 248C182 250 204 270 210 320Z"/>
-        </g>
-      </svg>
-      <span class="tag">Sample photo</span>
+    <div class="frame rv" data-f-if="photo">
+      <img src="/templates/couple-sample.jpg" data-f-src="photo" alt="The couple" style="object-position:50% 28%">
+      <!-- SAMPLE --><span class="tag" data-f-sample>Sample photo</span>
     </div>
-    <!-- SAMPLE: bride and parents -->
     <div class="who rv">
-      <h3>MYRA</h3>
-      <p class="of">daughter of</p>
-      <p class="pa">Mr. Vikram &amp; Mrs. Anjali Kapoor</p>
+      <h3 class="up fit" data-f="couple.1">Anaya</h3>
+      <p class="pa" data-f="parents.1" data-f-opt>Daughter of Mrs. Rekha and Mr. Arvind Desai</p>
     </div>
   </div>
 
   <p class="cap sub rv">The nights ahead</p>
-  <ol class="events">
-    <li class="ev rv"><time class="n" datetime="2027-02-12T11:00"><b>12</b><span>Feb</span></time><div><h3>HALDI</h3><p>11 AM · The Garden Terrace</p><p class="ds">Turmeric, marigolds and a lot of laughter before noon.</p><p class="dc"><i style="--a:#f2c230;--b:#fff1c9"></i>Wear sunshine yellow, nothing precious</p></div></li>
-    <li class="ev rv"><time class="n" datetime="2027-02-12T16:00"><b>12</b><span>Feb</span></time><div><h3>MEHENDI</h3><p>4 PM · The Courtyard</p><p class="ds">Henna, chai and the first round of family stories.</p><p class="dc"><i style="--a:#3d8a4f;--b:#d9a94a"></i>Wear leaf green and gold</p></div></li>
-    <li class="ev rv"><time class="n" datetime="2027-02-13T20:00"><b>13</b><span>Feb</span></time><div><h3>SANGEET</h3><p>8 PM · The Ballroom</p><p class="ds">Both families take the floor. Rehearsals were optional.</p><p class="dc"><i style="--a:#24348a;--b:#c7ccd6"></i>Wear midnight blue and silver</p></div></li>
-    <li class="ev main rv"><time class="n" datetime="2027-02-14T19:00"><b>14</b><span>Feb</span></time><div><h3>WEDDING</h3><p>7 PM · The Grand Hall</p><p class="ds">The pheras, the vows and the longest night of all.</p><p class="dc"><i style="--a:#c21f32;--b:#d9a94a"></i>Wear crimson and gold, your finest</p></div></li>
-    <li class="ev rv"><time class="n" datetime="2027-02-15T20:00"><b>15</b><span>Feb</span></time><div><h3>RECEPTION</h3><p>8 PM · The Rooftop</p><p class="ds">Dinner above the city lights, then dancing till late.</p><p class="dc"><i style="--a:#050505;--b:#ece8f2"></i>Wear black tie, after dark</p></div></li>
+  <ol class="events" data-f-each="events">
+    <li class="ev rv" data-f-item><span class="n"><b data-f=".day">18</b><span data-f=".mon">Feb</span></span><div><h3 data-f=".name">Haldi</h3><p data-f=".time">11 am, on the poolside lawns</p><p class="ds" data-f=".note" data-f-opt>Turmeric, marigolds and a lot of laughing.</p><!-- SAMPLE --><p class="dc" data-f-sample><i style="--a:#f2c230;--b:#fff1c9"></i>Wear sunshine yellow, nothing precious</p><a class="mp" data-f-href=".map" data-f-opt href="https://www.google.com/maps/search/?api=1&amp;query=Taj%20Lands%20End%2C%20Bandstand%2C%20Bandra%20West%2C%20Mumbai" target="_blank" rel="noopener">Directions</a></div></li>
+    <li class="ev rv" data-f-item><span class="n"><b data-f=".day">18</b><span data-f=".mon">Feb</span></span><div><h3 data-f=".name">Mehendi</h3><p data-f=".time">4 pm, in the courtyard</p><p class="ds" data-f=".note" data-f-opt>Henna, chai and the first round of family stories.</p><!-- SAMPLE --><p class="dc" data-f-sample><i style="--a:#3d8a4f;--b:#d9a94a"></i>Wear leaf green and gold</p><a class="mp" data-f-href=".map" data-f-opt href="https://www.google.com/maps/search/?api=1&amp;query=Taj%20Lands%20End%2C%20Bandstand%2C%20Bandra%20West%2C%20Mumbai" target="_blank" rel="noopener">Directions</a></div></li>
+    <li class="ev rv" data-f-item><span class="n"><b data-f=".day">19</b><span data-f=".mon">Feb</span></span><div><h3 data-f=".name">Sangeet</h3><p data-f=".time">8 pm, in the ballroom</p><p class="ds" data-f=".note" data-f-opt>Both families take the floor. Rehearsals were optional.</p><!-- SAMPLE --><p class="dc" data-f-sample><i style="--a:#24348a;--b:#c7ccd6"></i>Wear midnight blue and silver</p><a class="mp" data-f-href=".map" data-f-opt href="https://www.google.com/maps/search/?api=1&amp;query=Taj%20Lands%20End%2C%20Bandstand%2C%20Bandra%20West%2C%20Mumbai" target="_blank" rel="noopener">Directions</a></div></li>
+    <li class="ev rv" data-f-item data-main="true"><span class="n"><b data-f=".day">20</b><span data-f=".mon">Feb</span></span><div><h3 data-f=".name">Wedding</h3><p data-f=".time">7 pm, on the sea-facing lawns</p><p class="ds" data-f=".note" data-f-opt>Seven pheras under the night sky, then dinner by the sea.</p><!-- SAMPLE --><p class="dc" data-f-sample><i style="--a:#c21f32;--b:#d9a94a"></i>Wear crimson and gold, your finest</p><a class="mp" data-f-href=".map" data-f-opt href="https://www.google.com/maps/search/?api=1&amp;query=Taj%20Lands%20End%2C%20Bandstand%2C%20Bandra%20West%2C%20Mumbai" target="_blank" rel="noopener">Directions</a></div></li>
+    <li class="ev rv" data-f-item><span class="n"><b data-f=".day">21</b><span data-f=".mon">Feb</span></span><div><h3 data-f=".name">Reception</h3><p data-f=".time">8 pm, on the rooftop terrace</p><p class="ds" data-f=".note" data-f-opt>Dinner, music and one last dance over the city.</p><!-- SAMPLE --><p class="dc" data-f-sample><i style="--a:#050505;--b:#ece8f2"></i>Wear black tie, after dark</p><a class="mp" data-f-href=".map" data-f-opt href="https://www.google.com/maps/search/?api=1&amp;query=Taj%20Lands%20End%2C%20Bandstand%2C%20Bandra%20West%2C%20Mumbai" target="_blank" rel="noopener">Directions</a></div></li>
   </ol>
   <div class="count rv" role="timer" aria-label="Countdown to the wedding">
-    <p class="cap">Until 14 Feb 2027 · 7 PM</p>
+    <p class="cap">Until <span data-f="main.day">20</span> <span data-f="main.mon">Feb</span> <span data-f="main.year">2027</span> · <span data-f="main.clock">7 PM</span></p>
     <div><b id="cd-d">00</b><span>Days</span></div>
     <div><b id="cd-h">00</b><span>Hours</span></div>
     <div><b id="cd-m">00</b><span>Minutes</span></div>
     <div><b id="cd-s">00</b><span>Seconds</span></div>
   </div>
 
-  <!-- SAMPLE: family names -->
   <section class="sec" aria-labelledby="fam-h">
     <h2 class="hd rv" id="fam-h">AWAITING YOUR PRESENCE</h2>
     <div class="family">
       <div class="side rv">
-        <h3>THE MEHRA FAMILY</h3>
+        <h3 data-f="families.0">The Malhotra family</h3>
         <p>the groom's side</p>
-        <dl>
-          <dt>Grandparents</dt><dd>Shri Mohan Lal &amp; Smt. Kamla Mehra</dd>
-          <dt>Parents</dt><dd>Mr. Rakesh &amp; Mrs. Sunita Mehra</dd>
-          <dt>Uncles &amp; aunts</dt><dd>Mr. Sanjay &amp; Mrs. Neha Mehra</dd>
-          <dt>Siblings</dt><dd>Kabir &amp; Ishita Mehra</dd>
+        <!-- SAMPLE: grandparents, parents, uncles and siblings -->
+        <dl data-f-sample>
+          <dt>Grandparents</dt><dd>Shri Om Prakash &amp; Smt. Kamla Malhotra</dd>
+          <dt>Parents</dt><dd>Mr. Sanjay &amp; Mrs. Neeta Malhotra</dd>
+          <dt>Uncles &amp; aunts</dt><dd>Mr. Rajiv &amp; Mrs. Neha Malhotra</dd>
+          <dt>Siblings</dt><dd>Varun &amp; Tara Malhotra</dd>
         </dl>
       </div>
       <div class="side rv">
-        <h3>THE KAPOOR FAMILY</h3>
+        <h3 data-f="families.1">The Desai family</h3>
         <p>the bride's side</p>
-        <dl>
-          <dt>Grandparents</dt><dd>Shri Harish &amp; Smt. Savitri Kapoor</dd>
-          <dt>Parents</dt><dd>Mr. Vikram &amp; Mrs. Anjali Kapoor</dd>
-          <dt>Uncles &amp; aunts</dt><dd>Mr. Rohit &amp; Mrs. Pooja Malhotra</dd>
-          <dt>Siblings</dt><dd>Aditya Kapoor</dd>
+        <!-- SAMPLE: grandparents, parents, uncles and siblings -->
+        <dl data-f-sample>
+          <dt>Grandparents</dt><dd>Shri Harish &amp; Smt. Savitri Desai</dd>
+          <dt>Parents</dt><dd>Mr. Arvind &amp; Mrs. Rekha Desai</dd>
+          <dt>Uncles &amp; aunts</dt><dd>Mr. Rohit &amp; Mrs. Pooja Desai</dd>
+          <dt>Siblings</dt><dd>Nikhil Desai</dd>
         </dl>
       </div>
     </div>
   </section>
 
-  <section class="sec letter" aria-label="A letter from the families">
-    <div class="mono rv" aria-hidden="true">A<i>&amp;</i>M</div>
-    <p class="note rv">Some stories begin in daylight. Arjun and Myra found theirs after dark, and somewhere along the way our two families became one. We would be honoured to have you with us for these nights, to bless them, to feast with us and to dance until the city goes quiet. Come as you are, and stay as long as you like.</p>
-    <p class="cap rv">With love, the Mehra and Kapoor families</p>
+  <section class="sec letter" aria-label="A letter from the families" data-f-if="note">
+    <div class="mono rv" aria-hidden="true"><span class="ini">K</span><i>&amp;</i><span class="ini">A</span></div>
+    <p class="note rv" data-f="note">The city has seen a lot of nights. This is the one we want you there for. Come early, stay late, and answer the call.</p>
+    <p class="cap rv">With love from <span data-f="families.0">The Malhotra family</span> and <span data-f="families.1">The Desai family</span></p>
   </section>
 
-  <!-- SAMPLE: venue and address -->
-  <div class="venue rv">
-    <h3>THE GRAND HALL</h3>
-    <p class="cap">12 Lakeview Road, Bandra West, Mumbai 400050</p>
-  </div>
-  <a class="btn rv" href="https://www.google.com/maps/search/?api=1&amp;query=The+Grand+Hall%2C+12+Lakeview+Road%2C+Bandra+West%2C+Mumbai+400050" target="_blank" rel="noopener">Directions</a>
-  <a class="btn red rv" href="mailto:?subject=RSVP%20Arjun%20%26%20Myra">RSVP · Suit up</a>
-  <p class="cap reply rv">Kindly reply by 15 January 2027, or call</p>
-  <!-- SAMPLE: contact names and phone numbers -->
-  <ul class="calls rv">
-    <li><a href="tel:+919876543210"><span><b>Kabir Mehra</b><i>for the groom's family</i></span><em>+91 98765 43210</em></a></li>
-    <li><a href="tel:+919876543211"><span><b>Aditya Kapoor</b><i>for the bride's family</i></span><em>+91 98765 43211</em></a></li>
-  </ul>
+  <section class="sec" aria-labelledby="notes-h" hidden data-f-if="notes">
+    <h2 class="hd rv" id="notes-h">THINGS TO NOTE</h2>
+    <ul class="list rv" data-f-each="notes"><li data-f-item data-f="."></li></ul>
+  </section>
 
-  <section class="sec" aria-labelledby="faq-h">
+  <div class="venue rv">
+    <h3 class="fit" data-f="venueName">Taj Lands End</h3>
+    <p class="cap" data-f="venueRest" data-f-opt>Bandstand, Bandra West, Mumbai</p>
+  </div>
+  <p class="stay rv" data-f="stay" data-f-opt hidden></p>
+  <a class="btn rv" data-f-href="map" href="https://www.google.com/maps/search/?api=1&amp;query=Taj%20Lands%20End%2C%20Bandstand%2C%20Bandra%20West%2C%20Mumbai" target="_blank" rel="noopener">Directions</a>
+  <div class="rs" data-f-hide="rsvp">
+    <a class="btn red rv" data-act="rsvp" href="#rsvp">RSVP · Suit up</a>
+    <p class="cap reply rv" data-f-if="rsvpBy">Kindly reply by <span data-f="rsvpBy">1 February</span><span data-f-sample>, or call</span></p>
+    <!-- SAMPLE: contact names and phone numbers -->
+    <ul class="calls rv" data-f-sample>
+      <li><a href="tel:+919876543210"><span><b>Varun Malhotra</b><i>for the groom's family</i></span><em>+91 98765 43210</em></a></li>
+      <li><a href="tel:+919876543211"><span><b>Nikhil Desai</b><i>for the bride's family</i></span><em>+91 98765 43211</em></a></li>
+    </ul>
+  </div>
+  <div class="rs" data-f-hide="blessings">
+    <a class="btn rv" data-act="bless" href="#" hidden data-f-if="couple">Leave a blessing</a>
+  </div>
+
+  <section class="sec" aria-labelledby="comp-h" hidden data-f-if="compliments">
+    <h2 class="hd rv" id="comp-h">WITH BEST COMPLIMENTS FROM</h2>
+    <ul class="list rv" data-f-each="compliments"><li data-f-item data-f="."></li></ul>
+  </section>
+
+  <!-- SAMPLE: questions -->
+  <section class="sec" aria-labelledby="faq-h" data-f-sample>
     <h2 class="hd rv" id="faq-h">BEFORE YOU ASK</h2>
     <div class="faq rv">
-      <details><summary>Is there parking?</summary><p>Yes. Valet parking runs at the main entrance every night.</p></details>
+      <details><summary>Is there parking?</summary><p>Yes. Valet parking runs at the main porch of the hotel every night.</p></details>
       <details><summary>Can we bring the kids?</summary><p>Please do. Little ones are welcome at every event.</p></details>
       <details><summary>What about gifts?</summary><p>Your presence is the gift. If you would like to give something, a blessing envelope is more than enough.</p></details>
     </div>
@@ -520,8 +516,8 @@ a{color:inherit}
   const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && (e.target.classList.add('in'), io.unobserve(e.target))), {threshold: .2});
   document.querySelectorAll('.rv').forEach(el => io.observe(el));
 
-  // countdown to the wedding, 14 Feb 2027, 7 PM local
-  const T = new Date(2027, 1, 14, 19, 0).getTime(), pad = n => String(n).padStart(2, '0');
+  // countdown to the wedding, 20 Feb 2027, 7 PM local (a couple's own main event once their words arrive)
+  let T = new Date(2027, 1, 20, 19, 0).getTime(), pad = n => String(n).padStart(2, '0');
   // each digit sits in a 1ch cell (Anton has no tabular figures, so a "1" would jitter);
   // --p feeds the tile's hairline meter: the share of that unit still to run (days out of a year)
   const set = (id, v, max) => {
@@ -591,7 +587,7 @@ a{color:inherit}
   const au = document.getElementById('theme'), mb = document.getElementById('music'), KEY = 'ms-nightcall-muted', VOL = .6;
   const muted = () => { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } };
   const remember = m => { try { localStorage.setItem(KEY, m ? '1' : '0'); } catch (e) {} };
-  let fade = 0, resume = false;
+  let fade = 0, resume = false, silent = false, preview = false; // silent: the couple chose no music here; preview: the editor's live preview, never autoplays
   const play = () => {
     cancelAnimationFrame(fade);
     au.volume = reduce ? VOL : 0;
@@ -609,12 +605,46 @@ a{color:inherit}
   const off = () => gestures.forEach(g => removeEventListener(g, first, true));
   const first = e => {
     if (mb.contains(e.target)) return; // a press on the button itself is handled by its own click
+    if (silent || preview) return; // stays armed, so turning the music back on works again
     if (muted() || !au.paused) return off();
     play().then(off, () => {});
   };
   gestures.forEach(g => addEventListener(g, first, true));
-  const auto = () => { if (!muted()) play().then(off, () => {}); };
-  if (document.readyState === 'complete') auto(); else addEventListener('load', auto, { once: true });
+  const auto = () => { if (!silent && !preview && !muted()) play().then(off, () => {}); };
+  // framed (a couple's site or the editor): wait for their content, which may turn the music off; the design's demo sends none, so play after a moment
+  let autoDone = false;
+  const once = () => { if (!autoDone) { autoDone = true; auto(); } };
+  const onLoad = window.parent !== window ? () => setTimeout(once, 1200) : auto;
+  if (document.readyState === 'complete') onLoad(); else addEventListener('load', onLoad, { once: true });
+  // long names shrink until they fit: the tall title-card names to the screen's height, the rest to their width
+  const fit = () => {
+    document.querySelectorAll('.name').forEach(el => {
+      el.style.fontSize = '';
+      const room = innerHeight * .94;
+      if (el.scrollHeight > room) el.style.fontSize = parseFloat(getComputedStyle(el).fontSize) * room / el.scrollHeight + 'px';
+    });
+    document.querySelectorAll('.fit').forEach(el => {
+      el.style.fontSize = '';
+      if (el.scrollWidth > el.clientWidth + 1) el.style.fontSize = parseFloat(getComputedStyle(el).fontSize) * el.clientWidth / el.scrollWidth * .98 + 'px';
+    });
+  };
+  addEventListener('resize', fit);
+  document.fonts.ready.then(fit);
+
+  // a couple's own site: public/microsites/fill.js has put their words in; follow their date, initials and song
+  document.addEventListener('microsite:content', e => {
+    const c = e.detail, d = msDate(c.main && c.main.start);
+    if (d) { T = d.getTime(); tick(); }
+    document.querySelector('.count').style.display = d ? '' : 'none'; // no date yet, no countdown to the sample's
+    document.querySelectorAll('.mono .ini').forEach((el, i) => el.textContent = ((c.couple || [])[i] || '').trim().charAt(0).toUpperCase());
+    document.querySelectorAll('.rv:not(.in)').forEach(el => io.observe(el));
+    // music: '' plays the page's own theme, 'off' none here (the app plays any chosen song itself); sent again on every edit, so both ways
+    silent = c.music === 'off'; preview = !!c.preview; mb.hidden = silent;
+    if (silent) stop();
+    once();
+    fit();
+  });
+
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { resume = !au.paused; if (resume) au.pause(); }
     else if (resume) { resume = false; play(); }

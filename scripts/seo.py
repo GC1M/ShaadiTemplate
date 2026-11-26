@@ -96,15 +96,21 @@ def website_images():
     shots = {name: args for name, args in re.findall(r"^  (\w+): commons\((.*)\),$", (ROOT / 'src/site/photos.ts').read_text(), re.M)}
     cache = ROOT / 'node_modules/.cache/og-src'
     cache.mkdir(parents=True, exist_ok=True)
-    looks = []
+    looks, themed_looks = [], {}
     for block in re.split(r"^    id: '", designs, flags=re.M)[1:]:
         look = re.match(r"[\w-]+", block).group(0)
         name = re.search(r"^    name: '([^']+)'", block, re.M).group(1)
         tradition = re.search(r"^    tradition: '([^']+)'", block, re.M).group(1).split(' · ')[0]
+        kind = tradition if 'wedding' in tradition.lower() else f'{tradition} wedding'
+        themed = re.search(r"^    cover: '/(microsites/[\w-]+/cover\.webp)'", block, re.M)
+        if themed:  # a themed website: its own opening screen beside the name
+            share_image(PUBLIC / 'og' / f'websites-{look}.jpg', name, [PUBLIC / themed.group(1)])
+            themed_looks[f'websites-{look}'] = f'{SITE}/og/websites-{look}.jpg'
+            continue
         hero = re.search(r"photos: \{ hero: SHOTS\.(\w+)", block).group(1)
         path, width, _alt, by, licence, *pos = [a.strip().strip("'") for a in re.findall(r"\s*('[^']*'|[^,]+)", shots[hero])]
-        looks.append((look, name, tradition if 'wedding' in tradition.lower() else f'{tradition} wedding', path, int(width), by, licence, (pos or ['center'])[0]))
-    out = {}
+        looks.append((look, name, kind, path, int(width), by, licence, (pos or ['center'])[0]))
+    out = dict(themed_looks)
     for slug, headline, sub, path, width, by, licence, pos in [('websites', 'Free wedding website designs', 'RSVP and every function on one link', *looks[0][3:])] + \
             [(f'websites-{look}', name, f'A free {kind} website', *rest) for look, name, kind, *rest in looks]:
         file = path.rsplit('/', 1)[1]
@@ -250,8 +256,6 @@ def head_block(path, page):
     slug = url.removeprefix(SITE).strip('/').removesuffix('.html').replace('/', '-') or 'home'
     image = f'{SITE}/og/{slug}.jpg'
     cards = card_ids(page) or HOME_CARDS
-    if path.is_relative_to(PUBLIC / 'microsites'):  # a themed website: its own opening screen
-        cards = [path.parent / 'cover.webp']
     # Share images are drawn in Latin type, so pages titled in an Indian script need an English headline here.
     headline = HEADLINES.get(slug) or (title if title.isascii() else 'Indian wedding invitation wording')
     share_image(PUBLIC / 'og' / f'{slug}.jpg', headline, cards)

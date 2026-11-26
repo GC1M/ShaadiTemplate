@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type Rea
 import { track } from '../analytics'
 import { Wordmark } from '../Hero'
 import { api, editKey, editLink, lean, liveLink } from './api'
-import { go, LOOKS, lookById, type Content, type Look } from './designs'
+import { go, LOOKS, lookById, THEME, type Content, type Look } from './designs'
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
@@ -37,7 +37,7 @@ const fresh = (l: Look): Content => ({
   ...l.demo,
   nativeNames: undefined,
   invocation: undefined,
-  music: undefined,
+  music: l.demo.music === THEME ? THEME : undefined, // a themed site starts with its own soundtrack
   families: ['', ''],
   story: l.demo.story.map(({ photo: _, ...s }) => s),
   meet: l.demo.meet?.map(() => ({ bio: '' })),
@@ -324,7 +324,10 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
   const pickLook = (look: string) => {
     if (location.pathname.startsWith('/websites/')) history.replaceState(null, '', `/websites/${look}/edit/`)
     setDirty(true)
-    setDraft((d) => ({ ...d, look }))
+    // Coming to a themed design brings its own soundtrack unless a song is already picked (between two themed designs
+    // the choice stays, "No music" too); other designs have none to keep.
+    const themed = (id: string) => lookById(id)?.demo.music === THEME
+    setDraft((d) => ({ ...d, look, content: { ...d.content, music: themed(look) ? (themed(d.look) ? d.content.music : (d.content.music ?? THEME)) : d.content.music === THEME ? undefined : d.content.music } }))
   }
   // Back to a blank site: after deleting one, or to make another. From an edit link this leaves for the new-site page.
   const restart = () => {
@@ -541,7 +544,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                   ))}
                 </select>
               </label>
-              <MusicField value={c.music} onChange={(music) => up(() => ({ music }))} />
+              <MusicField theme={lookById(draft.look)?.demo.music === THEME ? draft.look : undefined} value={c.music} onChange={(music) => up(() => ({ music }))} />
               {draft.key ? (
                 <p className="text-[15px] text-ink/75">
                   Your address: <strong className="font-medium">shaaditemplate.com/w/{draft.slug}</strong>
@@ -738,6 +741,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
 
             <section className="space-y-5">
               <Step n={5} title="Your story" />
+              {/* Two themed designs have no story section. */}
+              {['nightcall', 'forgeheart'].includes(lookById(draft.look)?.bespoke ?? '') && <p className="text-[15px] text-ink/70">This design has no story section, so anything here stays off your site. Pick another design to tell your story.</p>}
               {c.story.map((s, i) => (
                 <fieldset key={i} className="space-y-3 rounded-md bg-paper/70 p-4 ring-1 ring-wine/10">
                   <legend className="sr-only">Chapter {i + 1}</legend>
@@ -912,14 +917,15 @@ const Step = ({ n, title }: { n: number; title: string }) => (
 // Background music, next to the design because it sets the site's feel: off, one of the ready-picked film songs or
 // any YouTube song (both play in YouTube's player when the guest taps "Play our song"). Each film song can be heard
 // here before choosing it. The instrumentals are no longer offered; a site that already has one keeps it here.
-function MusicField({ value, onChange }: { value?: string; onChange: (v: string | undefined) => void }) {
+// A themed design (theme: its id) also offers its own soundtrack, first.
+function MusicField({ value, theme, onChange }: { value?: string; theme?: string; onChange: (v: string | undefined) => void }) {
   const [yt, setYt] = useState(!!value && !value.startsWith('track:') && !SONGS.some((s) => s.link === value))
   const clip = yt && value ? youTubeClip(value) : undefined
   const id = clip?.id
   const sample = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState<string | null>(null)
   const [hearing, setHearing] = useState<string | null>(null)
-  const listen = (t: Track) => {
+  const listen = (t: Pick<Track, 'id' | 'src'>) => {
     const a = sample.current
     if (!a) return
     setHearing(null)
@@ -941,7 +947,18 @@ function MusicField({ value, onChange }: { value?: string; onChange: (v: string 
   return (
     <fieldset className="space-y-2">
       <legend className="text-[13px] text-ink/65">Background music (optional)</legend>
-      <audio ref={sample} onPlay={() => setPlaying(TRACKS.find((t) => sample.current?.src === t.src)?.id ?? null)} onPause={() => setPlaying(null)} onEnded={() => setPlaying(null)} />
+      <audio ref={sample} onPlay={() => setPlaying(TRACKS.find((t) => sample.current?.src === t.src)?.id ?? (sample.current?.src.endsWith('/theme.mp3') ? 'theme' : null))} onPause={() => setPlaying(null)} onEnded={() => setPlaying(null)} />
+      {theme && (
+        <div className={`${row} ${ring(choice === THEME)}`}>
+          <label className="flex flex-1 cursor-pointer items-center gap-3">
+            <input type="radio" name="music" checked={choice === THEME} onChange={() => pick(THEME)} className="size-4 accent-wine" />
+            The design’s own theme music
+          </label>
+          <button type="button" onClick={() => listen({ id: 'theme', src: `/microsites/${theme}/theme.mp3` })} aria-label={`${playing === 'theme' ? 'Stop' : 'Listen to'} the theme music`} className="rounded-full px-3 py-1 text-[13px] text-wine ring-1 ring-wine/20 hover:bg-wine/5 pointer-coarse:min-h-11">
+            {playing === 'theme' ? 'Stop' : 'Listen'}
+          </button>
+        </div>
+      )}
       <label className={`${row} ${ring(choice === '')}`}>
         <input type="radio" name="music" checked={choice === ''} onChange={() => pick('')} className="size-4 accent-wine" />
         No music
@@ -985,7 +1002,8 @@ function MusicField({ value, onChange }: { value?: string; onChange: (v: string 
         </div>
       )}
       {SONGS.some((s) => s.link === value) && <p className="text-[13px] text-ink/55">Plays from YouTube when a guest taps "Play our song", looping just this part of the song, with no video.</p>}
-      {value?.startsWith('track:') && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts when a guest first taps the page and shows only a small pause button, no video.</p>}
+      {value === THEME && theme && <p className="text-[13px] text-ink/55">Made for this design. It starts as the site opens (or with the guest’s first tap, where the phone asks for one), with a small sound button to mute it.</p>}
+      {value?.startsWith('track:') && value !== THEME && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts as the site opens (or with the guest’s first tap, where the phone asks for one) and shows only a small pause button, no video.</p>}
     </fieldset>
   )
 }

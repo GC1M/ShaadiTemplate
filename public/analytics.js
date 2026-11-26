@@ -1,7 +1,8 @@
 // GA4 and Clarity for the static pages (guides, design pages, hubs), so visitors who land on them from search are
 // measured. Same IDs and consent defaults as src/analytics.ts, which covers the app. Only runs on the live domain.
 ;(function () {
-  if (location.hostname !== 'shaaditemplate.com') return
+  // Not inside a frame (a themed website's page inside the site): the site around it counts the visit.
+  if (location.hostname !== 'shaaditemplate.com' || window.parent !== window) return
   // First-touch source, same key and rule as rememberSource() in src/analytics.ts.
   try {
     if (!localStorage.getItem('source')) {

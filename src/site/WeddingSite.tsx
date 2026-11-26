@@ -829,7 +829,8 @@ export function SiteFooter({ d, mode, slug }: SiteProps) {
 }
 
 export type SiteProps = { d: Design; mode: 'demo' | 'hosted' | 'preview'; slug?: string }
-const BESPOKE = { mahal: lazy(() => import('./bespoke/Mahal')), aangan: lazy(() => import('./bespoke/Aangan')) }
+const Themed = lazy(() => import('./bespoke/Themed'))
+const BESPOKE = { mahal: lazy(() => import('./bespoke/Mahal')), aangan: lazy(() => import('./bespoke/Aangan')), nightcall: Themed, webline: Themed, forgeheart: Themed }
 
 export function Site(p: SiteProps) {
   const Bespoke = p.d.bespoke && BESPOKE[p.d.bespoke]
