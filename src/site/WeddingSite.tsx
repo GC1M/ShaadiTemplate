@@ -860,7 +860,7 @@ function Shared({ d, mode, slug }: SiteProps) {
       <Gate d={d} open={open} onOpen={() => setOpen(true)} />
       <Music music={d.music} />
 
-      <SiteNav d={d} mode={mode} show={open} links={[...(d.story.length || (d.storyStyle !== 'carousel' && d.gallery.length) ? [['story', 'Story']] : []), ['celebrations', 'Ceremonies'], ...(d.venue ? [['venue', 'Venue']] : []), ['rsvp', 'RSVP']]} />
+      <SiteNav d={d} mode={mode} show={open} links={[...(d.story.length || (d.storyStyle !== 'carousel' && d.gallery.length) ? [['story', 'Story']] : []), ['celebrations', 'Ceremonies'], ...(d.venue ? [['venue', 'Venue']] : []), ...(d.hide?.includes('rsvp') ? [] : [['rsvp', 'RSVP']])]} />
 
       <Hero d={d} open={open} />
 
@@ -880,7 +880,7 @@ function Shared({ d, mode, slug }: SiteProps) {
         </div>
       </section>
 
-      <SaveTheDate key={mainOf(d).start} d={d} />
+      {!d.hide?.includes('date') && <SaveTheDate key={mainOf(d).start} d={d} />}
 
       <Meet d={d} />
 
@@ -906,8 +906,8 @@ function Shared({ d, mode, slug }: SiteProps) {
       </section>
       )}
 
-      <RsvpForm d={d} slug={slug} />
-      <Blessings d={d} slug={slug} />
+      {!d.hide?.includes('rsvp') && <RsvpForm d={d} slug={slug} />}
+      {!d.hide?.includes('blessings') && <Blessings d={d} slug={slug} />}
 
       {(d.compliments || d.notes.length > 0) && (
       <section className="px-6 py-[14svh]" style={{ background: bg }}>
