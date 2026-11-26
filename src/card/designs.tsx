@@ -1,3 +1,4 @@
+import type { Motion } from './motion'
 import type { FC } from 'react'
 import type { Lang } from '../types'
 import { designs as batchD } from './designs-d'
@@ -7,6 +8,7 @@ import { designs as batchG } from './designs-g'
 import { designs as batchK } from './designs-k'
 import { designs as batchL } from './designs-l'
 import { designs as batchM } from './designs-m'
+import { designs as batchN } from './designs-n'
 import { designs as batchH } from './designs-h'
 import { designs as batchI } from './designs-i'
 import { designs as batchJ } from './designs-j'
@@ -22,6 +24,7 @@ export interface Design {
   type?: { body?: number; heading?: number; names?: number; rsvpHeading?: number; plainDate?: boolean; lists?: 'left' | 'right'; grow?: number; title?: number }
   // Cover pieces a design draws in its own artwork instead (its hero replaces the small emblem and the flourish rule).
   cover?: { emblem?: false; flourish?: false }
+  chip?: string // background of {{words}} in text (a boxed date)
   // CSS text-shadow on all text: letterpress on paper, a soft lift on velvet.
   press?: string
   // Cut-outs from the artwork, w in em. couple sits between the names, swirl-l/-r flank the RSVP heading;
@@ -59,6 +62,8 @@ export interface Design {
     print?: { src: string; top: number; bottom: number; x?: [number, number]; spread?: boolean; lead?: { box: [number, number, number, number] } }
     // lead: the first section in its own box [x, y, w, h] in story px (a title inside a painted frame), centred and fitted alone.
     lead?: { box: [number, number, number, number] }
+    // motion: the page plays like the video it was copied from, in the editor's preview (see motion.ts).
+    motion?: Motion
   }[]
   // Text safe area in px, per format (story 540x960, print 450x630).
   safe: { story: Box; print: Box }
@@ -71,6 +76,6 @@ export type Ornament = { src: string; w: number; lang?: Lang; plain?: string; at
 export type Ornaments = Record<string, Ornament>
 
 export const DESIGNS: Record<string, Design> = Object.fromEntries(
-  [...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK, ...batchL, ...batchM].map((d) => [d.id, d]),
+  [...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK, ...batchL, ...batchM, ...batchN].map((d) => [d.id, d]),
 )
 

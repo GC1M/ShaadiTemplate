@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/allura": "^5.3.0",
     "@fontsource/amiri": "^5.3.0",
     "@fontsource/amita": "^5.3.0",
     "@fontsource/anton": "^5.3.0",
@@ -23,7 +24,9 @@
     "@fontsource/great-vibes": "^5.3.0",
     "@fontsource/hind-vadodara": "^5.3.0",
     "@fontsource/jost": "^5.3.0",
+    "@fontsource/libre-caslon-text": "^5.3.0",
     "@fontsource/marcellus": "^5.3.0",
+    "@fontsource/montserrat": "^5.3.0",
     "@fontsource/mulish": "^5.3.0",
     "@fontsource/noto-serif-gujarati": "^5.3.0",
     "@fontsource/noto-serif-gurmukhi": "^5.3.0",

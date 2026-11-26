@@ -1,9 +1,10 @@
-import { createContext, useContext, useLayoutEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
 import { LANGS } from '../i18n'
 import { templateById } from '../templates'
 import type { CoverPage, Format, Invite, Lang, Page, Photo, SectionsPage, SymbolId } from '../types'
 import { DESIGNS, type Design, type Ornaments } from './designs'
 import { Emblem, Flourish } from './motifs'
+import { play } from './motion'
 
 // Where a photo sits in its frame until the couple moves it: centred, near the top so heads are not cut.
 export const PHOTO_FIT: Photo = { x: 50, y: 0, zoom: 1 }
@@ -47,13 +48,18 @@ function look(design: Design, lang: Lang): Look {
 }
 
 // The design's artwork icons, for [[name]] in text.
-const Art = createContext<{ orn: Ornaments; lang?: Lang }>({ orn: {} })
+// painted: the words each lettered cut-out carries, from the template's own sample. Once the family types other words
+// in the card's own language, the cut-out gives way to their words, as it does in another language.
+const Art = createContext<{ orn: Ornaments; lang?: Lang; chip?: string; painted?: Record<string, string> }>({ orn: {} })
 
 // "\n" = new line, *word* = accent colour, **words** = large heading colour, ***words*** = bold, ~words~ = the
 // design's names font in the accent colour (a wedding script for the couple's names),
 // [[name]] = artwork icon, [[name|words]] = words written on that artwork (a ribbon plate), ___ = a rule to write on, and a line starting << or >> leans left or right.
+// ^^words^^ = widely spaced capitals (Latin only: spacing breaks Indian scripts' joined letters), {{words}} = words on the
+// design's chip colour (a date in a box). In "a <> b <> c", a part with // in it is stacked lines (a date column with
+// its icon), and the parts sit side by side in the middle instead of spreading to the edges.
 function Rich({ text, accent, big, inline }: { text: string; accent: string; big: string; inline?: boolean }) {
-  const { orn, lang } = useContext(Art)
+  const { orn, lang, chip, painted } = useContext(Art)
   return (
     <>
       {text.split('\n').map((raw, i) => {
@@ -61,6 +67,16 @@ function Rich({ text, accent, big, inline }: { text: string; accent: string; big
         const line = lean ? raw.slice(2) : raw
         const pad = lean === 'left' ? { paddingLeft: '14%' } : lean === 'right' ? { paddingRight: '14%' } : {}
         // "left <> middle <> right": spread across the line (corner blessings such as || Shubh || and || Labh ||).
+        if (!inline && line.includes('<>') && line.includes('//'))
+          return (
+            <span key={i} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.7em' }}>
+              {line.split('<>').map((p, k) => (
+                <span key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
+                  {p.split('//').map((q, n) => <span key={n}><Rich inline text={q.trim()} accent={accent} big={big} /></span>)}
+                </span>
+              ))}
+            </span>
+          )
         if (!inline && line.includes('<>'))
           return (
             <span key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -69,11 +85,11 @@ function Rich({ text, accent, big, inline }: { text: string; accent: string; big
           )
         return (
         <span key={i} style={inline ? undefined : { display: 'block', minHeight: '1em', textAlign: lean, ...pad, whiteSpace: line.includes('[[') ? 'nowrap' : undefined }}>
-          {line.split(/(\[\[[^\]]+\]\]|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|\*[^*]+\*|~[^~]+~|_{3,})/).map((part, j) => {
+          {line.split(/(\[\[[^\]]+\]\]|\*\*\*[^*]+\*\*\*|\*\*[^*]+\*\*|\*[^*]+\*|~[^~]+~|\^\^[^^]+\^\^|\{\{[^}]+\}\}|_{3,})/).map((part, j) => {
             const [icon, words] = /^\[\[.+\]\]$/.test(part) ? part.slice(2, -2).split(/\|(.*)/s) : []
             const a = icon !== undefined ? orn[icon] : undefined
             // A cut-out painted with another language's words: its plain piece, or just the typed words.
-            const lettered = !!a?.lang && a.lang !== lang
+            const lettered = !!a?.lang && (a.lang !== lang || (painted?.[icon] !== undefined && words !== painted[icon]))
             const src = lettered ? a?.plain : a?.src
             const say = words && (lettered || !a?.lang) ? <Rich inline text={words} accent={accent} big={big} /> : null
             // Words alone stand in for painted lettering: sized to take about the width the lettering took.
@@ -92,6 +108,14 @@ function Rich({ text, accent, big, inline }: { text: string; accent: string; big
               </span>
             ) : /^_{3,}$/.test(part) ? (
               <span key={j} style={{ display: 'inline-block', width: `${part.length * 0.45}em`, borderBottom: '1px solid currentColor', marginLeft: '0.2em' }} />
+            ) : part.length > 4 && part.startsWith('^^') && part.endsWith('^^') ? (
+              <span key={j} style={{ letterSpacing: /^[\x00-\x7f’]*$/.test(part) ? '0.3em' : undefined, marginRight: /^[\x00-\x7f’]*$/.test(part) ? '-0.3em' : undefined }}>
+                {part.slice(2, -2)}
+              </span>
+            ) : part.length > 4 && part.startsWith('{{') && part.endsWith('}}') ? (
+              <span key={j} style={{ background: chip, padding: '0.12em 0.45em', margin: '0 0.15em' }}>
+                {part.slice(2, -2)}
+              </span>
             ) : part.length > 6 && part.startsWith('***') && part.endsWith('***') ? (
               <span key={j} style={{ fontWeight: 700, fontSize: '1.2em' }}>
                 {part.slice(3, -3)}
@@ -322,7 +346,8 @@ function Sections({ x, p, head, cols }: { x: Look; p: SectionsPage; head: boolea
   )
 }
 
-export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
+// animate: the editor's live preview, where a page copied from a video invitation plays (never in downloads).
+export function CardPage({ invite, page, animate }: { invite: Invite; page: Page; animate?: boolean }) {
   const t = templateById(invite.templateId)
   const base0 = DESIGNS[t.design]
   const { w, h } = SIZES[invite.format]
@@ -342,6 +367,10 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
   const fit = art?.photo && { ...PHOTO_FIT, ...invite.photos?.[base0.pages!.indexOf(own!)] }
   const photo = art?.photo && { src: fit!.src ?? art.photo.src, b: art.photo.box.map((v) => v * k), fade: art.photo.fade }
   const x = look(d, invite.lang)
+  const painted = useMemo(
+    () => Object.fromEntries((t.pages ?? []).flatMap((p) => p.sections.flatMap((s) => [...s.body.matchAll(/\[\[([^\]|]+)\|([^\]]*)\]\]/g)].map((m) => [m[1], m[2]])))),
+    [t],
+  )
   const base = w / 30
   const box = useRef<HTMLDivElement>(null)
   const inner = useRef<HTMLDivElement>(null)
@@ -352,6 +381,19 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
   const leadDef = art !== lang ? lang?.print?.lead : art?.lead
   const lead = leadDef && page.kind !== 'cover' && page.sections.length > 1 ? leadDef : undefined
   const body = lead && page.kind !== 'cover' ? { ...page, sections: page.sections.slice(1) } : page
+  // Only the 9:16 page: the print shape uses its own artwork, which the base layer doesn't match.
+  const motion = animate && art === lang ? art?.motion : undefined
+  const root = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = root.current
+    if (!motion || !el) return
+    // Plays each time the page comes into view, like the video looping. The wrapper is watched: the page's own
+    // opening circle would hide it from the observer and restart it.
+    const seen = new IntersectionObserver(([e]) => e.isIntersecting && play(el, motion), { threshold: 0.4 })
+    seen.observe(el.parentElement ?? el)
+    return () => seen.disconnect()
+    // Not on every keystroke: only a new page, language or shape replays it.
+  }, [motion, page.id, invite.lang])
 
   // Shrink text until it fits the safe area, so long family lists never spill onto the artwork.
   // Designs with type.grow start larger, so sparse pages fill their band as a designer would.
@@ -384,9 +426,10 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
   }, [page, base, invite.scale, invite.lang, invite.templateId, invite.format, own])
 
   return (
-    <div className="relative overflow-hidden" style={{ width: w, height: h, background: d.sky, color: d.colors.text, fontFamily: x.f.body, letterSpacing: d.tracking, textShadow: d.press, '--names': x.f.names } as CSSProperties}>
+    <div ref={root} className="relative overflow-hidden" style={{ width: w, height: h, background: d.sky, color: d.colors.text, fontFamily: x.f.body, letterSpacing: d.tracking, textShadow: d.press, '--names': x.f.names } as CSSProperties}>
       {/* Painted art is an <img>, not a CSS background: Safari's export drops a url() background's size and colour, so pages came out black. */}
-      {art && !photo && <img src={art.src} alt="" className="absolute inset-0 size-full object-cover" />}
+      {motion && <img src={motion.base} alt="" className="absolute inset-0 size-full object-cover" />}
+      {art && !photo && <img src={art.src} alt="" data-art={motion ? '' : undefined} className="absolute inset-0 size-full object-cover" />}
       {photo && (
         <>
           {/* The photo sits under the artwork, which is see-through where the printed card had its photo. */}
@@ -410,7 +453,7 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
       {lead && page.kind !== 'cover' && (
         <div ref={leadBox} className="absolute overflow-hidden" style={{ top: lead.box[1] * k - crop, height: lead.box[3] * k, left: lead.box[0] * k, width: lead.box[2] * k }}>
           <div ref={leadInner} style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', lineHeight: 1.3, fontSize: base }}>
-            <Art.Provider value={{ orn: d.ornaments ?? {}, lang: invite.lang }}>
+            <Art.Provider value={{ orn: d.ornaments ?? {}, lang: invite.lang, chip: d.chip, painted }}>
               <Sections x={x} p={{ ...page, sections: page.sections.slice(0, 1) }} head />
             </Art.Provider>
           </div>
@@ -419,6 +462,7 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
       <div ref={box} className="absolute overflow-hidden" style={{ top: safe.top, bottom: safe.bottom, ...side }}>
         <div
           ref={inner}
+          data-text
           style={{
             minHeight: '100%',
             display: 'flex',
@@ -431,7 +475,7 @@ export function CardPage({ invite, page }: { invite: Invite; page: Page }) {
             fontSize: base,
           }}
         >
-          <Art.Provider value={{ orn: d.ornaments ?? {}, lang: invite.lang }}>{page.kind === 'cover' ? <Cover x={x} p={page} symbol={t.symbol} head={head} /> : <Sections x={x} p={body as SectionsPage} head={head} cols={art?.cols} />}</Art.Provider>
+          <Art.Provider value={{ orn: d.ornaments ?? {}, lang: invite.lang, chip: d.chip, painted }}>{page.kind === 'cover' ? <Cover x={x} p={page} symbol={t.symbol} head={head} /> : <Sections x={x} p={body as SectionsPage} head={head} cols={art?.cols} />}</Art.Provider>
         </div>
       </div>
     </div>
