@@ -68,6 +68,8 @@ UPDATE sites SET hidden = 1 WHERE slug = 'the-slug';   -- takes a site down (sho
 DELETE FROM blessings WHERE id = 123;
 ```
 
+Sites made by someone trying the editor (sample couple's names, nobody to reach, no replies) are listed by `junk.sql`. It only lists; marking a site `hidden = 2` takes it down at once and the next daily run deletes it with its photos. The steps are in the file.
+
 ## Later: shaaditemplate.com/w/... and subdomains served by the Worker
 
 Today `/w/<slug>` is answered by `public/404.html`, which hands it to the app. That works on GitHub Pages but returns a 404 status, and link previews show the generic page. Moving the domain's DNS to Cloudflare would let a Worker route serve `/w/*` (and a wildcard `*.shaaditemplate.com` for subdomains) with a real 200 page and per-couple preview tags.

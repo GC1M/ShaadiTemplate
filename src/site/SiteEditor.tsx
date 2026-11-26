@@ -45,8 +45,13 @@ const fresh = (l: Look): Content => ({
   photos: { gallery: [] },
 })
 const ascii = (s: string) => s.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-// names-xxxx: the random tail keeps two couples with the same names apart, and stays put while the names are typed.
-const suggest = (c: Content['couple'], tail = Math.random().toString(36).slice(2, 6)) => `${[ascii(c[0]), ascii(c[1])].filter(Boolean).join('-').slice(0, 30) || 'wedding'}-${tail}`
+// The bare names (mrinalini-advait). A random tail (mrinalini-advait-7qrn) goes on only when that address is taken
+// (see slugState) or too short to be one.
+const tail = () => Math.random().toString(36).slice(2, 6)
+const suggest = (c: Content['couple']) => {
+  const s = [ascii(c[0]), ascii(c[1])].filter(Boolean).join('-').slice(0, 30) || 'wedding'
+  return s.length < 4 ? `${s}-${tail()}` : s
+}
 
 // Starting a site from a card (templates.ts typedCover): names written in English letters fill the site's names,
 // names in an Indian script go to "your names in your own language", and a date and time the card writes in
@@ -268,7 +273,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     setDirty(true)
     setDraft((d) => {
       const patch = f(d.content)
-      return { ...d, content: { ...d.content, ...patch }, slug: !d.key && !d.slugTouched && patch.couple ? suggest(patch.couple, d.slug.split('-').pop()) : d.slug }
+      return { ...d, content: { ...d.content, ...patch }, slug: !d.key && !d.slugTouched && patch.couple ? suggest(patch.couple) : d.slug }
     })
   }
   const pair = (k: 'couple' | 'families' | 'parents', i: number, v: string) => up((c) => ({ [k]: (i ? [c[k][0], v] : [v, c[k][1]]) as [string, string] }))
@@ -348,22 +353,24 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
     addEventListener('beforeunload', ask)
     return () => removeEventListener('beforeunload', ask)
   }, [unsaved])
-  // Whether the address is free, asked a beat after typing stops ('' while unknown).
+  // Whether the address is free, asked a beat after typing stops ('' while unknown). A suggested address that is
+  // taken gets a random tail instead, which is then checked in turn.
   const [slugState, setSlugState] = useState<'' | 'free' | 'taken'>('')
   useEffect(() => {
     setSlugState('')
     if (draft.key || !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(draft.slug) || draft.slug.length < 4) return
     let live = true
+    const taken = () => (draft.slugTouched ? setSlugState('taken') : setDraft((d) => (d.slug === draft.slug && !d.slugTouched ? { ...d, slug: `${d.slug}-${tail()}` } : d)))
     const t = setTimeout(
       () =>
         api(`sites/${draft.slug}`).then(
-          () => live && setSlugState('taken'),
-          (e: { status?: number }) => live && setSlugState(e.status === 404 ? 'free' : e.status === 410 ? 'taken' : ''),
+          () => live && taken(),
+          (e: { status?: number }) => live && (e.status === 404 ? setSlugState('free') : e.status === 410 ? taken() : setSlugState('')),
         ),
       500,
     )
     return () => ((live = false), clearTimeout(t))
-  }, [draft.slug, draft.key])
+  }, [draft.slug, draft.key, draft.slugTouched])
   // How to reach the couple and how they found us, asked with a first publish (all optional, see Reach).
   const [reach, setReach] = useState({ email: '', phone: '', marketing: false, heard: '' })
   // What a first publish stops for once (see publish): sample words guests would read as the couple's, and no way
@@ -390,6 +397,8 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
   const publish = async (e: FormEvent) => {
     e.preventDefault()
     if (shrinking) return setError('A photo is still being added. Try again in a moment.')
+    // The design's sample couple never goes live: that is someone trying the editor, not a wedding (no "publish anyway").
+    if (!draft.key && left.includes('your names')) return setError("Type your own names in step 2 before you publish. The names there are the design's sample couple.")
     // A first publish with sample words still in, or with no way to send the edit link, stops once and lists them
     // above the button (an in-page step: some in-app browsers skip confirm() without showing it).
     if (!draft.key && checks.length && !warned) {

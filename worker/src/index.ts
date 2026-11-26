@@ -96,10 +96,11 @@ const deleteDay = (last: string) => {
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
-// Deletes sites whose latest event date is more than KEEP_DAYS ago.
+// Deletes sites whose latest event date is more than KEEP_DAYS ago, and sites the owner marked as junk (hidden = 2,
+// see worker/junk.sql), with their photos.
 // ponytail: 50 sites a run keeps one run well inside the Worker's limits; any left over go the next day.
 async function expire(env: Env) {
-  const { results } = await env.DB.prepare(`SELECT slug FROM sites s WHERE ${LAST} < ? LIMIT 50`).bind(daysAgo(KEEP_DAYS)).all<{ slug: string }>()
+  const { results } = await env.DB.prepare(`SELECT slug FROM sites s WHERE s.hidden = 2 OR ${LAST} < ? LIMIT 50`).bind(daysAgo(KEEP_DAYS)).all<{ slug: string }>()
   for (const { slug } of results) await remove(env, slug)
   if (results.length) console.log(`expired ${results.length} sites`)
 }
