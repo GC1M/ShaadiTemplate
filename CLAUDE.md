@@ -34,3 +34,7 @@ A template change is not done until its SEO surface matches it, in the same PR. 
 ## Gallery order (strict)
 
 The gallery order lives in `ORDER` in `src/App.tsx`. Featured designs come first, then the rest, and within each group designs are ranked by how often they are opened (GA4 `template_open` count in the newest report under `doc/analytics/`, main checkout), most opened first; ties keep the previous order. Whenever a new analytics report lands, or a template is featured, unfeatured, added or removed, re-rank `ORDER` from the latest numbers and update the dated opens comment above it.
+
+## Website music (strict)
+
+A wedding website's music starts on its own as soon as the site opens: the couple's track, their YouTube song or a themed page's own `theme.mp3`. Browsers block sound until the guest taps, so where it is blocked it starts on the guest's first tap or key anywhere on the page (taps inside a themed page's frame count, via `microsite-tap`). Never make a guest press a play button first. Keep the button to pause it, pause while the tab is hidden, and don't autoplay in the editor's live preview. Every new design or music source must hold to this (see `Music` in `src/site/music.tsx`).

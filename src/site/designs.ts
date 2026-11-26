@@ -1,6 +1,6 @@
 import type { SymbolId } from '../types'
 import { COUPLE, PEOPLE, SHOTS, type Photo } from './photos'
-import { song } from './music'
+import { clipLink, song } from './music'
 
 // The sample wedding website designs, in the order the gallery shows them. Every couple, family and story here is
 // fictional demo content; the venues are real places so the map links work.
@@ -679,6 +679,7 @@ export const LOOKS: Look[] = [
         'Children are welcome at every function.',
       ],
       rsvpBy: '10 January',
+      music: clipLink('W4VTq0sa9yg', 60, 95),
       story: [
         { year: '2017', title: 'A few streets apart', body: 'Grew up a few streets apart, took the long way round, and finally teamed up for good.', photo: COUPLE },
         { year: '2026', title: 'The main quest', body: 'He asked on the beach at sunset: ten years of side quests, and this was the main one.', photo: COUPLE },
