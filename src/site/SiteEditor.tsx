@@ -1183,14 +1183,14 @@ const copy = (text: string, done: (s: string) => void) =>
 // Vice Nights: a link per guest that greets them by name, picks out the functions they are invited to and fills
 // in their RSVP (bespoke/Themed.tsx). Made here and copied; nothing is saved.
 // ponytail: the guest list lives only in this panel; keep it with the site's content if couples want it back later.
-function GuestPasses({ live, events }: { live: string; events: string[] }) {
+function GuestPasses({ live, events }: { live: string; events: { id: string; name: string }[] }) {
   const [names, setNames] = useState('')
   const [left, setLeft] = useState<Record<string, string[]>>({}) // functions a guest is not invited to
   const [note, setNote] = useState('')
   const guests = [...new Set(names.split('\n').map((n) => n.replace(/\s+/g, ' ').trim().slice(0, 40)).filter(Boolean))]
   const link = (g: string) => {
-    const on = events.filter((e) => !left[g]?.includes(e))
-    return `${live}?guest=${encodeURIComponent(g)}${on.length && on.length < events.length ? `&events=${on.map(passId).join(',')}` : ''}`
+    const on = events.filter((e) => !left[g]?.includes(e.id))
+    return `${live}?guest=${encodeURIComponent(g)}${on.length && on.length < events.length ? `&events=${on.map((e) => e.id).join(',')}` : ''}`
   }
   const toggle = (g: string, e: string) => setLeft((l) => ({ ...l, [g]: l[g]?.includes(e) ? l[g].filter((x) => x !== e) : [...(l[g] ?? []), e] }))
   return (
@@ -1208,9 +1208,9 @@ function GuestPasses({ live, events }: { live: string; events: string[] }) {
             <fieldset className="flex flex-wrap gap-x-4 gap-y-1 text-[14px]">
               <legend className="sr-only">Functions {g} is invited to</legend>
               {events.map((e) => (
-                <label key={e} className="inline-flex items-center gap-1.5">
-                  <input type="checkbox" checked={!left[g]?.includes(e)} onChange={() => toggle(g, e)} />
-                  {e}
+                <label key={e.id} className="inline-flex items-center gap-1.5">
+                  <input type="checkbox" checked={!left[g]?.includes(e.id)} onChange={() => toggle(g, e.id)} />
+                  {e.name}
                 </label>
               ))}
             </fieldset>
@@ -1271,7 +1271,7 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
         </div>
       </div>
       <Contact slug={draft.slug} edit={draft.key!} />
-      {lookById(draft.look)?.bespoke === 'vicenights' && <GuestPasses live={live} events={draft.content.events.map((e) => e.name).filter(Boolean)} />}
+      {lookById(draft.look)?.bespoke === 'vicenights' && <GuestPasses live={live} events={draft.content.events.map((e, i) => ({ id: passId(e.name, i), name: e.name })).filter((e) => e.name)} />}
       {left.length > 0 && (
         <p className="rounded-md bg-wine/5 p-3 text-[14px] text-wine">
           Still the design's sample words: {left.join(', ')}. Change them below and press Save changes.

@@ -27,7 +27,7 @@ function content(d: Design, preview: boolean) {
     notes: d.notes,
     compliments: d.compliments ?? [],
     story: d.story.map(({ year, title, body }) => ({ year, title, body })),
-    events: d.events.map((e) => ({ id: passId(e.name), name: e.name, date: e.date, time: e.time, note: e.note, map: e.map ?? '', start: e.start, main: e.id === main?.id })),
+    events: d.events.map((e, i) => ({ id: passId(e.name, i), name: e.name, date: e.date, time: e.time, note: e.note, map: e.map ?? '', start: e.start, main: e.id === main?.id })),
     main: { name: main?.name ?? '', date: main?.date ?? '', time: main?.time ?? '', start: main?.start ?? '' },
     venue: d.venue,
     venueName: d.venue.split(',')[0].trim(),
@@ -51,9 +51,9 @@ function content(d: Design, preview: boolean) {
 function guestPass(d: Design) {
   const q = new URLSearchParams(location.search)
   const guest = (q.get('guest') ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40)
-  const ids = (q.get('events') ?? '').toLowerCase().split(',').map((s) => s.trim())
-  const events = d.events.filter((e) => ids.includes(passId(e.name)))
-  return guest || events.length ? { guest, events: events.map((e) => passId(e.name)), picks: events.map((e) => e.id) } : null
+  const ids = (q.get('events') ?? '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean)
+  const events = d.events.map((e, i) => ({ id: e.id, pass: passId(e.name, i) })).filter((e) => ids.includes(e.pass))
+  return guest || events.length ? { guest, events: events.map((e) => e.pass), picks: events.map((e) => e.id) } : null
 }
 
 export default function Themed({ d, mode, slug }: SiteProps) {
