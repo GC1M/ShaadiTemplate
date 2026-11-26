@@ -32,6 +32,11 @@
     }, true)
     return
   }
+  // A couple's own site (?own, set by Themed.tsx): keep the page hidden until their words are in, so the sample
+  // couple's names and initials never flash first. Loaded without defer in <head> so this runs before first paint.
+  var root = document.documentElement
+  var reveal = function () { root.style.removeProperty('visibility') }
+  if (/[?&]own\b/.test(location.search)) { root.style.visibility = 'hidden'; setTimeout(reveal, 4000) }
   var MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
   var MONTH = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
   var DAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -135,7 +140,9 @@
   })
   addEventListener('message', function (e) {
     if (e.origin !== location.origin || e.source !== parent || !e.data || e.data.type !== 'microsite-content') return
-    fill(e.data.data)
+    var data = e.data.data
+    var go = function () { fill(data); reveal() }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go); else go()
   })
   document.addEventListener('DOMContentLoaded', function () { document.querySelectorAll('[data-f-framed-hide]').forEach(function (el) { hide(el, true) }) })
   parent.postMessage({ type: 'microsite-ready' }, location.origin)
