@@ -36,7 +36,7 @@ export type Look = {
   // A design with its own painted scenes, drawn by its own component in site/bespoke/ instead of the shared
   // sections; cover is its opening screen for the designs page (public/site-art/<id>/cover.webp). The themed
   // websites are their own pages in public/microsites/<id>/ (site/bespoke/Themed.tsx), shown apart on the designs page.
-  bespoke?: 'mahal' | 'aangan' | 'nightcall' | 'webline' | 'forgeheart'
+  bespoke?: 'mahal' | 'aangan' | 'nightcall' | 'webline' | 'forgeheart' | 'vicenights'
   cover?: string
   demo: Content
 }
@@ -655,6 +655,45 @@ export const LOOKS: Look[] = [
       photos: { hero: COUPLE, venue: SHOTS.diyas, rsvp: SHOTS.diyaLedge, bless: SHOTS.marigold, gallery: [] },
     },
   },
+  {
+    id: 'vicenights',
+    name: 'Vice Nights',
+    blurb: 'Golden hour on a beach turns to neon night as you scroll.',
+    tradition: 'Open-world game style wedding · Goa',
+    layout: 'veil',
+    bespoke: 'vicenights',
+    cover: '/microsites/vicenights/cover.webp',
+    theme: { bg: '#1a0b24', raised: '#2b1240', accent: '#ff4f9a', text: '#fff1dc', soft: '#e9d3c2', display: '"Anton", Impact, sans-serif', script: CORMORANT },
+    demo: {
+      invocation: '|| Shri Ganeshaya Namah ||',
+      couple: ['Vihaan', 'Kiara'],
+      families: ['The Mehra family', 'The Kapoor family'],
+      parents: ['Son of Mrs. Sunita and Mr. Rakesh Mehra', 'Daughter of Mrs. Anjali and Mr. Vikram Kapoor'],
+      city: 'Goa',
+      venue: 'The Grand Hall, Candolim, Goa',
+      invite: 'With the love of both families, Mr. Rakesh and Mrs. Sunita Mehra and Mr. Vikram and Mrs. Anjali Kapoor invite you to celebrate the wedding of their children.',
+      note: 'Two families who once lived a few streets apart are about to become one very loud household. Come as you are, and stay as long as the music does.',
+      notes: [
+        'Each function has a dress code where it matters. For everything else, festive and comfortable wins.',
+        'Valet parking is available at every venue.',
+        'Children are welcome at every function.',
+      ],
+      rsvpBy: '10 January',
+      story: [
+        { year: '2017', title: 'A few streets apart', body: 'Grew up a few streets apart, took the long way round, and finally teamed up for good.', photo: COUPLE },
+        { year: '2026', title: 'The main quest', body: 'He asked on the beach at sunset: ten years of side quests, and this was the main one.', photo: COUPLE },
+      ],
+      mainEvent: 3,
+      events: [
+        { name: 'Haldi', date: '2027-02-12', time: '11:00', where: '11 am, on the garden terrace', note: 'Turmeric, marigolds and a lot of laughing. Wear sunshine yellow, nothing you’d mind staining.', photo: SHOTS.marigold },
+        { name: 'Mehendi', date: '2027-02-12', time: '16:00', where: '4 pm, in the courtyard', note: 'Henna, music and a long golden afternoon.', photo: SHOTS.henna },
+        { name: 'Sangeet', date: '2027-02-13', time: '20:00', where: '8 pm, in the ballroom', note: 'Choreography is optional. Dancing is not.', photo: SHOTS.diyaLedge },
+        { name: 'Wedding', date: '2027-02-14', time: '19:00', where: '7 pm, in The Grand Hall', note: 'Seven vows, then one very good party.', photo: SHOTS.diyas },
+        { name: 'Reception', date: '2027-02-15', time: '20:00', where: '8 pm, on the rooftop', note: 'Dinner under the open sky, then one last dance. Black tie with a splash of pink.', photo: SHOTS.sunsetTree },
+      ],
+      photos: { hero: COUPLE, venue: SHOTS.diyas, rsvp: SHOTS.diyaLedge, bless: SHOTS.marigold, gallery: [] },
+    },
+  },
 ]
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
@@ -735,6 +774,9 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
 export const invokesGanesh = (s = '') =>
   /ganesh|ganpat|ganapat|vinayak|vakratund|gajanan|lambodar|ekadant|gajmukh|gajamukh|गणेश|गणप|विनायक|वक्रतुण्ड|वक्रतुंड|गजानन|लम्बोदर|लंबोदर|एकदन्त|एकदंत|गजमुख|ગણેશ|ગણપ|વિનાયક|વક્રતુંડ|ગજાનન|લંબોદર|એકદંત|ਗਣੇਸ਼|ਗਣਪਤ|விநாயக|கணேச|கணபதி|பிள்ளையார்|వినాయక|గణేశ|గణపతి|ಗಣೇಶ|ಗಣಪತಿ|വിനായക|ഗണപതി/i.test(s)
 // A Google Maps search for a place; blank when there is no place to search for.
+// A function's id in a guest pass link (?events=sangeet,wedding): its name in plain lowercase letters and dashes, or
+// f1, f2... by its place in the list when the name has no Latin letters (a function named in Gujarati or Hindi).
+export const passId = (name: string, i: number) => name.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || `f${i + 1}`
 export const mapsUrl = (q: string) => (q.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q.trim())}` : '')
 export const mainOf = (d: Design) => d.events.find((e) => e.id === d.mainEvent) ?? d.events[1] ?? d.events[0]
 export const lookById = (id: string) => LOOKS.find((l) => l.id === id)

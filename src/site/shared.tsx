@@ -182,7 +182,9 @@ function Knot() {
   )
 }
 
-export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
+// prefill: a guest pass's name and functions (bespoke/Themed.tsx), until the guest has replied. onDone: after a reply
+// is saved, instead of showing it here.
+export function RsvpForm({ d, slug, prefill, onDone }: { d: Design; slug?: string; prefill?: { name: string; events: string[] }; onDone?: (r: Rsvp) => void }) {
   const photo = d.rsvpPhoto
   const [saved, setSaved] = useState<Rsvp | null>(() => load<Rsvp | null>(rsvpKey(d, slug), null))
   const [editing, setEditing] = useState(!saved)
@@ -221,6 +223,7 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
     setSaved(r)
     setEditing(false)
     setError('')
+    onDone?.(r)
   }
 
   return (
@@ -251,7 +254,7 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
               <span className="ov-label">Your name</span>
               <input
                 name="name"
-                defaultValue={saved?.name}
+                defaultValue={saved?.name ?? prefill?.name}
                 placeholder="Meera Sharma"
                 aria-invalid={!!error}
                 aria-describedby="rsvp-err"
@@ -310,7 +313,7 @@ export function RsvpForm({ d, slug }: { d: Design; slug?: string }) {
               <div className="mt-4 flex flex-wrap gap-3">
                 {d.events.map((e) => (
                   <label key={e.id} className="ov-chip">
-                    <input type="checkbox" name="events" value={e.id} defaultChecked={saved?.events.length ? saved.events.includes(e.id) : true} onChange={() => setPickError(null)} className="sr-only" />
+                    <input type="checkbox" name="events" value={e.id} defaultChecked={saved?.events.length ? saved.events.includes(e.id) : prefill?.events.length ? prefill.events.includes(e.id) : true} onChange={() => setPickError(null)} className="sr-only" />
                     {e.name}
                   </label>
                 ))}

@@ -8,12 +8,14 @@
 // Couples' wedding websites live at /w/<slug> (and /w/<slug>/edit#<key>); GitHub Pages has no such file, so hand the
 // path to the app, which puts it back on the address (src/App.tsx). The edit key stays in the fragment, which never
 // reaches a server, and comes off this page's address first so analytics.js below cannot report it.
-// A typed or autocorrected capital (/w/Priya-Raj) still finds the site: addresses are lowercase.
+// A typed or autocorrected capital (/w/Priya-Raj) still finds the site: addresses are lowercase. A guest pass
+// (?guest=…&events=…) goes along the same way, off this page's address too.
 if (/^\/w\/[a-z0-9-]+(\/edit)?\/?$/i.test(location.pathname)) {
   var key = location.hash.slice(1)
   var path = location.pathname.toLowerCase().replace(/\/$/, '')
+  var pass = location.search
   history.replaceState(null, '', path)
-  location.replace('/#' + path + (key ? '?k=' + key : ''))
+  location.replace('/#' + path + (key ? '?k=' + key : pass))
 }
 </script>
 <title>Page not found · ShaadiTemplate</title>
