@@ -26,7 +26,8 @@ def main(ids):
         browser = p.chromium.launch(channel='chrome')  # the installed Google Chrome
         for tid in ids:
             # A fresh context has no saved draft, so the #template link opens the card without a confirm prompt.
-            ctx = browser.new_context(viewport={'width': 1400, 'height': 1000}, device_scale_factor=3)
+            # Reduced motion: animated cards (motion.ts) render still, as downloads do.
+            ctx = browser.new_context(viewport={'width': 1400, 'height': 1000}, device_scale_factor=3, reduced_motion='reduce')
             page = ctx.new_page()
             page.goto(f'{URL}#template/{tid}')
             page.wait_for_selector('[data-page]')

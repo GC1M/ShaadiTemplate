@@ -63,10 +63,12 @@ export default function App() {
     }
   }, [])
   useEffect(() => {
-    // A link to #templates from the sample site lands on the designs; anything else starts at the top.
+    // A link to #templates from the sample site lands on the designs; back from a card returns to where the gallery
+    // was; anything else starts at the top.
     const target = location.hash === '#templates' && document.getElementById('templates')
+    const back = !inEditor && !inSite && history.state?.scroll
     if (target) target.scrollIntoView()
-    else scrollTo(0, 0)
+    else scrollTo(0, back || 0)
   }, [inEditor, inSite])
   // The static guide, FAQ and footer in index.html belong to the gallery only.
   const view = inSite ? 'site' : inEditor && invite ? 'editor' : 'home'
@@ -88,7 +90,10 @@ export default function App() {
       setDrafts((d) => [use ? filled : fresh, ...d])
     }
     track('template_open', { template: t.id, lang: mine?.lang ?? lang ?? t.lang, event: t.event })
+    // The gallery's entry remembers how far down it was; the editor's knows the gallery is one step back.
+    history.replaceState({ ...history.state, scroll: scrollY }, '')
     location.hash = 'edit'
+    history.replaceState({ fromGallery: true }, '')
   }
   useEffect(() => {
     if (!linked) return
@@ -106,7 +111,7 @@ export default function App() {
       </Suspense>
     )
   }
-  if (inEditor && invite) return <Editor invite={invite} setInvite={setInvite} onBack={() => (location.hash = '')} />
+  if (inEditor && invite) return <Editor invite={invite} setInvite={setInvite} onBack={() => (history.state?.fromGallery ? history.back() : (location.hash = ''))} />
   return <Gallery onOpen={open} draft={invite} drafts={drafts} />
 }
 
@@ -289,23 +294,44 @@ function SentOnWhatsApp() {
   )
 }
 
-// Gallery order: featured designs first, each group by GA4 template_open count (doc/analytics, newest report), most
-// opened first; ties keep the older order. Re-rank whenever a new report lands (see CLAUDE.md). Unlisted designs follow.
-// Opens 23 Nov 2026 (28 days): van-utsav 21, sandhya 19, raj-mahel 15, mor-bagh 10, soneri-jharokha 9, kamal-saath 4,
-// then one each; neel-gulab 4, bal-gopal 2, pietra-dura 2, then one each (ties keep the 22 Nov order).
+// GA4 template_open count per design, 28 days to 25 Nov 2026 (doc/analytics/agent-brief.md, the newest report).
+// Replace it whenever a new report lands (see CLAUDE.md); it ranks the event tabs and, by hand, ORDER below.
+const OPENS: Record<string, number> = {
+  'sandhya-kankotri': 27, 'van-utsav-kankotri': 27, 'raj-mahel-kankotri': 22, 'mor-bagh-kankotri': 14,
+  'soneri-jharokha-kankotri': 12, 'kamal-saath-chandla': 6, 'neel-gulab-kankotri': 4, 'bal-gopal-simant': 3,
+  'neel-sagar-chandla': 3, 'korvai-silk': 2, 'meadow-vows-engagement': 2, 'patola-sagai': 2, 'pietra-dura-walima': 2,
+  'aaina-mahal': 1, 'bagh-chhatri-chandla': 1, 'gulabi-mamta-simant': 1, 'harmandir-gold-leaf': 1, 'haryali-simant': 1,
+  'kalire-chunni': 1, 'mor-pankh-simant': 1, 'rangeen-mor-simant': 1, 'rose-arch-engagement': 1,
+}
+// Event tabs: by average opens per design in that event, most first; ties keep the EVENT_IDS order. 25 Nov: wedding
+// 9.1, reception 1.0, engagement 0.9, baby shower 0.9, then save the date, haldi, mehendi and sangeet with none yet.
+const avgOpens = (e: EventType) => {
+  const ts = TEMPLATES.filter((t) => t.event === e)
+  return ts.reduce((n, t) => n + (OPENS[t.id] ?? 0), 0) / (ts.length || 1)
+}
+const EVENT_TABS = [...EVENT_IDS].sort((a, b) => avgOpens(b) - avgOpens(a))
+
+// Gallery order: featured designs first, each group by OPENS, most opened first; ties keep the older order. Re-rank
+// whenever a new report lands (see CLAUDE.md). Unlisted designs follow. 25 Nov: van-utsav and sandhya 27, raj-mahel
+// 22, mor-bagh 14, soneri-jharokha 12, kamal-saath 6, neel-sagar 3, meadow-vows 2, gulabi-mamta and rose-arch 1, then
+// hindolo, siyaram-toran, marigold-arch and rani-damask with none; neel-gulab 4, bal-gopal 3, pietra-dura, patola and
+// korvai 2, then one each.
 const ORDER = [
   'van-utsav-kankotri', 'sandhya-kankotri', 'raj-mahel-kankotri', 'mor-bagh-kankotri', 'soneri-jharokha-kankotri',
-  'kamal-saath-chandla', 'neel-sagar-chandla', 'gulabi-mamta-simant', 'meadow-vows-engagement', 'hindolo-simant',
-  'rose-arch-engagement', 'siyaram-toran-chandla',
-  'neel-gulab-kankotri', 'bal-gopal-simant', 'pietra-dura-walima', 'aaina-mahal', 'bagh-chhatri-chandla',
-  'harmandir-gold-leaf', 'kalire-chunni', 'patola-sagai', 'rangeen-mor-simant',
+  'kamal-saath-chandla', 'neel-sagar-chandla', 'meadow-vows-engagement', 'gulabi-mamta-simant', 'rose-arch-engagement',
+  'hindolo-simant', 'siyaram-toran-chandla', 'marigold-arch-mehndi', 'rani-damask-mehndi',
+  'neel-gulab-kankotri', 'bal-gopal-simant', 'pietra-dura-walima', 'patola-sagai', 'korvai-silk', 'aaina-mahal',
+  'bagh-chhatri-chandla', 'harmandir-gold-leaf', 'kalire-chunni', 'rangeen-mor-simant', 'haryali-simant', 'mor-pankh-simant',
 ]
 const rank = (t: Template) => (ORDER.includes(t.id) ? ORDER.indexOf(t.id) : ORDER.length + Number(!t.featured))
 
 function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang) => void; draft: Invite | null; drafts: Invite[] }) {
-  const [lang, setLang] = useState<Lang | 'all'>(urlLang ?? 'all')
-  const [symbol, setSymbol] = useState<SymbolId | 'all'>('all')
-  const [event, setEvent] = useState<EventType | 'all'>('all')
+  // The filters live in this page's history entry: back from a card brings them back, while the logo (a new entry)
+  // starts the gallery afresh.
+  const saved = history.state?.gallery as { lang: Lang | 'all'; symbol: SymbolId | 'all'; event: EventType | 'all'; all: boolean } | undefined
+  const [lang, setLang] = useState<Lang | 'all'>(saved?.lang ?? urlLang ?? 'all')
+  const [symbol, setSymbol] = useState<SymbolId | 'all'>(saved?.symbol ?? 'all')
+  const [event, setEvent] = useState<EventType | 'all'>(saved?.event ?? 'all')
   // How far the prerendered hero's intro has run, so React's copy picks it up mid-way instead of replaying it.
   const [elapsed] = useState(() => performance.now())
   // Every design can be made in every language, so the language filter picks the card's language instead of hiding designs.
@@ -314,7 +340,22 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
   const count = (e: EventType | 'all') => bySymbol.filter((t) => e === 'all' || t.event === e).length
   const filtered = lang !== 'all' || symbol !== 'all' || event !== 'all'
   // The home page opens on the first eight (ORDER); every card stays in the page for crawlers.
-  const [all, setAll] = useState(false)
+  const [all, setAll] = useState(saved?.all ?? false)
+  useEffect(() => {
+    history.replaceState({ ...history.state, gallery: { lang, symbol, event, all } }, '')
+  }, [lang, symbol, event, all])
+  useEffect(() => {
+    const restore = () => {
+      const g = history.state?.gallery
+      if (!g && location.hash) return // a link within the page
+      setLang(g?.lang ?? 'all')
+      setSymbol(g?.symbol ?? 'all')
+      setEvent(g?.event ?? 'all')
+      setAll(g?.all ?? false)
+    }
+    addEventListener('popstate', restore)
+    return () => removeEventListener('popstate', restore)
+  }, [])
   // A language choice keeps the short view: it changes the cards' words, not which cards show.
   const short = !all && symbol === 'all' && event === 'all' && shown.length > 8
   const clear = () => {
@@ -419,7 +460,7 @@ function Gallery({ onOpen, draft, drafts }: { onOpen: (t: Template, lang?: Lang)
         <div className="sticky top-14 z-20 -mx-4 bg-rose/90 px-4 backdrop-blur-md sm:-mx-6 sm:px-6">
           <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
             <div className="flex min-w-max gap-1 border-b border-wine/15 pt-3" role="group" aria-label="Invitation type">
-              {(['all', ...EVENT_IDS] as const).map((e) => (
+              {(['all', ...EVENT_TABS] as const).map((e) => (
                 <button
                   key={e}
                   onClick={() => (setEvent(e), track('gallery_filter', { type: 'event', value: e }))}

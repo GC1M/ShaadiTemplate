@@ -8,6 +8,7 @@ import { DATE_FORMATS, formatDate, type DateFormat } from './dates'
 import { LANGS, SAMPLES } from './i18n'
 import { keepEdits, samplePages, sectionsPage, stripIds, templateById, typedCover } from './templates'
 import { TransliterateInput } from './transliterate'
+import { fromPlain, toPlain } from './card/plain'
 import { LANG_IDS, type CoverPage, type FontScale, type Format, type Invite, type Lang, type Page, type Photo, type SectionsPage } from './types'
 import { ScaledCard, Segmented, useSplit } from './ui'
 import { track } from './analytics'
@@ -208,9 +209,10 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
             <ArrowLeft className="size-4" aria-hidden /> <span className="hidden sm:inline">All designs</span>
             <span className="sm:hidden">Back</span>
           </button>
-          <span className="hidden lg:inline">
+          {/* The logo starts afresh on the home page; the back button returns to the gallery as it was. */}
+          <a href="/" aria-label="ShaadiTemplate home" className="hidden lg:inline">
             <Wordmark />
-          </span>
+          </a>
           <div className="ml-auto flex gap-2">
             <button onClick={() => run('png')} disabled={!!busy} className={`${btn} ${sendFirst ? 'border border-zari/70 text-rose hover:bg-white/10' : 'zari-button text-wine-deep'}`}>
               {busy === 'png' ? <Loader2 className="size-4 animate-spin" /> : <ImageDown className="size-4" />}
@@ -261,26 +263,6 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                   </span>
                 </label>
               )}
-              <details className="text-[14px] text-ink/65">
-                <summary className="cursor-pointer select-none text-wine hover:underline pointer-coarse:py-3">Formatting tips</summary>
-                <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
-                  {[
-                    ['*word*', 'Accent colour'],
-                    ['**line**', 'Large line'],
-                    ['***word***', 'Bold'],
-                    ['~Name~', 'Script letters for names (some designs)'],
-                    ['<<  >>', 'Lean a line left or right (at its start)'],
-                    ['___', 'A line to write on'],
-                    ['[[maps]]  [[hands]]', 'Artwork icon (some designs)'],
-                    ['[[icon|words]]', 'Words written on a painted ribbon'],
-                  ].map(([k, v]) => (
-                    <div key={k} className="contents">
-                      <dt><code className="rounded bg-wine/5 px-1.5 py-0.5 font-mono text-[13px] text-ink/80">{k}</code></dt>
-                      <dd>{v}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </details>
               {photoSlot && (
                 <div className="flex flex-wrap items-start gap-4 rounded-md bg-wine/[0.04] p-4 ring-1 ring-wine/10">
                   <PhotoCrop slot={photoSlot} art={artPages![artIndex].src} fit={fit} onChange={setFit} />
@@ -322,7 +304,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                       className={`flex max-w-[13rem] items-center gap-2 rounded-full py-2 pl-2 pr-4 text-sm pointer-coarse:min-h-11 transition-colors ${p.id === page.id ? 'bg-wine text-rose' : 'bg-paper text-ink/80 ring-1 ring-wine/15 hover:ring-wine/40'}`}
                     >
                       <span className={`grid size-6 shrink-0 place-items-center rounded-full font-display text-[13px] italic ${p.id === page.id ? 'bg-zari text-wine-deep' : 'bg-wine/[0.07]'}`}>{i + 1}</span>
-                      <span className="truncate">{p.title || 'Untitled'}</span>
+                      <span className="truncate">{toPlain(p.title ?? '') || 'Untitled'}</span>
                     </button>
                   </li>
                 ))}
@@ -428,11 +410,11 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                   <div className="pointer-events-none">
                     {zoom === 'fit' ? (
                       <ScaledCard w={w} h={h} className="shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]">
-                        <CardPage invite={invite} page={p} />
+                        <CardPage invite={invite} page={p} animate />
                       </ScaledCard>
                     ) : (
                       <div className="shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]">
-                        <CardPage invite={invite} page={p} />
+                        <CardPage invite={invite} page={p} animate />
                       </div>
                     )}
                   </div>
@@ -563,11 +545,12 @@ const Control = ({ label, children }: { label: string; children: ReactNode }) =>
 
 type FieldProps = { label: string; value: string; onChange: (v: string) => void; lang: Lang; phonetic: boolean; multiline?: boolean; rows?: number; person?: boolean }
 
+// The box shows plain words; the card's formatting marks stay in the saved text around them (plain.ts).
 function Field({ label, value, onChange, lang, phonetic, multiline, rows = 3, person }: FieldProps) {
   return (
     <label className="block">
       <span className="text-[13px] text-ink/65">{label}</span>
-      <TransliterateInput lang={lang} enabled={phonetic} person={person} value={value} onChange={onChange} multiline={multiline} rows={multiline ? rows : undefined} className={inputCls} />
+      <TransliterateInput lang={lang} enabled={phonetic} person={person} value={toPlain(value)} onChange={(v) => onChange(fromPlain(v, value))} multiline={multiline} rows={multiline ? rows : undefined} className={inputCls} />
     </label>
   )
 }
@@ -660,7 +643,7 @@ function SectionsForm({ p, on, lang, phonetic, onRemove }: { p: SectionsPage; on
               <Trash2 className="size-4" />
             </button>
           </div>
-          <Field label="Text" value={s.body} onChange={(body) => setSection(i, { body })} lang={lang} phonetic={phonetic} multiline rows={Math.min(10, Math.max(3, s.body.split('\n').length + 1))} />
+          <Field label="Text" value={s.body} onChange={(body) => setSection(i, { body })} lang={lang} phonetic={phonetic} multiline rows={Math.min(10, Math.max(3, toPlain(s.body).split('\n').length + 1))} />
         </fieldset>
       ))}
       <button

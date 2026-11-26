@@ -8,6 +8,8 @@ import { templates as batchJ } from './card/designs-j'
 import { templates as batchK } from './card/designs-k'
 import { templates as batchL } from './card/designs-l'
 import { templates as batchM } from './card/designs-m'
+import { templates as batchN } from './card/designs-n'
+import { toPlain } from './card/plain'
 import { SAMPLES } from './i18n'
 import type { CoverPage, EventType, Invite, Lang, Page, Section, SampleText, SectionsPage, SymbolId } from './types'
 
@@ -30,7 +32,7 @@ export interface Template {
   tr?: Partial<Record<Lang, { title: string; sections: Pick<Section, 'heading' | 'body'>[] }[]>>
 }
 
-export const TEMPLATES: Template[] = [...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK, ...batchL, ...batchM]
+export const TEMPLATES: Template[] = [...batchD, ...batchE, ...batchF, ...batchG, ...batchH, ...batchI, ...batchJ, ...batchK, ...batchL, ...batchM, ...batchN]
 
 // Designs retired in the luxury restyle, mapped to the nearest live card (same event, then the same god or
 // sacred symbol, then language), so a saved draft or an old #template/ link keeps its occasion.
@@ -239,14 +241,15 @@ export function typedCover(i: Invite) {
   const was = samplePages(templateById(i.templateId), i.lang)[0]
   const mine = i.pages.find((p) => p.kind === 'cover')
   if (was?.kind !== 'cover' || mine?.kind !== 'cover') return null
-  const typed = (v: string, sample: string) => (v.trim() && v !== sample ? v.trim() : '')
+  // Plain words only: the website shows text as typed, so a card's formatting marks must not travel with it.
+  const typed = (v: string, sample: string) => (v.trim() && v !== sample ? toPlain(v).trim() : '')
   const out = {
     bride: typed(mine.bride.name, was.bride.name),
     groom: typed(mine.groom.name, was.groom.name),
     brideParents: typed(mine.bride.parents, was.bride.parents),
     groomParents: typed(mine.groom.parents, was.groom.parents),
-    joiner: mine.joiner.trim(),
-    invocation: mine.invocation.trim(),
+    joiner: toPlain(mine.joiner).trim(),
+    invocation: toPlain(mine.invocation).trim(),
     venue: typed(mine.venue, was.venue),
     date: typed(mine.date, was.date),
     time: typed(mine.time, was.time),

@@ -21,6 +21,15 @@ Changing a card's language must keep its format exactly the same: the same pages
 - Artwork with words painted on it (a lettered title, a ribbon, a label under joined hands) must not show those words in other languages. Mark the cut-out with `gujarati()` in `src/card/designs-f.tsx` and give it its words as `[[name|words]]`; if the piece has a part worth keeping without the words, save it as `<name>-plain.png` and list it with where the words go (`over`, `below` or `above`). A whole page with painted words gets a `plain` page artwork (see Sandhya).
 - Run `node scripts/languages-check.mjs` (CI runs it) and look at the card in every language before calling it done.
 
+## Plain text in every box (strict)
+
+Families edit only plain words. No text box in the card editor or the website editor may show a formatting mark (`~names~`, `**big**`, `*accent*`, `^^spaced^^`, `{{chip}}`, `[[ornament|words]]`, `<>`, `//`, `<<`, `>>`, `___`), and no one should need to type one. Every format (story and print) and every website holds to this.
+
+- Card text boxes go through `Field` in `src/Editor.tsx`, which shows `toPlain(text)` and saves with `fromPlain(typed, text)` (`src/card/plain.ts`): the marks stay hidden in the saved text around the words they belong to, so typing never changes the card's format. A new text box on a card gets the same treatment.
+- A painted cut-out with words (`[[title|words]]`) must switch to the typed words once they differ from the painted ones, in the card's own language too (`painted` in `src/card/Card.tsx`). Never leave a box whose edits don't show on the card.
+- Text that leaves the card (a website started from a card, share text, page names) is passed through `toPlain` first.
+- A new mark, or sample text that uses marks in a new way, must pass `node scripts/plain-check.mjs` (CI runs it): every sample in every language shows no marks, and typing or deleting anywhere keeps the box and the format intact.
+
 ## Adding or removing a template (same PR)
 
 A template change is not done until its SEO surface matches it, in the same PR. When a template is added, removed, renamed or relabeled, also update:
@@ -33,7 +42,7 @@ A template change is not done until its SEO surface matches it, in the same PR. 
 
 ## Gallery order (strict)
 
-The gallery order lives in `ORDER` in `src/App.tsx`. Featured designs come first, then the rest, and within each group designs are ranked by how often they are opened (GA4 `template_open` count in the newest report under `doc/analytics/`, main checkout), most opened first; ties keep the previous order. Whenever a new analytics report lands, or a template is featured, unfeatured, added or removed, re-rank `ORDER` from the latest numbers and update the dated opens comment above it.
+The gallery order lives in `ORDER` in `src/App.tsx`. Featured designs come first, then the rest, and within each group designs are ranked by how often they are opened (GA4 `template_open` count in the newest report under `doc/analytics/`, main checkout), most opened first; ties keep the previous order. The event tabs (Save the Date, Engagement, Wedding...) are ranked by the average opens per design in each event (the event's total opens divided by its number of designs), most first, with ties in `EVENT_IDS` order; they follow `OPENS` on their own. Whenever a new analytics report lands, or a template is featured, unfeatured, added or removed, replace `OPENS` with the latest per-design counts, re-rank `ORDER` from them and update the dated comments above both.
 
 ## Website music (strict)
 
