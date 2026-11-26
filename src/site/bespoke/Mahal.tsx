@@ -494,7 +494,7 @@ export default function Mahal({ d, mode, slug }: SiteProps) {
   // The curtain and story only when there is something behind them, and the details only when there are some.
   const hasCouple = d.story.some((s) => s.title.trim() || s.body.trim()) || !!d.meet?.some((m) => m.bio.trim()) || !!d.note
   const hasThings = !!(d.venue || d.stay || d.rsvpBy || d.notes.length || d.compliments?.length)
-  const links = [['invite', 'Invitation'], ...(d.events.length ? [['events', 'Events']] : []), ...(hasCouple ? [['story', 'Story']] : []), ...(hasThings ? [['things', d.venue ? 'Venue' : 'Details']] : []), ['rsvp', 'RSVP']]
+  const links = [['invite', 'Invitation'], ...(d.events.length ? [['events', 'Events']] : []), ...(hasCouple ? [['story', 'Story']] : []), ...(hasThings ? [['things', d.venue ? 'Venue' : 'Details']] : []), ...(d.hide?.includes('rsvp') ? [] : [['rsvp', 'RSVP']])]
 
   return (
     <div ref={root} className="ov mh" style={themeVars(d)}>
@@ -508,13 +508,15 @@ export default function Mahal({ d, mode, slug }: SiteProps) {
       <Gallery d={d} />
       {hasThings && <Things d={d} maps={maps} />}
 
-      <div className="mh-rsvp">
-        <img className="mh-rsvp-toran" src={art('backgrounds/background-4')} alt="" loading="lazy" />
-        <img className="mh-diya mh-rsvp-diya-l" src={art('elements/element-1')} width={147} height={240} alt="" loading="lazy" />
-        <img className="mh-diya mh-rsvp-diya-r" src={art('elements/element-1')} width={147} height={240} alt="" loading="lazy" />
-        <RsvpForm d={d} slug={slug} />
-      </div>
-      <Blessings d={d} slug={slug} />
+      {!d.hide?.includes('rsvp') && (
+        <div className="mh-rsvp">
+          <img className="mh-rsvp-toran" src={art('backgrounds/background-4')} alt="" loading="lazy" />
+          <img className="mh-diya mh-rsvp-diya-l" src={art('elements/element-1')} width={147} height={240} alt="" loading="lazy" />
+          <img className="mh-diya mh-rsvp-diya-r" src={art('elements/element-1')} width={147} height={240} alt="" loading="lazy" />
+          <RsvpForm d={d} slug={slug} />
+        </div>
+      )}
+      {!d.hide?.includes('blessings') && <Blessings d={d} slug={slug} />}
 
       <footer className="mh-footer">
         <p className="mh-ft-names">

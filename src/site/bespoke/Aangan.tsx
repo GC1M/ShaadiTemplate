@@ -534,8 +534,8 @@ export default function Aangan({ d, mode, slug }: SiteProps) {
     ['ag-invite', 'Invitation'],
     ...(d.events.length ? [['ag-events', 'Functions'] as [string, string]] : []),
     ...(hasCouple ? [['ag-couple', 'Our story'] as [string, string]] : []),
-    ['ag-gallery', 'Gallery'],
-    ['rsvp', 'RSVP'],
+    ...(d.hide?.includes('gallery') ? [] : [['ag-gallery', 'Gallery'] as [string, string]]),
+    ...(d.hide?.includes('rsvp') ? [] : [['rsvp', 'RSVP'] as [string, string]]),
   ]
   const main = d.events.length ? mainOf(d) : undefined
 
@@ -548,15 +548,17 @@ export default function Aangan({ d, mode, slug }: SiteProps) {
       <Invite d={d} />
       <Events d={d} />
       <Couple d={d} />
-      <Gallery d={d} />
+      {!d.hide?.includes('gallery') && <Gallery d={d} />}
       <Know d={d} maps={maps} stay={stay} demo={mode === 'demo'} />
 
-      <div className="ag-rsvp">
-        <Scene name="rsvp/pn-rsvp-bg-royal-finale-%-v01" className="ag-rsvp-bg" />
-        <Art src="rsvp/pn-rsvp-div-finale-lotus-x-v01.webp" className="ag-rsvp-lotus" />
-        <RsvpForm d={d} slug={slug} />
-      </div>
-      <Blessings d={d} slug={slug} />
+      {!d.hide?.includes('rsvp') && (
+        <div className="ag-rsvp">
+          <Scene name="rsvp/pn-rsvp-bg-royal-finale-%-v01" className="ag-rsvp-bg" />
+          <Art src="rsvp/pn-rsvp-div-finale-lotus-x-v01.webp" className="ag-rsvp-lotus" />
+          <RsvpForm d={d} slug={slug} />
+        </div>
+      )}
+      {!d.hide?.includes('blessings') && <Blessings d={d} slug={slug} />}
 
       {d.compliments && d.compliments.length > 0 && (
         <section className="ag-compliments" aria-labelledby="ag-comp-title">

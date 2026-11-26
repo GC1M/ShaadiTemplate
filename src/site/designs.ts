@@ -65,6 +65,9 @@ export type Content = {
   stay?: string
   // Optional background music: `track:<id>` (site/music.tsx) or a YouTube link.
   music?: string
+  // Sections the couple turned off. Only the ones a design draws whatever the couple writes; the rest go away
+  // when left blank. date: the save-the-date countdown; gallery: Aangan's gallery (it falls back to the cover photo).
+  hide?: ('rsvp' | 'blessings' | 'date' | 'gallery')[]
   notes: string[]
   // Both optional: events in different places give each event its own directions instead.
   city: string
@@ -574,6 +577,8 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
     // A blank family is named after its side, so the RSVP never offers an empty choice; no venue yet shows the city.
     families: c.families.map((f, i) => f.trim() || `${c.couple[i]}’s family`) as [string, string],
     venue: c.venue.trim() || c.city,
+    // No RSVP form, so no "Reply by" pointing at it.
+    rsvpBy: c.hide?.includes('rsvp') ? '' : c.rsvpBy,
     meet: c.meet?.map((m, i) => ({ name: c.couple[i] ?? '', bio: m.bio, photo: m.photo ?? fill(demo.meet?.[i]?.photo ?? at(demo.photos.gallery, i), i) })),
     story: c.story.map((s, i) => ({ ...s, photo: s.photo ?? fill(at(demo.story, i).photo!, i) })),
     events: c.events.map((e, i) => {

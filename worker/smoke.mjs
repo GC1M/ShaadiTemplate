@@ -50,6 +50,10 @@ const durgaContent = { ...content, story: [], photos: { gallery: [] } }
 const durga = await call('POST', '/api/sites', { slug: `durga-andrew-${slug.slice(-6)}`, look: 'rajwada', content: durgaContent })
 assert.equal(durga.status, 201, JSON.stringify(durga.data))
 assert.equal((await call('DELETE', `/api/sites/durga-andrew-${slug.slice(-6)}`, undefined, durga.data.key)).status, 200)
+// Hidden sections: only the known ones, once each.
+const hidden = await call('POST', '/api/sites', { slug: `hide-${slug.slice(-6)}`, look: 'rajwada', content: { ...durgaContent, hide: ['rsvp', 'story', 'rsvp', 'gallery'] } })
+assert.deepEqual(hidden.data.content.hide, ['rsvp', 'gallery'])
+assert.equal((await call('DELETE', `/api/sites/hide-${slug.slice(-6)}`, undefined, hidden.data.key)).status, 200)
 // Contact given with the publish: a bad one stops it before anything is stored, a good one is saved with the site.
 const withContact = { slug: `meera-raj-${slug.slice(-6)}`, look: 'rajwada', content: durgaContent, source: 'instagram.com', heard: 'instagram' }
 assert.equal((await call('POST', '/api/sites', { ...withContact, contact: { email: 'nope' } })).status, 400)

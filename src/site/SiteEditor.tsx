@@ -589,8 +589,33 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
               <Step n={3} title="Where and when" />
               <div className="grid gap-4 sm:grid-cols-2">
                 <Text label="City (optional)" value={c.city} onChange={(city) => up(() => ({ city }))} maxLength={60} />
-                <Text label="Reply by (optional)" value={c.rsvpBy} onChange={(rsvpBy) => up(() => ({ rsvpBy }))} placeholder="15 November" maxLength={40} />
+                {!c.hide?.includes('rsvp') && <Text label="Reply by (optional)" value={c.rsvpBy} onChange={(rsvpBy) => up(() => ({ rsvpBy }))} placeholder="15 November" maxLength={40} />}
               </div>
+              <fieldset className="space-y-2">
+                <legend className="text-[13px] text-ink/65">Sections on your site</legend>
+                {(
+                  [
+                    ['rsvp', 'RSVP form (“Will you join us?”)'],
+                    ['blessings', 'Blessings from guests'],
+                    // Only where the design draws them whatever the couple writes.
+                    ...(lookById(draft.look)?.bespoke ? [] : [['date', 'Save-the-date countdown'] as const]),
+                    ...(lookById(draft.look)?.bespoke === 'aangan' ? [['gallery', 'Photo gallery'] as const] : []),
+                  ] as const
+                ).map(([s, label]) => (
+                  <label key={s} className="flex min-h-11 cursor-pointer items-center gap-3 text-[15px]">
+                    <input
+                      type="checkbox"
+                      checked={!c.hide?.includes(s)}
+                      onChange={(e) => {
+                        const on = e.target.checked
+                        up((c) => ({ hide: on ? c.hide?.filter((x) => x !== s) : [...(c.hide ?? []), s] }))
+                      }}
+                      className="size-4 accent-wine"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </fieldset>
               <Text label="Main venue (optional, the map link searches for this)" value={c.venue} onChange={(venue) => up(() => ({ venue }))} maxLength={160} />
               <Text label="Travel and stay, shown under the venue (optional)" value={c.stay ?? ''} onChange={(stay) => up(() => ({ stay }))} placeholder="Rooms are held at the hotel until 1 November. Mention our names when you book." multiline rows={2} maxLength={300} />
               <div className="space-y-4">
