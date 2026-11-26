@@ -101,7 +101,7 @@ export default function Themed({ d, mode, slug }: SiteProps) {
           <Music music={d.music} />
         </div>
       )}
-      <iframe ref={frame} src={`/microsites/${d.bespoke}/index.html`} title={`${d.couple.join(' & ')}: wedding website`} allow="autoplay; fullscreen" inert={!!open} className={`fixed inset-x-0 top-0 w-full border-0 ${mode === 'demo' ? 'h-[calc(100svh-4rem)]' : 'h-svh'}`} />
+      <iframe ref={frame} src={`/microsites/${d.bespoke}/index.html${data ? '?own' : ''}`} title={`${d.couple.join(' & ')}: wedding website`} allow="autoplay; fullscreen" inert={!!open} className={`fixed inset-x-0 top-0 w-full border-0 ${mode === 'demo' ? 'h-[calc(100svh-4rem)]' : 'h-svh'}`} />
       {/* The sample: a strip under the page with the way back to every design and the way to make it yours. A couple's
           site: the site's credit, the report form and photo credits behind a small button above the page's own sound
           button (bottom right), clear of the page’s words. */}
