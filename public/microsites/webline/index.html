@@ -600,14 +600,11 @@ a{color:inherit}
         <g stroke="#000" stroke-width="5" fill="#000"><line x1="70" y1="650" x2="62" y2="700"/><line x1="124" y1="650" x2="132" y2="700"/><rect x="56" y="584" width="82" height="70" rx="6"/><polygon points="50,588 97,546 144,588"/></g>
         <rect x="-5" y="700" width="610" height="110" fill="#000"/>
         <rect x="-5" y="694" width="610" height="12" fill="#1B3FAB" stroke="#000" stroke-width="3"/>
-        <line x1="300" y1="-5" x2="300" y2="214" stroke="#FFFBF2" stroke-width="5"/>
-        <line x1="300" y1="-5" x2="300" y2="214" stroke="#000" stroke-width="1.5"/>
-        <g transform="translate(6 0)" style="color:#C8102E"><use href="#figM" width="60" height="160" transform="translate(348 459) rotate(180) scale(1.6)"/><use href="#figF" x="252" y="444" width="96" height="256"/></g>
-        <g transform="translate(-6 0)" style="color:#00A3E0"><use href="#figM" width="60" height="160" transform="translate(348 459) rotate(180) scale(1.6)"/><use href="#figF" x="252" y="444" width="96" height="256"/></g>
-        <g style="color:#000"><use href="#figM" width="60" height="160" transform="translate(348 459) rotate(180) scale(1.6)"/><use href="#figF" x="252" y="444" width="96" height="256"/></g>
-        <g fill="#FFFBF2" stroke="#000" stroke-width="1.2"><path d="M285 438c3 6 11 6 12 0 0-4-5-8-12-2z"/><path d="M315 438c-3 6-11 6-12 0 0-4 5-8 12-2z"/></g>
-        <use href="#star4" x="330" y="470" width="30" height="30" style="color:#F4DFA0"/>
-        <use href="#star4" x="360" y="452" width="14" height="14" style="color:#F4DFA0"/>
+        <g transform="translate(6 0)" style="color:#C8102E"><use href="#figM" x="206" y="444" width="96" height="256"/><use href="#figF" x="306" y="444" width="96" height="256"/></g>
+        <g transform="translate(-6 0)" style="color:#00A3E0"><use href="#figM" x="206" y="444" width="96" height="256"/><use href="#figF" x="306" y="444" width="96" height="256"/></g>
+        <g style="color:#000"><use href="#figM" x="206" y="444" width="96" height="256"/><use href="#figF" x="306" y="444" width="96" height="256"/></g>
+        <use href="#star4" x="288" y="400" width="30" height="30" style="color:#F4DFA0"/>
+        <use href="#star4" x="318" y="384" width="14" height="14" style="color:#F4DFA0"/>
       </svg>
       <figcaption class="cap c1" data-f-sample>He asked from the rooftop ledge.</figcaption>
       <p class="bubble">Yes!</p>
@@ -2006,14 +2003,9 @@ function buildMoon(){
   });
   const sil = tex => new THREE.MeshBasicMaterial({color: 0x020309, alphaMap: tex, transparent: true, fog: false, depthWrite: false});
   const pg = new THREE.PlaneGeometry(96 * s, 256 * s);
-  const her = new THREE.Mesh(pg, sil(figF)); her.position.copy(at(300, 572, FZ)); scene.add(her);
-
-  const swing = new THREE.Group(); swing.position.copy(at(300, -5, FZ)); scene.add(swing);
-  const him = new THREE.Mesh(pg, sil(figM)); him.rotation.z = Math.PI;
-  him.position.copy(at(300, 331, FZ)).sub(swing.position); swing.add(him);
-  const lineLen = 219 * s;
-  const thread = new THREE.Mesh(new THREE.CylinderGeometry(.9 * s, .9 * s, lineLen, 6), new THREE.MeshBasicMaterial({color: new THREE.Color(1.5, 1.5, 1.6), fog: false}));
-  thread.position.y = -lineLen / 2; swing.add(thread);
+  // Side by side on the rooftop, against the moon (as in the drawn panel).
+  const her = new THREE.Mesh(pg, sil(figF)); her.position.copy(at(354, 572, FZ)); scene.add(her);
+  const him = new THREE.Mesh(pg, sil(figM)); him.position.copy(at(254, 572, FZ)); scene.add(him);
 
   const post = chain(scene, cam, {bloom: .4, radius: .55, threshold: .92, exposure: 1, vig: .3, grain: .05, ca: .003});
   addView({
@@ -2025,7 +2017,6 @@ function buildMoon(){
     },
     draw(t, dt){
       cloudU.uTime.value = t;
-      swing.rotation.z = Math.sin(t * .7) * .01;
       post.render(t, dt);
     },
     onFirst(){ reveal(host); }

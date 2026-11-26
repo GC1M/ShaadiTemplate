@@ -81,11 +81,12 @@ export default function Themed({ d, mode, slug }: SiteProps) {
   return (
     <div className="ov st" style={themeVars(d)}>
       {mode !== 'demo' && d.music !== THEME && <Music music={d.music} />}
-      <iframe ref={frame} src={`/microsites/${d.bespoke}/index.html`} title={`${d.couple.join(' & ')}: wedding website`} allow="autoplay; fullscreen" inert={!!open} className="fixed inset-0 h-svh w-full border-0" />
-      {/* Bottom left, clear of the page's own sound button (bottom right) and above a chosen song's pill. The sample: the way back to every design and the way to make it yours. A couple's site: the site's credit,
-          the report form and photo credits, behind a small button so the page stays the design's own. */}
+      <iframe ref={frame} src={`/microsites/${d.bespoke}/index.html`} title={`${d.couple.join(' & ')}: wedding website`} allow="autoplay; fullscreen" inert={!!open} className={`fixed inset-x-0 top-0 w-full border-0 ${mode === 'demo' ? 'h-[calc(100svh-4rem)]' : 'h-svh'}`} />
+      {/* The sample: a strip under the page with the way back to every design and the way to make it yours. A couple's
+          site: the site's credit, the report form and photo credits behind a small button above the page's own sound
+          button (bottom right), clear of the page’s words. */}
       {mode === 'demo' ? (
-        <div className="fixed bottom-3 left-3 z-40 flex gap-2">
+        <div className="fixed inset-x-0 bottom-0 z-40 flex h-16 items-center gap-2 bg-black px-3">
           <a href="/websites/" aria-label="All designs" className={pill}>
             ←
           </a>
@@ -103,7 +104,7 @@ export default function Themed({ d, mode, slug }: SiteProps) {
             setOpen('about')
           }}
           aria-label="About this website"
-          className={`${pill} fixed left-3 z-40 w-11 ${d.music && d.music !== THEME ? 'bottom-16' : 'bottom-3'} justify-center px-0 font-serif text-lg italic`}
+          className={`${pill} fixed right-4 z-40 w-11 ${d.music === THEME ? 'bottom-[76px]' : 'bottom-4'} justify-center px-0 font-serif text-lg italic`}
         >
           i
         </button>
