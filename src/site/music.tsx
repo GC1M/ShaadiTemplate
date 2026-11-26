@@ -40,7 +40,7 @@ export const clipLink = (id: string, start = 0, end?: number) => `https://youtu.
 export const SONGS = [
   { id: 'lamhon-1', name: 'In Lamhon Ke Daaman Mein (Jodhaa Akbar), part 1', link: clipLink('ve4IQMlTMuY', 40, 112) },
   { id: 'lamhon-2', name: 'In Lamhon Ke Daaman Mein (Jodhaa Akbar), part 2', link: clipLink('ve4IQMlTMuY', 204, 275) },
-  { id: 'kalank', name: 'Kalank title track (Kalank)', link: clipLink('jsb9BUJaiUY', 226, 293) },
+  { id: 'kalank', name: 'Kalank title track (Kalank)', link: clipLink('5PoptCZnS6A', 227, 295) },
   { id: 'uchiyaan', name: 'Uchiyaan Dewaraan (Baari 2)', link: clipLink('-Z3Y3EcpJi4', 233, 285) },
 ]
 export const song = (id: string) => SONGS.find((s) => s.id === id)!.link
@@ -101,10 +101,35 @@ export function useClipPlayer(box: React.RefObject<HTMLDivElement | null>, id: s
   return player
 }
 
+// What starts the music: a tap, a key, or starting to scroll. Browsers count only taps and keys as leave to play
+// sound, so a scroll starts it only where the browser allows (in the editor's preview after any tap in the editor,
+// or a site the guest has played before); elsewhere the first tap still does. Scroll doesn't bubble, so listen in
+// the capture phase to hear scrolling inside any box too. Returns the cleanup.
+const onStart = (f: (e: Event) => void) => {
+  const KEYS = ['pointerup', 'keydown', 'wheel', 'touchmove', 'scroll']
+  KEYS.forEach((k) => addEventListener(k, f, { capture: true, passive: true }))
+  return () => KEYS.forEach((k) => removeEventListener(k, f, { capture: true }))
+}
+// In the editor's preview the site's song and the editor's own song samples take turns: each tells the other when
+// it starts, and the other pauses.
+const PLAYING = 'preview-music-playing'
+export const PAUSE = 'preview-music-pause'
+const playing = () => parent !== window && parent.postMessage(PLAYING, location.origin)
+const onPause = (f: () => void) => {
+  const on = (e: MessageEvent) => e.origin === location.origin && e.data === PAUSE && f()
+  addEventListener('message', on)
+  return () => removeEventListener('message', on)
+}
+export const onPreviewPlaying = (f: () => void) => {
+  const on = (e: MessageEvent) => e.origin === location.origin && e.data === PLAYING && f()
+  addEventListener('message', on)
+  return () => removeEventListener('message', on)
+}
+
 export function Music({ music }: { music?: string }) {
   const track = TRACKS.find((t) => `track:${t.id}` === music)
   const clip = music && !track ? youTubeClip(music) : undefined
-  return track ? <TrackPlayer key={track.id} t={track} /> : clip ? <YouTubeDock key={music} {...clip} /> : null
+  return track ? <TrackPlayer key={track.id} t={track} /> : clip ? <ClipPill key={music} {...clip} /> : null
 }
 
 const pill = 'fixed bottom-3 left-3 z-50 flex items-center gap-2 rounded-full bg-black/75 py-2 pl-3 pr-4 text-[13px] text-white shadow-lg backdrop-blur pointer-coarse:min-h-11'
@@ -117,20 +142,20 @@ function TrackPlayer({ t }: { t: Track }) {
     // starts with the guest's first tap (usually the opening screen). On a phone only the end of a touch counts
     // as that tap (pointerup), not its start. Until the music actually plays, every tap tries again; a tap on
     // the music button itself is left to the button.
-    const KEYS = ['pointerup', 'keydown']
     const start = (e: Event) => {
       if ((e.target as Element | null)?.closest?.('[data-music]')) return stop()
       audio.current?.play().then(stop, () => {})
     }
-    const stop = () => KEYS.forEach((k) => removeEventListener(k, start))
-    KEYS.forEach((k) => addEventListener(k, start))
-    // Not in the editor's preview, where the couple is typing: there it waits for a tap or the button.
+    const stop = onStart(start)
+    // Not in the editor's preview, where the couple is typing: there it waits for a tap, a scroll or the button.
     if (!location.pathname.startsWith('/websites/preview')) audio.current?.play().then(stop, () => {})
     // A guest who switches to WhatsApp shouldn't keep hearing it.
     const hide = () => document.hidden && audio.current?.pause()
     document.addEventListener('visibilitychange', hide)
+    const unpause = onPause(() => audio.current?.pause())
     return () => {
       stop()
+      unpause()
       document.removeEventListener('visibilitychange', hide)
     }
   }, [])
@@ -142,7 +167,7 @@ function TrackPlayer({ t }: { t: Track }) {
   }
   return (
     <div data-music className={pill}>
-      <audio ref={audio} src={t.src} loop preload="none" onPlay={() => setOn(true)} onPause={() => setOn(false)} />
+      <audio ref={audio} src={t.src} loop preload="none" onPlay={() => (setOn(true), playing())} onPause={() => setOn(false)} />
       <button type="button" onClick={toggle} aria-pressed={on} aria-label={on ? 'Pause the music' : 'Play the music'} className="grid size-7 place-items-center rounded-full bg-white/15">
         {on ? '❚❚' : '♪'}
       </button>
@@ -156,49 +181,36 @@ function TrackPlayer({ t }: { t: Track }) {
   )
 }
 
-function YouTubeDock({ id, start, end }: { id: string; start: number; end?: number }) {
-  // Like the tracks: the song tries to start as the site opens (ClipPill). Not in the editor's preview, where the
-  // couple is typing: there it waits for a tap or the button.
-  const [open, setOpen] = useState(!location.pathname.startsWith('/websites/preview'))
-  useEffect(() => {
-    const KEYS = ['pointerup', 'keydown']
-    const go = () => {
-      stop()
-      setOpen(true)
-    }
-    const stop = () => KEYS.forEach((k) => removeEventListener(k, go))
-    KEYS.forEach((k) => addEventListener(k, go))
-    return stop
-  }, [])
-  return open ? (
-    <ClipPill id={id} start={start} end={end} />
-  ) : (
-    <button type="button" data-music onClick={() => setOpen(true)} className={pill}>
-      <span aria-hidden>♪</span> Play our song
-    </button>
-  )
-}
-
 // The YouTube player sits out of sight behind the page; the pill plays and pauses it.
+// Like the tracks, the song tries to start as the site opens; not in the editor's preview, where the couple is typing:
+// there it waits for a tap, a scroll or the button. The player is made up front either way, so the first tap or
+// scroll can start it at once (Safari lets sound start only inside the tap itself, not after a player loads).
 function ClipPill({ id, start, end }: { id: string; start: number; end?: number }) {
   const box = useRef<HTMLDivElement>(null)
   const [on, setOn] = useState(false)
   const [played, setPlayed] = useState(false)
   const player = useClipPlayer(box, id, start, end, {
-    autoplay: true,
+    autoplay: !location.pathname.startsWith('/websites/preview'),
     width: 200,
     height: 200,
     // Where the browser blocks sound, YouTube may start the song muted instead, so playing only counts once it is heard.
     onState: (st) => {
       const heard = st === 1 && !player.current?.isMuted()
       setOn(heard)
-      if (heard) setPlayed(true)
+      if (heard) (setPlayed(true), playing())
     },
   })
   // Before YouTube's player is ready it has none of these, and the next tap tries again.
   const play = () => {
-    player.current?.unMute?.()
-    player.current?.playVideo?.()
+    const p = player.current
+    // A scroll sends dozens of events: once the song is starting (playing or loading, with sound), leave it be.
+    // Calling playVideo again while it loads sends it back to the start and it never gets going.
+    if ([1, 3].includes(p?.getPlayerState?.() ?? -1) && !p?.isMuted?.()) return
+    // The editor's song sample must be gone before this one starts: a YouTube player closed while another is
+    // starting leaves that one stuck loading at its first second.
+    playing()
+    p?.unMute?.()
+    p?.playVideo?.()
     // Unmuting a song that was already playing muted brings no new state from YouTube.
     if (player.current?.getPlayerState?.() === 1) {
       setOn(true)
@@ -209,16 +221,18 @@ function ClipPill({ id, start, end }: { id: string; start: number; end?: number 
     // Browsers usually block sound until a tap, so until the song has been heard every tap tries again (and unmutes
     // it); a tap on the music button itself is left to the button.
     if (played) return
-    const KEYS = ['pointerup', 'keydown']
-    const go = (e: Event) => !(e.target as Element | null)?.closest?.('[data-music]') && play()
-    KEYS.forEach((k) => addEventListener(k, go))
-    return () => KEYS.forEach((k) => removeEventListener(k, go))
+    return onStart((e) => !(e.target as Element | null)?.closest?.('[data-music]') && play())
   }, [played, player])
   useEffect(() => {
     // A guest who switches to WhatsApp shouldn't keep hearing it.
     const hide = () => document.hidden && player.current?.pauseVideo()
     document.addEventListener('visibilitychange', hide)
-    return () => document.removeEventListener('visibilitychange', hide)
+    // Paused for the editor's song sample, it starts again with the next tap or scroll in the preview.
+    const unpause = onPause(() => (player.current?.pauseVideo(), setPlayed(false)))
+    return () => {
+      unpause()
+      document.removeEventListener('visibilitychange', hide)
+    }
   }, [player])
   return (
     <>

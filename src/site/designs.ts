@@ -67,6 +67,8 @@ export type Content = {
   // Optional background music: `track:<id>` (site/music.tsx) or a YouTube link. A themed website's own track is
   // THEME (its public/microsites/<id>/theme.mp3).
   music?: string
+  // The couple's own YouTube songs, each a named loop they saved in the editor to pick from later.
+  songs?: { name: string; link: string }[]
   // Sections the couple turned off. Only the ones a design draws whatever the couple writes; the rest go away
   // when left blank. date: the save-the-date countdown; gallery: Aangan's gallery (it falls back to the cover photo).
   hide?: ('rsvp' | 'blessings' | 'date' | 'gallery')[]

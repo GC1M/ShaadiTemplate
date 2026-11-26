@@ -7,7 +7,7 @@ import { go, LOOKS, lookById, passId, THEME, type Content, type Look } from './d
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
-import { TRACKS, SONGS, youTubeClip, clipLink, clock, unclock, useClipPlayer, type Track } from './music'
+import { TRACKS, SONGS, PAUSE, onPreviewPlaying, youTubeClip, clipLink, clock, unclock, useClipPlayer, type Track } from './music'
 import { Segmented, useSplit } from '../ui'
 import type { TypedCover } from '../templates'
 import { TransliterateInput } from '../transliterate'
@@ -544,7 +544,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                   ))}
                 </select>
               </label>
-              <MusicField theme={lookById(draft.look)?.demo.music === THEME ? draft.look : undefined} value={c.music} onChange={(music) => up(() => ({ music }))} />
+              <MusicField theme={lookById(draft.look)?.demo.music === THEME ? draft.look : undefined} value={c.music} onChange={(music) => up(() => ({ music }))} songs={c.songs} onSongs={(songs) => up(() => ({ songs: songs.length ? songs : undefined }))} onSample={() => frame.current?.contentWindow?.postMessage(PAUSE, location.origin)} />
               {draft.key ? (
                 <p className="text-[15px] text-ink/75">
                   Your address: <strong className="font-medium">shaaditemplate.com/w/{draft.slug}</strong>
@@ -918,18 +918,42 @@ const Step = ({ n, title }: { n: number; title: string }) => (
 // any YouTube song (both play in YouTube's player when the guest taps "Play our song"). Each film song can be heard
 // here before choosing it. The instrumentals are no longer offered; a site that already has one keeps it here.
 // A themed design (theme: its id) also offers its own soundtrack, first.
-function MusicField({ value, theme, onChange }: { value?: string; theme?: string; onChange: (v: string | undefined) => void }) {
-  const [yt, setYt] = useState(!!value && !value.startsWith('track:') && !SONGS.some((s) => s.link === value))
+// The couple's own YouTube loops, once named and added, join the list (kept with the site, so the edit link has them).
+type Mine = NonNullable<Content['songs']>
+function MusicField({ value, theme, onChange, songs = [], onSongs, onSample }: { value?: string; theme?: string; onChange: (v: string | undefined) => void; songs?: Mine; onSongs: (s: Mine) => void; onSample: () => void }) {
+  const all = [...SONGS.map((s) => ({ ...s, mine: false })), ...songs.map((s, i) => ({ id: `mine-${i}`, name: s.name, link: s.link, mine: true }))]
+  const [yt, setYt] = useState(!!value && !value.startsWith('track:') && value !== THEME && !all.some((s) => s.link === value))
+  const [naming, setNaming] = useState<string | null>(null) // the name being typed, once Add is tapped
+  // Saves the YouTube loop being chosen under the couple's name for it, and selects it in the list.
+  const add = () => {
+    if (!naming?.trim() || !value) return
+    onSongs([...songs, { name: naming.trim(), link: value }])
+    setNaming(null)
+    setYt(false)
+  }
   const clip = yt && value ? youTubeClip(value) : undefined
   const id = clip?.id
   const sample = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState<string | null>(null)
   const [hearing, setHearing] = useState<string | null>(null)
-  const listen = (t: Pick<Track, 'id' | 'src'>) => {
+  // One song at a time: a sample here pauses the preview's song, and the preview's song starting pauses the sample.
+  useEffect(() => {
+    if (playing || hearing) onSample()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, hearing])
+  useEffect(
+    () =>
+      onPreviewPlaying(() => {
+        sample.current?.pause()
+        setHearing(null)
+      }),
+    [],
+  )
+  const listen = (t: Pick<Track, 'id' | 'src'>, restart = false) => {
     const a = sample.current
     if (!a) return
     setHearing(null)
-    if (playing === t.id) return a.pause()
+    if (playing === t.id && !restart) return a.pause()
     a.src = t.src
     a.play().catch(() => setPlaying(null))
   }
@@ -938,10 +962,21 @@ function MusicField({ value, theme, onChange }: { value?: string; theme?: string
     setHearing(hearing === id ? null : id)
   }
   const choice = yt ? 'youtube' : (value ?? '')
-  const pick = (v: string) => {
+  // Choosing a song starts it at once; choosing no music or YouTube stops whatever plays.
+  const pick = (v: string, start?: () => void) => {
     setYt(v === 'youtube')
     onChange(v === 'youtube' || !v ? undefined : v)
+    sample.current?.pause()
+    setHearing(null)
+    start?.()
   }
+  const toggle = (on: boolean, label: string, onClick: () => void) => (
+    <button type="button" onClick={onClick} aria-label={`${on ? 'Pause' : 'Play'} ${label}`} className="grid size-9 shrink-0 place-items-center rounded-full text-wine ring-1 ring-wine/20 hover:bg-wine/5 pointer-coarse:size-11">
+      <svg viewBox="0 0 16 16" className="size-3.5" fill="currentColor" aria-hidden>
+        {on ? <path d="M4 2.5h2.6v11H4zM9.4 2.5H12v11H9.4z" /> : <path d="M4.5 2.2v11.6L13.5 8z" />}
+      </svg>
+    </button>
+  )
   const row = 'flex min-h-11 cursor-pointer items-center gap-3 rounded-md px-3 py-2 ring-1 transition'
   const ring = (on: boolean) => (on ? 'bg-paper ring-wine/40' : 'ring-wine/10 hover:ring-wine/25')
   return (
@@ -951,39 +986,38 @@ function MusicField({ value, theme, onChange }: { value?: string; theme?: string
       {theme && (
         <div className={`${row} ${ring(choice === THEME)}`}>
           <label className="flex flex-1 cursor-pointer items-center gap-3">
-            <input type="radio" name="music" checked={choice === THEME} onChange={() => pick(THEME)} className="size-4 accent-wine" />
+            <input type="radio" name="music" checked={choice === THEME} onChange={() => pick(THEME, () => listen({ id: 'theme', src: `/microsites/${theme}/theme.mp3` }, true))} className="size-4 accent-wine" />
             The design’s own theme music
           </label>
-          <button type="button" onClick={() => listen({ id: 'theme', src: `/microsites/${theme}/theme.mp3` })} aria-label={`${playing === 'theme' ? 'Stop' : 'Listen to'} the theme music`} className="rounded-full px-3 py-1 text-[13px] text-wine ring-1 ring-wine/20 hover:bg-wine/5 pointer-coarse:min-h-11">
-            {playing === 'theme' ? 'Stop' : 'Listen'}
-          </button>
+          {toggle(playing === 'theme', 'the theme music', () => listen({ id: 'theme', src: `/microsites/${theme}/theme.mp3` }))}
         </div>
       )}
       <label className={`${row} ${ring(choice === '')}`}>
         <input type="radio" name="music" checked={choice === ''} onChange={() => pick('')} className="size-4 accent-wine" />
         No music
       </label>
-      {SONGS.map((s) => (
+      {all.map((s) => (
         <div key={s.id} className={`${row} ${ring(choice === s.link)}`}>
           <label className="flex flex-1 cursor-pointer items-center gap-3">
-            <input type="radio" name="music" checked={choice === s.link} onChange={() => pick(s.link)} className="size-4 accent-wine" />
+            <input type="radio" name="music" checked={choice === s.link} onChange={() => pick(s.link, () => setHearing(s.id))} className="size-4 accent-wine" />
             {s.name}
           </label>
-          <button type="button" onClick={() => hear(s.id)} aria-label={`${hearing === s.id ? 'Stop' : 'Listen to'} ${s.name}`} className="rounded-full px-3 py-1 text-[13px] text-wine ring-1 ring-wine/20 hover:bg-wine/5 pointer-coarse:min-h-11">
-            {hearing === s.id ? 'Stop' : 'Listen'}
-          </button>
+          {toggle(hearing === s.id, s.name, () => hear(s.id))}
+          {s.mine && (
+            <button type="button" onClick={() => { setHearing(null); if (value === s.link) pick(''); onSongs(songs.filter((x) => x.link !== s.link || x.name !== s.name)) }} aria-label={`Remove ${s.name} from your list`} className="grid size-9 shrink-0 place-items-center rounded-full text-ink/50 hover:bg-wine/5 hover:text-wine pointer-coarse:size-11">
+              <Trash2 className="size-4" aria-hidden />
+            </button>
+          )}
         </div>
       ))}
-      {hearing && <SongSample key={hearing} link={SONGS.find((s) => s.id === hearing)!.link} />}
+      {hearing && <SongSample key={hearing} link={all.find((s) => s.id === hearing)!.link} />}
       {TRACKS.filter((t) => value === `track:${t.id}`).map((t) => (
         <div key={t.id} className={`${row} ${ring(choice === `track:${t.id}`)}`}>
           <label className="flex flex-1 cursor-pointer items-center gap-3">
-            <input type="radio" name="music" checked={choice === `track:${t.id}`} onChange={() => pick(`track:${t.id}`)} className="size-4 accent-wine" />
+            <input type="radio" name="music" checked={choice === `track:${t.id}`} onChange={() => pick(`track:${t.id}`, () => listen(t, true))} className="size-4 accent-wine" />
             {t.name}
           </label>
-          <button type="button" onClick={() => listen(t)} aria-label={`${playing === t.id ? 'Stop' : 'Listen to'} ${t.name}`} className="rounded-full px-3 py-1 text-[13px] text-wine ring-1 ring-wine/20 hover:bg-wine/5 pointer-coarse:min-h-11">
-            {playing === t.id ? 'Stop' : 'Listen'}
-          </button>
+          {toggle(playing === t.id, t.name, () => listen(t))}
         </div>
       ))}
       <label className={`${row} ${ring(yt)}`}>
@@ -991,17 +1025,41 @@ function MusicField({ value, theme, onChange }: { value?: string; theme?: string
         A song of your choice from YouTube
       </label>
       {yt && (
-        <div className="space-y-2 pt-1">
+        <div className="space-y-4 rounded-md bg-paper/60 p-4 ring-1 ring-wine/15">
           <Text label="YouTube link" value={value ?? ''} onChange={(v) => onChange(v)} placeholder="https://youtu.be/…" maxLength={200} />
           <p className="text-[13px] text-ink/60">
             {value && !id
               ? 'That doesn’t look like a YouTube video link. Copy it from Share on the video.'
-              : 'It starts when a guest first taps your site, with a small pause button and no video, and plays the part you choose below over and over. Some music labels block their videos on other sites; if yours won’t play here, pick another upload of the song.'}
+              : clip
+                ? 'Some music labels block their videos on other sites. If this one won’t play, try another upload of the song.'
+                : 'Paste a link, then choose the part that plays over and over on your site.'}
           </p>
           {clip && <ClipPicker key={clip.id} {...clip} onChange={(s, e) => onChange(clipLink(clip.id, s, e))} />}
+          {clip && songs.length < 10 && (
+            <div className="border-t border-wine/10 pt-4">
+              {naming === null ? (
+                <button type="button" onClick={() => setNaming('')} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-wine px-5 text-sm text-paper hover:bg-wine/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine">
+                  <Plus className="size-4" aria-hidden /> Add this song to your list
+                </button>
+              ) : (
+                <div className="flex flex-wrap items-end gap-2">
+                  <label className="block min-w-48 flex-1">
+                    <span className="text-[13px] text-ink/65">Name this song</span>
+                    <input autoFocus value={naming} onChange={(e) => setNaming(e.target.value)} onKeyDown={(e) => (e.key === 'Enter' ? (e.preventDefault(), add()) : e.key === 'Escape' && setNaming(null))} maxLength={60} placeholder="Our first dance" className={inputCls} />
+                  </label>
+                  <button type="button" onClick={add} disabled={!naming.trim()} className="mb-px inline-flex min-h-11 items-center rounded-full bg-wine px-5 text-sm text-paper hover:bg-wine/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-wine disabled:cursor-not-allowed disabled:bg-wine/30">
+                    Save
+                  </button>
+                  <button type="button" onClick={() => setNaming(null)} className={`${small} mb-px`}>
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
-      {SONGS.some((s) => s.link === value) && <p className="text-[13px] text-ink/55">Plays from YouTube when a guest taps "Play our song", looping just this part of the song, with no video.</p>}
+      {all.some((s) => s.link === value) && <p className="text-[13px] text-ink/55">Plays from YouTube when a guest taps "Play our song", looping just this part of the song, with no video.</p>}
       {value === THEME && theme && <p className="text-[13px] text-ink/55">Made for this design. It starts as the site opens (or with the guest’s first tap, where the phone asks for one), with a small sound button to mute it.</p>}
       {value?.startsWith('track:') && value !== THEME && <p className="text-[13px] text-ink/55">Free to use, credited on your site. It starts as the site opens (or with the guest’s first tap, where the phone asks for one) and shows only a small pause button, no video.</p>}
     </fieldset>
@@ -1034,16 +1092,18 @@ function ClipPicker({ id, start, end, onChange }: { id: string; start: number; e
     </div>
   )
   return (
-    <div className="space-y-3 rounded-md p-3 ring-1 ring-wine/10">
+    <div className="space-y-3">
       <p className="text-[13px] text-ink/65">Choose the part that loops. Play the video, then tap Set to now where the part should start and end.</p>
-      <div ref={box} className="h-[200px] w-[280px] max-w-full overflow-hidden rounded bg-black" />
-      <div className="flex flex-wrap gap-4">
-        {time('Starts at', start, (n) => onChange(n ?? 0, end && end > (n ?? 0) ? end : undefined), () => onChange(now(), end && end > now() ? end : undefined))}
-        {time('Ends at', end, (n) => onChange(start, n && n > start ? n : undefined), () => onChange(start, now() > start ? now() : undefined))}
+      <div className="flex flex-wrap items-start gap-4">
+        <div ref={box} className="h-[200px] w-[280px] max-w-full shrink-0 overflow-hidden rounded bg-black" />
+        <div className="space-y-3">
+          {time('Starts at', start, (n) => onChange(n ?? 0, end && end > (n ?? 0) ? end : undefined), () => onChange(now(), end && end > now() ? end : undefined))}
+          {time('Ends at', end, (n) => onChange(start, n && n > start ? n : undefined), () => onChange(start, now() > start ? now() : undefined))}
+          <button type="button" onClick={replay} className={small}>
+            Play the loop
+          </button>
+        </div>
       </div>
-      <button type="button" onClick={replay} className={small}>
-        Play the loop
-      </button>
     </div>
   )
 }
