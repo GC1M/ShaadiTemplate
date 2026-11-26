@@ -157,10 +157,10 @@ function TrackPlayer({ t }: { t: Track }) {
 }
 
 function YouTubeDock({ id, start, end }: { id: string; start: number; end?: number }) {
-  const [open, setOpen] = useState(false)
+  // Like the tracks: the song tries to start as the site opens (ClipPill). Not in the editor's preview, where the
+  // couple is typing: there it waits for a tap or the button.
+  const [open, setOpen] = useState(!location.pathname.startsWith('/websites/preview'))
   useEffect(() => {
-    // Like the tracks: the song starts with the guest's first tap (usually the opening screen), since browsers
-    // allow sound only after one.
     const KEYS = ['pointerup', 'keydown']
     const go = () => {
       stop()
@@ -183,7 +183,25 @@ function YouTubeDock({ id, start, end }: { id: string; start: number; end?: numb
 function ClipPill({ id, start, end }: { id: string; start: number; end?: number }) {
   const box = useRef<HTMLDivElement>(null)
   const [on, setOn] = useState(false)
-  const player = useClipPlayer(box, id, start, end, { autoplay: true, width: 200, height: 200, onState: (st) => setOn(st === 1) })
+  const [played, setPlayed] = useState(false)
+  const player = useClipPlayer(box, id, start, end, {
+    autoplay: true,
+    width: 200,
+    height: 200,
+    onState: (st) => {
+      setOn(st === 1)
+      if (st === 1) setPlayed(true)
+    },
+  })
+  useEffect(() => {
+    // Browsers usually block sound until a tap, so until the song has played once every tap tries again; a tap on
+    // the music button itself is left to the button.
+    if (played) return
+    const KEYS = ['pointerup', 'keydown']
+    const go = (e: Event) => !(e.target as Element | null)?.closest?.('[data-music]') && player.current?.playVideo()
+    KEYS.forEach((k) => addEventListener(k, go))
+    return () => KEYS.forEach((k) => removeEventListener(k, go))
+  }, [played, player])
   useEffect(() => {
     // A guest who switches to WhatsApp shouldn't keep hearing it.
     const hide = () => document.hidden && player.current?.pauseVideo()

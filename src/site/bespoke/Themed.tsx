@@ -95,7 +95,12 @@ export default function Themed({ d, mode, slug }: SiteProps) {
   const pill = 'flex min-h-11 items-center rounded-full bg-black/70 px-4 text-sm text-white shadow-lg backdrop-blur'
   return (
     <div className="ov st" style={themeVars(d)}>
-      {mode !== 'demo' && d.music !== THEME && <Music music={d.music} />}
+      {/* A sample's song (Vice Nights) plays here too, its button lifted above the sample strip. */}
+      {(mode !== 'demo' || !!d.music) && d.music !== THEME && (
+        <div className={mode === 'demo' ? '[&_[data-music]]:bottom-[76px]' : undefined}>
+          <Music music={d.music} />
+        </div>
+      )}
       <iframe ref={frame} src={`/microsites/${d.bespoke}/index.html`} title={`${d.couple.join(' & ')}: wedding website`} allow="autoplay; fullscreen" inert={!!open} className={`fixed inset-x-0 top-0 w-full border-0 ${mode === 'demo' ? 'h-[calc(100svh-4rem)]' : 'h-svh'}`} />
       {/* The sample: a strip under the page with the way back to every design and the way to make it yours. A couple's
           site: the site's credit, the report form and photo credits behind a small button above the page's own sound
