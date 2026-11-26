@@ -74,6 +74,15 @@ function Phone({ d }: { d: Design }) {
   )
 }
 
+// Themed sample websites, each a self-contained page with its own music (public/microsites/<id>/); cover.webp is
+// a phone-sized still of its opening screen. Not editable yet, so they show a preview link only. The tags must
+// match what each site shows (CLAUDE.md, gallery labels).
+export const MICROSITES = [
+  { id: 'nightcall', name: 'Night Call', theme: 'Comic noir', tags: ['Wedding', 'English', 'Ganesha'], blurb: 'A rainy city at night, a searchlight in the sky and a save-the-night card, with five functions to the reception.' },
+  { id: 'webline', name: 'Web Line', theme: 'Superhero comic', tags: ['Wedding', 'English', 'Ganesha'], blurb: 'A comic-book issue: a skyscraper cover, panel pages, a moonlit rooftop and a web shot wherever you tap.' },
+  { id: 'forgeheart', name: 'Forge Heart', theme: 'Armoured tech', tags: ['Wedding', 'English', 'Ganesha'], blurb: 'Red and gold armour in a workshop, a helmet that builds itself as you scroll and a heads-up display of every function.' },
+]
+
 // The painted designs lead the page; the rest keep the order of designs.ts.
 const SHOWN = [...DESIGNS.filter((d) => d.bespoke), ...DESIGNS.filter((d) => !d.bespoke)]
 
@@ -145,6 +154,34 @@ export default function Websites() {
                   </a>
                 )}
                 <a href={designPath(d)} className="inline-flex min-h-11 items-center rounded-full border border-zari px-5 text-sm text-zari hover:bg-zari hover:text-wine-deep">
+                  Live preview →
+                </a>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <h2 className="mt-24 font-display text-[clamp(2rem,5vw,3rem)] leading-[1.05]">Themed websites</h2>
+        <p className="mt-4 max-w-[58ch] text-rose/80">Comic-book and movie-night designs with every function, the families and RSVP contacts.</p>
+        <ul className="mt-10 grid gap-x-8 gap-y-16 sm:grid-cols-2 lg:grid-cols-3">
+          {MICROSITES.map((m) => (
+            <li key={m.id}>
+              <a href={`/microsites/${m.id}/`} className="group block">
+                <div className="relative mx-auto h-[500px] w-[250px] overflow-hidden rounded-[2rem] border-[6px] border-[#120b0e] shadow-2xl transition-transform duration-500 group-hover:-translate-y-1.5">
+                  <img src={`/microsites/${m.id}/cover.webp`} alt={`${m.name} sample wedding website, opening screen`} loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                </div>
+                <h3 className="mt-6 font-display text-2xl">{m.name}</h3>
+                <p className="mt-1 text-sm uppercase tracking-[0.14em] text-zari">{m.theme}</p>
+                <p className="mt-2 text-rose/75">{m.blurb}</p>
+              </a>
+              <ul className="mt-3 flex flex-wrap gap-2" aria-label="Labels">
+                {m.tags.map((t) => (
+                  <li key={t} className="rounded-full border border-zari/40 px-3 py-0.5 text-sm text-rose/85">
+                    {t}
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-4">
+                <a href={`/microsites/${m.id}/`} className="inline-flex min-h-11 items-center rounded-full border border-zari px-5 text-sm text-zari hover:bg-zari hover:text-wine-deep">
                   Live preview →
                 </a>
               </div>

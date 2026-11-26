@@ -75,11 +75,13 @@ def share_image(path, headline, cards):
     for line in wrap(d, headline, big, 500)[:4]:
         d.text((64, y), line, font=big, fill=ROSE)
         y += 70
-    d.text((64, 520), 'Free · No login · WhatsApp image and print PDF', font=font('bodoni-moda/files/bodoni-moda-latin-400-normal.woff', 24), fill=ZARI)
+    site = any(isinstance(c, Path) for c in cards)  # a themed website's own screen, not card previews
+    d.text((64, 520), 'Free wedding website · RSVP · One link for every guest' if site else 'Free · No login · WhatsApp image and print PDF', font=font('bodoni-moda/files/bodoni-moda-latin-400-normal.woff', 24), fill=ZARI)
     cards = cards[:3]
     slots = {1: [(0, 0)], 2: [(-1, -5), (1, 5)], 3: [(-1, -7), (0, 0), (1, 7)]}[len(cards)]
     for i in sorted(range(len(cards)), key=lambda i: slots[i][0] == 0):  # the middle card goes on top
-        card = Image.open(PUBLIC / 'templates/previews' / f'{cards[i]}.webp').convert('RGBA').resize((270, 480), Image.LANCZOS)
+        src = cards[i] if isinstance(cards[i], Path) else PUBLIC / 'templates/previews' / f'{cards[i]}.webp'
+        card = Image.open(src).convert('RGBA').resize((270, 480), Image.LANCZOS)
         card = card.rotate(-slots[i][1], expand=True, resample=Image.BICUBIC)
         img.paste(card, (920 + slots[i][0] * 108 - card.width // 2, 315 - card.height // 2), card)
     path.parent.mkdir(exist_ok=True)
@@ -248,6 +250,8 @@ def head_block(path, page):
     slug = url.removeprefix(SITE).strip('/').removesuffix('.html').replace('/', '-') or 'home'
     image = f'{SITE}/og/{slug}.jpg'
     cards = card_ids(page) or HOME_CARDS
+    if path.is_relative_to(PUBLIC / 'microsites'):  # a themed website: its own opening screen
+        cards = [path.parent / 'cover.webp']
     # Share images are drawn in Latin type, so pages titled in an Indian script need an English headline here.
     headline = HEADLINES.get(slug) or (title if title.isascii() else 'Indian wedding invitation wording')
     share_image(PUBLIC / 'og' / f'{slug}.jpg', headline, cards)
