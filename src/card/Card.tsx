@@ -89,7 +89,7 @@ function Rich({ text, accent, big, inline }: { text: string; accent: string; big
             const [icon, words] = /^\[\[.+\]\]$/.test(part) ? part.slice(2, -2).split(/\|(.*)/s) : []
             const a = icon !== undefined ? orn[icon] : undefined
             // A cut-out painted with another language's words: its plain piece, or just the typed words.
-            const lettered = !!a?.lang && (a.lang !== lang || (painted?.[icon] !== undefined && words !== painted[icon]))
+            const lettered = !!a?.lang && (a.lang !== lang || (words !== undefined && painted?.[icon] !== undefined && words !== painted[icon]))
             const src = lettered ? a?.plain : a?.src
             const say = words && (lettered || !a?.lang) ? <Rich inline text={words} accent={accent} big={big} /> : null
             // Words alone stand in for painted lettering: sized to take about the width the lettering took.
