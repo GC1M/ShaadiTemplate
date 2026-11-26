@@ -327,6 +327,10 @@ function clean(raw: any, ownPhoto: (src: string) => boolean, saved = new Set<str
     note: str(c.note, 400) || undefined,
     stay: str(c.stay, 300) || undefined,
     music: music(c.music),
+    songs: (() => {
+      const xs = arr(c.songs, 10, (s) => ({ name: str(s?.name, 60), link: music(s?.link) ?? '' })).filter((s) => s.name && s.link.startsWith('https://youtu.be/'))
+      return xs.length ? xs : undefined
+    })(),
     hide: (() => {
       const xs = arr(c.hide, 4, String).filter((x) => ['rsvp', 'blessings', 'date', 'gallery'].includes(x))
       return xs.length ? [...new Set(xs)] : undefined

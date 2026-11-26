@@ -134,9 +134,10 @@
     e.preventDefault()
     parent.postMessage({ type: 'microsite-act', act: a.getAttribute('data-act') }, location.origin)
   }, true)
-  // Taps land in this frame, not on the site around it, so pass them up: the site starts a chosen song on a tap.
-  ;['pointerup', 'keydown'].forEach(function (k) {
-    addEventListener(k, function () { parent.postMessage({ type: 'microsite-tap' }, location.origin) }, true)
+  // Taps and scrolls land in this frame, not on the site around it, so pass them up: the site starts a chosen song
+  // on either.
+  ;['pointerup', 'keydown', 'wheel', 'touchmove', 'scroll'].forEach(function (k) {
+    addEventListener(k, function () { parent.postMessage({ type: 'microsite-tap' }, location.origin) }, { capture: true, passive: true })
   })
   addEventListener('message', function (e) {
     if (e.origin !== location.origin || e.source !== parent || !e.data || e.data.type !== 'microsite-content') return
