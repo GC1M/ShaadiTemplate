@@ -14,7 +14,7 @@ const draw = (s: SiteData) => toDesign(lookById(s.look) ?? LOOKS[0], s.content)
 // Ids that match none of the site's functions are ignored, so a stale link still opens the whole site.
 function only(c: Content): Content {
   const ids = (new URLSearchParams(location.search).get('events') ?? '').toLowerCase().split(',').map((s) => s.trim())
-  const events = c.events.filter((e, i) => ids.includes(passId(e.name, i)))
+  const events = c.events.filter((e, i) => ids.includes(passId(e.name, e.id ?? `e${i}`)))
   const main = c.mainEvent === undefined ? -1 : events.indexOf(c.events[c.mainEvent])
   return events.length ? { ...c, events, mainEvent: main < 0 ? undefined : main } : c
 }
