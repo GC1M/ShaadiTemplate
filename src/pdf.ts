@@ -55,7 +55,15 @@ export async function buildPngs(container: HTMLElement, format: Format, baseName
   return Promise.all(urls.map(async (u, i) => markPng(await toFile(u, urls.length > 1 ? `${baseName}-${i + 1}.png` : `${baseName}.png`, 'image/png'))))
 }
 
-export async function buildPdf(container: HTMLElement, format: Format, baseName: string) {
+// link: where the card's "shaaditemplate.com" credit points (tagged, so analytics can tell who came from a card). Each
+// page gets a clickable area over the credit, measured from the page itself.
+export async function buildPdf(container: HTMLElement, format: Format, baseName: string, link?: string) {
+  const spots = (Array.from(container.children) as HTMLElement[]).map((page) => {
+    const credit = page.querySelector('[data-credit] span')
+    if (!credit) return null
+    const p = page.getBoundingClientRect(), c = credit.getBoundingClientRect()
+    return [(c.left - p.left) / p.width, (c.top - p.top) / p.height, c.width / p.width, c.height / p.height]
+  })
   const urls = await capture(container, format, 'jpeg')
   const [w, h] = PAGE_MM[format]
   const pdf = new jsPDF({ unit: 'mm', format: [w, h], compress: true })
@@ -63,6 +71,8 @@ export async function buildPdf(container: HTMLElement, format: Format, baseName:
   urls.forEach((u, i) => {
     if (i) pdf.addPage([w, h])
     pdf.addImage(u, 'JPEG', 0, 0, w, h)
+    const s = spots[i]
+    if (link && s) pdf.link(s[0] * w, s[1] * h, s[2] * w, s[3] * h, { url: link })
   })
   return new File([pdf.output('blob')], `${baseName}.pdf`, { type: 'application/pdf' })
 }

@@ -57,6 +57,9 @@ export interface Invite {
   // Photo windows, by the index of the design page they belong to: the couple's own photo (src, a JPEG data URL;
   // none means the sample) and the part of it shown in the frame.
   photos?: Record<number, Photo>
+  // A small "shaaditemplate.com" line at the foot of each page, in the editor and every download. On
+  // unless the family unticks it (false).
+  credit?: boolean
 }
 
 // x, y: object-position in % (which part of the photo the frame shows); zoom: 1 fills the frame, up to 3.

@@ -347,7 +347,9 @@ function Sections({ x, p, head, cols }: { x: Look; p: SectionsPage; head: boolea
 }
 
 // animate: the editor's live preview, where a page copied from a video invitation plays (never in downloads).
-export function CardPage({ invite, page, animate }: { invite: Invite; page: Page; animate?: boolean }) {
+// credit: the editor's preview and downloads show the "shaaditemplate.com" line (Invite.credit); the
+// gallery does not.
+export function CardPage({ invite, page, animate, credit }: { invite: Invite; page: Page; animate?: boolean; credit?: boolean }) {
   const t = templateById(invite.templateId)
   const base0 = DESIGNS[t.design]
   const { w, h } = SIZES[invite.format]
@@ -478,6 +480,14 @@ export function CardPage({ invite, page, animate }: { invite: Invite; page: Page
           <Art.Provider value={{ orn: d.ornaments ?? {}, lang: invite.lang, chip: d.chip, painted }}>{page.kind === 'cover' ? <Cover x={x} p={page} symbol={t.symbol} head={head} /> : <Sections x={x} p={body as SectionsPage} head={head} cols={art?.cols} />}</Art.Provider>
         </div>
       </div>
+      {credit && (
+        <div data-credit aria-hidden className="pointer-events-none absolute inset-x-0 flex justify-center" style={{ bottom: h * 0.012 }}>
+          {/* A soft dark pill reads on light and painted art alike, like the gallery previews' mark. */}
+          <span style={{ fontFamily: '"Jost", system-ui, sans-serif', fontSize: w * 0.022, lineHeight: 1.4, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.92)', background: 'rgba(0,0,0,0.3)', padding: '0.1em 0.9em', borderRadius: 999, textShadow: 'none' }}>
+            shaaditemplate.com
+          </span>
+        </div>
+      )}
     </div>
   )
 }

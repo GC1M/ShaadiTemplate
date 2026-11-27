@@ -99,6 +99,10 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   }, [page.id, zoom, invite.format])
 
   const set = (patch: Partial<Invite>) => setInvite((i) => i && { ...i, ...patch })
+  const credit = invite.credit !== false
+  // Where the credit leads, tagged so analytics shows visits that came from a card (GA4: source "card", medium "pdf" or
+  // "share", content the design). A PNG can't carry a link; the PDF's credit is clickable and Send adds it as text.
+  const creditLink = (medium: 'pdf' | 'share') => `https://shaaditemplate.com/?utm_source=card&utm_medium=${medium}&utm_campaign=credit&utm_content=${invite.templateId}`
   // The first change to a page's words, once per visit to the editor: tells an opened-and-left card from a started one.
   const edited = useRef(false)
   const editPage = (fn: (p: Page) => Page) => {
@@ -171,12 +175,12 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       const m = await import('./pdf')
       const el = exportRef.current!
       if (kind === 'pdf') {
-        save(await m.buildPdf(el, format, `${slug}-invitation`))
+        save(await m.buildPdf(el, format, `${slug}-invitation`, credit ? creditLink('pdf') : undefined))
         setSaved('pdf')
       } else {
         const files = await m.buildPngs(el, format, `${slug}-invitation`)
         if (kind === 'share' && navigator.canShare?.({ files })) {
-          await navigator.share({ files, title: 'Wedding invitation', text: 'Made free at shaaditemplate.com' }).catch((e) => {
+          await navigator.share({ files, title: 'Wedding invitation', ...(credit && { text: `Made free at ${creditLink('share')}` }) }).catch((e) => {
             if (e.name !== 'AbortError') throw e
           })
         } else {
@@ -184,7 +188,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           setSaved('png')
         }
       }
-      track('export', { kind, format, pages: invite.pages.length, template: invite.templateId })
+      track('export', { kind, format, pages: invite.pages.length, template: invite.templateId, credit: credit ? 'on' : 'off' })
     } catch (e) {
       console.error(e)
       track('export_failed', { kind, format, template: invite.templateId, error: String(e).slice(0, 150) })
@@ -368,6 +372,12 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                   />
                 </Control>
               </div>
+              {/* The credit is on unless the family unticks it; the card shows it exactly as the download will. Kept with
+                  the card settings, last in the form, rather than beside the card. */}
+              <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-ink/65 pointer-coarse:min-h-11">
+                <input type="checkbox" checked={credit} onChange={(e) => set({ credit: e.target.checked })} className="size-4 accent-wine" />
+                Show “shaaditemplate.com” at the foot of the card
+              </label>
             </section>
           </div>
         </div>
@@ -411,11 +421,11 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                   <div className="pointer-events-none">
                     {zoom === 'fit' ? (
                       <ScaledCard w={w} h={h} className="shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]">
-                        <CardPage invite={invite} page={p} animate />
+                        <CardPage invite={invite} page={p} animate credit={credit} />
                       </ScaledCard>
                     ) : (
                       <div className="shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]">
-                        <CardPage invite={invite} page={p} animate />
+                        <CardPage invite={invite} page={p} animate credit={credit} />
                       </div>
                     )}
                   </div>
@@ -430,7 +440,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
         <div ref={exportRef} aria-hidden className="pointer-events-none fixed top-0" style={{ left: -100000 }}>
           {invite.pages.map((p) => (
             <div key={p.id}>
-              <CardPage invite={{ ...invite, format: exportFormat }} page={p} />
+              <CardPage invite={{ ...invite, format: exportFormat }} page={p} credit={credit} />
             </div>
           ))}
         </div>

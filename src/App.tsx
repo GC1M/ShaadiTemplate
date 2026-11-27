@@ -152,7 +152,7 @@ function Numbers() {
     ...(rating ? [[`${rating[0].toFixed(1)}★`, `from ${rating[1]} families' reviews`] as [string, string]] : []),
     [String(TEMPLATES.length), 'card designs'],
     [String(LANG_IDS.length), 'languages, typed in English'],
-    ['₹0', 'no login, no watermark'],
+    ['₹0', 'no login, no forced watermark'],
   ]
   return (
     <dl className="mx-auto grid max-w-6xl grid-cols-2 gap-y-8 px-4 py-12 sm:flex sm:flex-wrap sm:justify-between sm:gap-x-10 sm:px-6">
