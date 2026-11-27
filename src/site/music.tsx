@@ -72,17 +72,21 @@ export function useClipPlayer(box: React.RefObject<HTMLDivElement | null>, id: s
   clip.current = { start, end }
   useEffect(() => {
     let gone = false
+    let made: YTPlayer | null = null
     loadYT().then((YT) => {
       if (gone || !box.current) return
       const el = document.createElement('div')
       box.current.replaceChildren(el)
-      player.current = new YT.Player(el, {
+      // The player has none of its methods (playVideo, pauseVideo...) until YouTube says it is ready, so it is
+      // handed out only then; until then callers see no player.
+      made = new YT.Player(el, {
         videoId: id,
         host: 'https://www.youtube-nocookie.com',
         width: opts.width ?? 240,
         height: opts.height ?? 200,
         playerVars: { autoplay: opts.autoplay ? 1 : 0, start: clip.current.start, ...(clip.current.end && { end: clip.current.end }), playsinline: 1, rel: 0 },
         events: {
+          onReady: () => void (player.current = made),
           onStateChange: (e: { data: number }) => {
             opts.onState?.(e.data)
             const { start, end } = clip.current
@@ -93,7 +97,7 @@ export function useClipPlayer(box: React.RefObject<HTMLDivElement | null>, id: s
     })
     return () => {
       gone = true
-      player.current?.destroy()
+      made?.destroy()
       player.current = null
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
