@@ -41,17 +41,17 @@ export default function App() {
   }, [drafts])
   const draftsNow = useRef(drafts)
   draftsNow.current = drafts
-  // A draft sent as a link from another device (draftLink.ts) opens in the editor. It replaces this browser's copy of
-  // the same design only if the family agrees, and keeps that copy's photos, which the link does not carry.
+  // A draft sent as a link from another device (draftLink.ts) opens in the editor, keeping this browser's photos of
+  // that design (the link carries none). When this browser had a different card of the same design, the editor offers
+  // it back (`replaced`) until the family closes the note: no confirm(), which WhatsApp's own browser may never show.
+  const [replaced, setReplaced] = useState<Invite | null>(null)
   const openLinkedDraft = () =>
     takeDraft().then((d) => {
       const t = d && TEMPLATES.find((x) => x.id === liveId(d.templateId))
       if (!d || !t) return
       const mine = draftsNow.current.find((x) => x.templateId === t.id)
-      const differs = mine && isEdited(mine) && stripIds(mine.pages) !== stripIds(d.pages)
-      if (!differs || confirm(`Open the ${t.name} card from your link? It replaces the one you were making in this browser.`))
-        setDrafts((all) => [{ ...d, templateId: t.id, photos: mine?.photos }, ...all.filter((x) => x.templateId !== t.id)])
-      else setDrafts((all) => [mine, ...all.filter((x) => x !== mine)])
+      setReplaced(mine && isEdited(mine) && stripIds(mine.pages) !== stripIds(d.pages) ? mine : null)
+      setDrafts((all) => [{ ...d, templateId: t.id, photos: mine?.photos }, ...all.filter((x) => x.templateId !== t.id)])
       track('draft_link_open', { template: t.id })
       location.hash = 'edit'
     })
@@ -130,7 +130,16 @@ export default function App() {
       </Suspense>
     )
   }
-  if (inEditor && invite) return <Editor invite={invite} setInvite={setInvite} onBack={() => (history.state?.fromGallery ? history.back() : (location.hash = ''))} />
+  if (inEditor && invite)
+    return (
+      <Editor
+        invite={invite}
+        setInvite={setInvite}
+        onBack={() => (history.state?.fromGallery ? history.back() : (location.hash = ''))}
+        replaced={replaced?.templateId === invite.templateId ? replaced : null}
+        onReplaced={() => setReplaced(null)}
+      />
+    )
   return <Gallery onOpen={open} draft={invite} drafts={drafts} />
 }
 

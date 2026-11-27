@@ -44,6 +44,11 @@ assert.equal(pornima.data.content.events[0].time, '')
 const streams = await call('POST', '/api/sites', { slug: `stream-${slug.slice(-6)}`, look: 'rajwada', content: { ...content, story: [], photos: { gallery: [] }, events: [{ ...content.events[0], live: 'https://youtube.com/live/abc', photo: undefined }, { ...content.events[0], name: 'Haldi', live: 'javascript:alert(1)', photo: undefined }] } })
 assert.equal(streams.status, 201, JSON.stringify(streams.data))
 assert.deepEqual(streams.data.content.events.map((e) => e.live), ['https://youtube.com/live/abc', undefined])
+// The wedding's time zone is kept when it is a real zone, and dropped (India time) when not.
+assert.equal(streams.data.content.zone, undefined)
+const zoned = await call('PUT', `/api/sites/stream-${slug.slice(-6)}`, { look: 'rajwada', content: { ...streams.data.content, zone: 'America/Chicago' } }, streams.data.key)
+assert.equal(zoned.data.content.zone, 'America/Chicago', JSON.stringify(zoned.data))
+assert.equal((await call('PUT', `/api/sites/stream-${slug.slice(-6)}`, { look: 'rajwada', content: { ...streams.data.content, zone: 'Mars/Olympus' } }, streams.data.key)).data.content.zone, undefined)
 assert.equal((await call('DELETE', `/api/sites/stream-${slug.slice(-6)}`, undefined, streams.data.key)).status, 200)
 
 const made = await call('POST', '/api/sites', { slug, look: 'rajwada', content })

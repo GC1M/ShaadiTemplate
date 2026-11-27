@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { Emblem } from '../card/motifs'
+import { zoned } from '../dates'
 import { designByPath, designPath, designTitle, DESIGNS, mainOf, mapsUrl, type Design } from './designs'
 import { track } from '../analytics'
 import { api, API } from './api'
@@ -17,7 +18,8 @@ export const themeVars = ({ theme: t }: Design) =>
   ({ '--ov-kohl': t.bg, '--ov-smoke': t.raised, '--ov-zari': t.accent, '--ov-zari-deep': t.accent, '--ov-mogra': t.text, '--ov-gulab': t.soft, '--font-serif': t.display, '--ov-script': t.script, '--st-panel': t.panel ?? t.raised, '--st-panel-text': t.panelText ?? t.text }) as CSSProperties
 
 // Event times are written in IST.
-export const istDate = (t: string) => new Date(t.replace(/(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)/, '$1-$2-$3T$4:$5:$6+05:30'))
+// A start (the venue's wall time) as a moment, in the site's zone (IST unless the couple set one).
+export const istDate = (t: string, zone?: string) => zoned(t, zone) ?? new Date(NaN)
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
 
 // True once the element has scrolled into view; it stays true so reveals play once.
@@ -139,13 +141,13 @@ function Trifold({ d, open, onOpen }: { d: Design; open: boolean; onOpen: () => 
 /* ---------- Hero ---------- */
 
 // heading: shown above the countdown only while it runs, so it switches with it at the start time.
-function Countdown({ to, heading }: { to: string; heading?: ReactNode }) {
+function Countdown({ to, zone, heading }: { to: string; zone?: string; heading?: ReactNode }) {
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
   }, [])
-  const left = Math.max(0, istDate(to).getTime() - now)
+  const left = Math.max(0, istDate(to, zone).getTime() - now)
   // A site stays up for a month after the wedding: no row of zeros then.
   if (!left) return <p className="ov-display mt-10 text-[clamp(1.6rem,4vw,2.6rem)] italic">The celebrations have begun</p>
   const parts: [number, string][] = [
@@ -212,7 +214,7 @@ function Names({ d, open }: { d: Design; open: boolean }) {
         <p className="ov-meta mt-7 uppercase">
           {[main.date.split(', ')[1], d.city].filter(Boolean).join(' · ')}
         </p>
-        <Countdown to={main.start} />
+        <Countdown to={main.start} zone={d.zone} />
       </div>
     </div>
   )
@@ -339,7 +341,7 @@ function Elephant({ flip }: { flip?: boolean }) {
 
 function SaveTheDate({ d }: { d: Design }) {
   const main = mainOf(d)
-  const s = main.start // IST, YYYYMMDDTHHMMSS
+  const s = main.start // the venue's wall time, YYYYMMDDTHHMMSS
   const final = [String(+s.slice(6, 8)), MONTHS[+s.slice(4, 6) - 1], s.slice(0, 4)]
   const [ref, seen] = useInView<HTMLDivElement>('-25% 0px')
   const [shown, setShown] = useState(d.dateReveal ? ['?', '?', '?'] : ['00', '---', '0000'])
@@ -538,7 +540,7 @@ function Finale({ d }: { d: Design }) {
       <div className="absolute inset-0 bg-linear-to-b from-(--ov-kohl) via-(--ov-kohl)/40 to-(--ov-kohl)/70" />
       <Reveal className="relative">
         <p className="ov-meta uppercase text-(--ov-gulab)">{main.date}</p>
-        <Countdown to={main.start} heading={<h2 className="ov-display st-foil mt-4 text-[clamp(2.8rem,7vw,5.5rem)] leading-none">The countdown begins</h2>} />
+        <Countdown to={main.start} zone={d.zone} heading={<h2 className="ov-display st-foil mt-4 text-[clamp(2.8rem,7vw,5.5rem)] leading-none">The countdown begins</h2>} />
         <p className="ov-display mt-10 text-3xl italic">
           {d.couple[0]}
           <span className="st-amp">&amp;</span>

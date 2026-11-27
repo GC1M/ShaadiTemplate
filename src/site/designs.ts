@@ -80,6 +80,8 @@ export type Content = {
   venue: string
   invite: string
   rsvpBy: string
+  // The time zone function times are typed in (IANA, dates.ts ZONES); none means India time.
+  zone?: string
   story: { year: string; title: string; body: string; photo?: Photo }[]
   events: SiteEvent[]
   // Which event is the wedding itself, for the hero date, save-the-date and countdown (default: the second).
@@ -703,6 +705,7 @@ export const LOOKS: Look[] = [
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+// The start as the venue's wall time, YYYYMMDDTHHMMSS, in the site's zone (Content.zone); dates.ts zoned() reads it.
 const ist = (date: string, time: string) => `${date.replace(/-/g, '')}T${time.replace(':', '')}00`
 // "Friday, 10 December 2027" from 2027-12-10.
 const longDate = (date: string) => {
@@ -759,9 +762,8 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
       const map = own && e.map !== undefined ? (link ? given : mapsUrl(given) || undefined) : venueMap || undefined
       // "In the haveli courtyard" alone would hide the start time; words with a time in them replace it.
       const when = !e.where ? clock(time) : /\p{Nd}/u.test(e.where) ? e.where : `${clock(time)}, ${e.where}`
-      // A guest abroad also sees the time on their own clock (times are written in India time), in every design, as
-      // every design shows `time`.
-      const theirs = typeof Intl === 'object' && typeof window === 'object' ? guestTime(ist(date, time)) : ''
+      // A guest in another time zone also sees the time on their own clock, in every design, as every design shows `time`.
+      const theirs = typeof window === 'object' ? guestTime(ist(date, time), c.zone) : ''
       const live = /^https:\/\/\S+$/i.test(e.live?.trim() ?? '') ? e.live!.trim() : undefined
       return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: theirs ? `${when} (${theirs} your time)` : when, note: e.note, map, place: link ? undefined : given || undefined, live, photo: e.photo ?? fill(at(demo.events, i).photo!, i) }
     }),

@@ -15,7 +15,9 @@ import { IN_APP as inApp, track } from './analytics'
 import { draftLink } from './draftLink'
 import { liveLink } from './site/api'
 
-type Props = { invite: Invite; setInvite: Dispatch<SetStateAction<Invite | null>>; onBack: () => void }
+// replaced: this browser's own card of the design, set aside when a draft link opened over it (App.tsx); offered
+// back until onReplaced closes the note.
+type Props = { invite: Invite; setInvite: Dispatch<SetStateAction<Invite | null>>; onBack: () => void; replaced?: Invite | null; onReplaced?: () => void }
 
 // Instagram, Facebook and Android app browsers (inApp) often drop downloads and have no share menu; the family is told
 // how out. iPhones save a download to the Files app, where families never look, and Safari drops all but the first of
@@ -34,7 +36,7 @@ function ownSite() {
 
 const inputCls = 'mt-1.5 w-full rounded-md border border-wine/20 bg-paper px-3.5 py-2.5 text-base outline-none transition-colors hover:border-wine/40 focus:border-wine focus:ring-2 focus:ring-zari/40'
 
-export default function Editor({ invite, setInvite, onBack }: Props) {
+export default function Editor({ invite, setInvite, onBack, replaced, onReplaced }: Props) {
   const t = templateById(invite.templateId)
   const [current, setCurrent] = useState(invite.pages[0]?.id)
   const [zoom, setZoom] = useState<'fit' | '100'>('fit')
@@ -217,7 +219,8 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           const r = await shareFiles(files, kind === 'share')
           // Safari opens the share menu only soon after a tap, and a long card can take longer than that to make: the
           // panel then offers a button that shares the finished files at once.
-          if (r === 'blocked') setSaved('ready')
+          // Closing the menu without saving leaves the same button, so the made files are one tap away.
+          if (r === 'blocked' || (r === 'cancel' && kind === 'png')) setSaved('ready')
           else if (r === 'done' && kind === 'png') setSaved('photos')
         } else {
           files.forEach(save)
@@ -290,6 +293,19 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           </div>
         </div>
       </header>
+      {replaced && (
+        <div role="status" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-b border-zari/40 bg-paper px-4 py-2.5 text-center text-sm text-ink/80 sm:px-6">
+          <span>This is the card from your link. The one you were making in this browser is kept until you close this note or leave the page.</span>
+          <span className="flex gap-2">
+            <button type="button" onClick={() => (setInvite(replaced), onReplaced?.())} className="rounded-full px-4 py-2 font-medium text-wine ring-1 ring-wine/25 hover:bg-wine/5 pointer-coarse:min-h-11">
+              Use my earlier card
+            </button>
+            <button type="button" onClick={onReplaced} aria-label="Keep the card from the link" className="inline-flex size-10 items-center justify-center rounded-full text-ink/60 hover:bg-wine/5 hover:text-wine pointer-coarse:size-11">
+              <X className="size-4" />
+            </button>
+          </span>
+        </div>
+      )}
       {inApp && (
         <p role="note" className="border-b border-zari/40 bg-paper px-4 py-2.5 text-center text-sm text-ink/80 sm:px-6">
           Inside an app like Instagram or Facebook, downloads can fail. Tap <strong className="font-medium">⋯</strong> and choose <strong className="font-medium">Open in browser</strong> to save your card.

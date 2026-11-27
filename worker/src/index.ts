@@ -279,6 +279,15 @@ const realDate = (d: unknown) => {
 }
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 const arr = <T>(v: unknown, max: number, f: (x: any) => T) => (Array.isArray(v) ? v.slice(0, max).map(f) : [])
+const zoneOf = (v: unknown) => {
+  if (typeof v !== 'string' || !/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+){1,2}$/.test(v) || v === 'Asia/Kolkata') return undefined
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: v })
+    return v
+  } catch {
+    return undefined
+  }
+}
 const DATA_URL = /^data:image\/(jpeg|png|webp);base64,([A-Za-z0-9+/]+=*)$/
 
 // Background music: one of the built-in tracks (src/site/music.tsx) or a YouTube video, kept as a plain youtu.be
@@ -341,6 +350,8 @@ function clean(raw: any, ownPhoto: (src: string) => boolean, saved = new Set<str
     venue: str(c.venue, 160),
     invite: str(c.invite, 400),
     rsvpBy: str(c.rsvpBy, 40),
+    // The zone function times are typed in. Left out (India time) when blank or not a real IANA zone.
+    zone: zoneOf(c.zone),
     story: arr(c.story, 6, (s) => ({ year: str(s?.year, 12), title: str(s?.title, 80), body: str(s?.body, 400), photo: photo(s?.photo) })),
     events: arr(c.events, 8, (e) => ({
       id: /^[a-z0-9]{1,8}$/.test(e?.id) ? e.id : undefined,

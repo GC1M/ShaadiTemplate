@@ -12,6 +12,7 @@ import { Segmented, useSplit } from '../ui'
 import type { TypedCover } from '../templates'
 import { TransliterateInput } from '../transliterate'
 import type { Lang } from '../types'
+import { IST, ZONES } from '../dates'
 
 // The wedding website editor: /websites/<design>/edit starts a new site from a design, /w/<slug>/edit#<key>
 // edits a published one (the secret link from publishing; App.tsx keeps the key and takes it off the address). The form is on the left, and the live site on the
@@ -631,6 +632,17 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
               </fieldset>
               <Text label="Main venue (optional, the map link searches for this)" value={c.venue} onChange={(venue) => up(() => ({ venue }))} maxLength={160} />
               <Text label="Travel and stay, shown under the venue (optional)" value={c.stay ?? ''} onChange={(stay) => up(() => ({ stay }))} placeholder="Rooms are held at the hotel until 1 November. Mention our names when you book." multiline rows={2} maxLength={300} />
+              {/* Function times are the venue's own clock: a wedding in New Jersey is typed in New Jersey time. */}
+              <label className="block">
+                <span className="text-[13px] text-ink/65">Time zone of the wedding (guests elsewhere also see their own time)</span>
+                <select value={c.zone ?? IST} onChange={(e) => up(() => ({ zone: e.target.value === IST ? undefined : e.target.value }))} className={`${inputCls} select-chevron pr-10`}>
+                  {zoneOptions(c.zone).map(([z, label]) => (
+                    <option key={z} value={z}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <div className="space-y-4">
                 {c.events.map((e, i) => (
                   <fieldset key={i} className="space-y-3 rounded-md bg-paper/70 p-4 ring-1 ring-wine/10">
@@ -642,7 +654,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
                         <input type="date" value={e.date} onChange={(x) => item('events', i, { date: x.target.value })} required max={kept.has(e.date) ? undefined : lastDay} className={inputCls} />
                       </label>
                       <label className="block">
-                        <span className="text-[13px] text-ink/65">Starts (IST)</span>
+                        <span className="text-[13px] text-ink/65">Starts ({zoneShort(c.zone)})</span>
                         <input type="time" value={e.time} onChange={(x) => item('events', i, { time: x.target.value })} required className={inputCls} />
                       </label>
                     </div>
@@ -1516,6 +1528,28 @@ function Contact({ slug, edit }: { slug: string; edit: string }) {
       </div>
     </div>
   )
+}
+
+// The editor's list of time zones: the common ones, plus this browser's and the site's own when they are not listed.
+function zoneOptions(current?: string) {
+  const list = [...ZONES]
+  const add = (z?: string) => z && !list.some(([x]) => x === z) && list.push([z, z.replace(/_/g, ' ')])
+  try {
+    add(Intl.DateTimeFormat().resolvedOptions().timeZone)
+  } catch {
+    /* no zone known */
+  }
+  add(current)
+  return list
+}
+// "IST", "CST", "GMT+4": the zone's short name for the Starts label.
+const zoneShort = (zone = IST) => {
+  try {
+    const n = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'short' }).formatToParts(new Date()).find((p) => p.type === 'timeZoneName')?.value
+    return zone === IST ? 'IST' : (n ?? zone)
+  } catch {
+    return zone
+  }
 }
 
 // Guests' replies and blessings, for the couple only (needs the edit key).
