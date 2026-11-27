@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { API } from '../api'
-import { designPath, invokesGanesh, mainOf, mapsUrl, passId, THEME, type Design } from '../designs'
+import { designPath, invokesGanesh, mainOf, mapsUrl, linkIds, picked, THEME, type Design } from '../designs'
 import { Music } from '../music'
 import { COUPLE, SHOTS } from '../photos'
 import { Blessings, RsvpForm } from '../shared'
@@ -16,6 +16,7 @@ import '../site.css'
 // What the page needs, in plain values (fill.js derives the day, month and clock from each start).
 function content(d: Design, preview: boolean) {
   const main = mainOf(d)
+  const links = linkIds(d.events)
   return {
     couple: d.couple,
     parents: d.parents,
@@ -27,7 +28,7 @@ function content(d: Design, preview: boolean) {
     notes: d.notes,
     compliments: d.compliments ?? [],
     story: d.story.map(({ year, title, body }) => ({ year, title, body })),
-    events: d.events.map((e) => ({ id: passId(e.name, e.id), name: e.name, date: e.date, time: e.time, note: e.note, map: e.map ?? '', start: e.start, main: e.id === main?.id })),
+    events: d.events.map((e, i) => ({ id: links[i], name: e.name, date: e.date, time: e.time, note: e.note, map: e.map ?? '', start: e.start, main: e.id === main?.id })),
     main: { name: main?.name ?? '', date: main?.date ?? '', time: main?.time ?? '', start: main?.start ?? '' },
     venue: d.venue,
     venueName: d.venue.split(',')[0].trim(),
@@ -52,7 +53,8 @@ function guestPass(d: Design) {
   const q = new URLSearchParams(location.search)
   const guest = (q.get('guest') ?? '').replace(/[\u0000-\u001f\u007f<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40)
   const ids = (q.get('events') ?? '').toLowerCase().split(',').map((s) => s.trim()).filter(Boolean)
-  const events = d.events.map((e) => ({ id: e.id, pass: passId(e.name, e.id) })).filter((e) => ids.includes(e.pass))
+  const links = linkIds(d.events)
+  const events = d.events.map((e, i) => ({ id: e.id, pass: links[i] })).filter((_, i) => picked(ids, d.events, links, i))
   return guest || events.length ? { guest, events: events.map((e) => e.pass), picks: events.map((e) => e.id) } : null
 }
 

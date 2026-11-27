@@ -777,10 +777,24 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
 export const invokesGanesh = (s = '') =>
   /ganesh|ganpat|ganapat|vinayak|vakratund|gajanan|lambodar|ekadant|gajmukh|gajamukh|गणेश|गणप|विनायक|वक्रतुण्ड|वक्रतुंड|गजानन|लम्बोदर|लंबोदर|एकदन्त|एकदंत|गजमुख|ગણેશ|ગણપ|વિનાયક|વક્રતુંડ|ગજાનન|લંબોદર|એકદંત|ਗਣੇਸ਼|ਗਣਪਤ|விநாயக|கணேச|கணபதி|பிள்ளையார்|వినాయక|గణేశ|గణపతి|ಗಣೇಶ|ಗಣಪತಿ|വിനായക|ഗണപതി/i.test(s)
 // A Google Maps search for a place; blank when there is no place to search for.
-// A function's id in a link (?events=sangeet,wedding): its name in plain lowercase letters and dashes, or the
+// Each function's id in a link (?events=sangeet,wedding): its name in plain lowercase letters and dashes, or the
 // function's own stored id when the name has no Latin letters (a function named in Gujarati or Hindi), so the link
-// keeps pointing at it when other functions are added, moved or removed.
-export const passId = (name: string, id: string) => name.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || id.toLowerCase()
+// keeps pointing at it when other functions are added, moved or removed. An id already taken by an earlier function
+// (two called Reception) gets the stored id added, so every function has a link of its own.
+const latinId = (name: string) => name.normalize('NFKD').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+export function linkIds(events: { id?: string; name: string }[]) {
+  const seen = new Set<string>()
+  return events.map((e, i) => {
+    const own = (e.id ?? `e${i}`).toLowerCase()
+    const base = latinId(e.name) || own
+    const id = seen.has(base) ? `${base}-${own}` : base
+    seen.add(id)
+    return id
+  })
+}
+// Whether a link's ids pick the i-th function. Guest passes sent before stored ids were used named a function with
+// no Latin letters f1, f2... by its place in the list, and those links still work.
+export const picked = (ids: string[], events: { name: string }[], links: string[], i: number) => ids.includes(links[i]) || (!latinId(events[i].name) && ids.includes(`f${i + 1}`))
 export const mapsUrl = (q: string) => (q.trim() ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q.trim())}` : '')
 export const mainOf = (d: Design) => d.events.find((e) => e.id === d.mainEvent) ?? d.events[1] ?? d.events[0]
 export const lookById = (id: string) => LOOKS.find((l) => l.id === id)
