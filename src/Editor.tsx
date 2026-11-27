@@ -99,6 +99,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   }, [page.id, zoom, invite.format])
 
   const set = (patch: Partial<Invite>) => setInvite((i) => i && { ...i, ...patch })
+  const credit = invite.credit !== false
   // The first change to a page's words, once per visit to the editor: tells an opened-and-left card from a started one.
   const edited = useRef(false)
   const editPage = (fn: (p: Page) => Page) => {
@@ -184,7 +185,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           setSaved('png')
         }
       }
-      track('export', { kind, format, pages: invite.pages.length, template: invite.templateId })
+      track('export', { kind, format, pages: invite.pages.length, template: invite.templateId, credit: credit ? 'on' : 'off' })
     } catch (e) {
       console.error(e)
       track('export_failed', { kind, format, template: invite.templateId, error: String(e).slice(0, 150) })
@@ -392,6 +393,11 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                 ]}
               />
             </div>
+            {/* The credit is on unless the family unticks it; the card shows it exactly as the download will. */}
+            <label className="flex cursor-pointer items-center gap-2.5 px-5 pb-2 text-sm text-rose/80 pointer-coarse:min-h-11 sm:px-8">
+              <input type="checkbox" checked={credit} onChange={(e) => set({ credit: e.target.checked })} className="size-4 accent-zari" />
+              Show a small “Made free at shaaditemplate.com” on the card
+            </label>
             {/* Every page in one column, like a PDF viewer. Click a page to edit it. On phones the pages run in the page's
                 own scroll (a second scroll box inside it confused people); only desktop's sticky panel scrolls by itself. */}
             <div ref={previewRef} className="relative min-h-0 flex-1 space-y-8 overflow-x-auto px-5 pb-10 pt-4 sm:px-8 lg:overflow-auto">
@@ -411,11 +417,11 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                   <div className="pointer-events-none">
                     {zoom === 'fit' ? (
                       <ScaledCard w={w} h={h} className="shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]">
-                        <CardPage invite={invite} page={p} animate />
+                        <CardPage invite={invite} page={p} animate credit={credit} />
                       </ScaledCard>
                     ) : (
                       <div className="shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]">
-                        <CardPage invite={invite} page={p} animate />
+                        <CardPage invite={invite} page={p} animate credit={credit} />
                       </div>
                     )}
                   </div>
@@ -430,7 +436,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
         <div ref={exportRef} aria-hidden className="pointer-events-none fixed top-0" style={{ left: -100000 }}>
           {invite.pages.map((p) => (
             <div key={p.id}>
-              <CardPage invite={{ ...invite, format: exportFormat }} page={p} />
+              <CardPage invite={{ ...invite, format: exportFormat }} page={p} credit={credit} />
             </div>
           ))}
         </div>

@@ -31,7 +31,7 @@ def main(ids):
             page = ctx.new_page()
             page.goto(f'{URL}#template/{tid}')
             page.wait_for_selector('[data-page]')
-            page.add_style_tag(content='[data-page] { opacity: 1 !important; outline: none !important; }')
+            page.add_style_tag(content='[data-page] { opacity: 1 !important; outline: none !important; } [data-credit] { display: none !important; }')  # previews show the design, not the download credit
             page.evaluate('document.fonts.ready')
             page.wait_for_load_state('networkidle')
             page.wait_for_timeout(800)
