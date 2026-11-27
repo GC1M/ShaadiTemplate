@@ -25,6 +25,8 @@ AUTHOR = 'Ashok Lalakiya'
 # Every page names the publisher in full, so the reference resolves inside each page's own graph.
 ORG = {'@type': 'Organization', '@id': f'{SITE}/#org', 'name': 'ShaadiTemplate', 'url': f'{SITE}/', 'logo': f'{SITE}/icon-512.png',
        'sameAs': ['https://www.instagram.com/shaaditemplate/', 'https://in.pinterest.com/shaaditemplate/']}
+# Copyright and licence on every design, guide and the app (terms.html#copying: no copying, recreating or AI training).
+RIGHTS = {'copyrightHolder': {'@id': f'{SITE}/#org'}, 'copyrightYear': 2026, 'license': f'{SITE}/terms.html#copying'}
 HOME_CARDS = ['harmandir-gold-leaf', 'gota-patti', 'korvai-silk']  # featured designs for the homepage's structured data
 FONTS = ROOT / 'node_modules/@fontsource'
 WINE, WINE_DEEP, ZARI, ROSE = (74, 14, 28), (44, 7, 16), (201, 164, 92), (247, 237, 234)
@@ -199,7 +201,7 @@ def structured(path, page, url, title, desc, image, cards):
                                                              'addressLocality': 'Surat', 'postalCode': '395010', 'addressRegion': 'Gujarat', 'addressCountry': 'IN'}},
             {'@type': 'WebSite', '@id': f'{SITE}/#website', 'name': 'ShaadiTemplate', 'url': f'{SITE}/', 'inLanguage': 'en', 'publisher': ORG},
             {'@type': 'WebApplication', 'name': 'ShaadiTemplate', 'url': f'{SITE}/', 'description': desc, 'applicationCategory': 'DesignApplication', 'operatingSystem': 'Any',
-             'browserRequirements': 'Requires JavaScript', 'isAccessibleForFree': True, 'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'INR'},
+             'browserRequirements': 'Requires JavaScript', 'isAccessibleForFree': True, **RIGHTS, 'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'INR'},
              'inLanguage': ['en', 'hi', 'mr', 'gu', 'pa', 'ta'], 'image': image, 'publisher': ORG,
              'featureList': ['Invitations for Save the Date, Engagement (Ring Ceremony), Haldi, Mehendi, Sangeet, Wedding, Reception and Baby Shower (Simant)', 'English, Hindi, Marathi, Gujarati, Punjabi and Tamil',
                              'Phonetic typing in Indian scripts', '1080x1920 image for WhatsApp', '5x7 inch print-ready PDF', 'Free wedding website with RSVP', 'No login']},
@@ -225,13 +227,13 @@ def structured(path, page, url, title, desc, image, cards):
         big = PUBLIC / 'templates/previews/pages' / f'{path.stem}-1.webp'
         cover = f'{SITE}/templates/previews/' + (f'pages/{big.name}' if big.exists() else f'{path.stem}.webp')
         return [{'@type': 'CreativeWork', 'name': h1, 'url': url, 'description': desc, 'image': cover, 'inLanguage': card_lang,
-                 'isAccessibleForFree': True, 'publisher': ORG, **({'isPartOf': {'@type': 'CollectionPage', 'url': trail[2][1]}} if hub else {})},
+                 'isAccessibleForFree': True, 'publisher': ORG, **RIGHTS, **({'isPartOf': {'@type': 'CollectionPage', 'url': trail[2][1]}} if hub else {})},
                 crumbs(*trail)]
     if rel.startswith('guides/'):
         added = subprocess.run(['git', 'log', '--diff-filter=A', '--format=%cs', '--', path.relative_to(ROOT)], cwd=ROOT, capture_output=True, text=True).stdout.split()
         return [{'@type': 'Article', 'headline': h1, 'description': desc, 'url': url, 'mainEntityOfPage': url, 'image': image, 'inLanguage': lang,
                  'datePublished': added[-1] if added else TODAY, 'dateModified': last_changed(path),
-                 'author': {'@type': 'Person', 'name': AUTHOR, 'url': f'{SITE}/about.html'}, 'publisher': ORG},
+                 'author': {'@type': 'Person', 'name': AUTHOR, 'url': f'{SITE}/about.html'}, 'publisher': ORG, **RIGHTS},
                 crumbs(home, guides, (h1, url))]
     if rel == 'about.html':
         return [{'@type': 'AboutPage', 'name': h1, 'url': url, 'about': ORG}]
@@ -248,6 +250,11 @@ def head_block(path, page):
             f'<link rel="apple-touch-icon" href="{prefix}apple-touch-icon.png" />']
     if path != ROOT / 'index.html':  # the app loads analytics itself (src/analytics.ts)
         tags.append(f'<script src="{prefix}analytics.js" defer></script>')
+    # Copyright and an opt-out from AI training and text and data mining (robots.txt and .well-known/tdmrep.json say the same).
+    tags += ['<meta name="copyright" content="© 2026 ShaadiTemplate. All rights reserved." />',
+             '<meta name="robots" content="noai, noimageai" />',
+             '<meta name="tdm-reservation" content="1" />',
+             f'<meta name="tdm-policy" content="{SITE}/terms.html#copying" />']
     url = meta(page, r'<link rel="canonical" href="([^"]+)"')
     if not url:
         return tags, None, []

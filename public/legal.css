@@ -24,3 +24,4 @@ li { margin: 4px 0; }
 .design h3 { font-size: 22px; margin: 0 0 6px; }
 .pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; margin: 16px 0; }
 .pages img { width: 100%; height: auto; border-radius: 3px; box-shadow: 0 8px 20px -8px rgba(43, 20, 24, .45); }
+footer .copy { flex-basis: 100%; margin: 8px 0 0; text-align: center; font-size: 13px; color: #6b5a5e; }

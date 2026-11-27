@@ -28,15 +28,38 @@ async function capture(container: HTMLElement, format: Format, kind: 'png' | 'jp
 
 const toFile = async (url: string, name: string, type: string) => new File([await (await fetch(url)).blob()], name, { type })
 
+// Who made the design, written into each download where image viewers and file properties show it. The card stays
+// free of any visible mark. Plain ASCII: PNG tEXt is Latin-1.
+const NOTICE = 'Card design copyright ShaadiTemplate (shaaditemplate.com). Made free at https://shaaditemplate.com'
+
+// A PNG tEXt chunk with the notice, placed right after the header chunk (IHDR, always 33 bytes in).
+async function markPng(file: File) {
+  const png = new Uint8Array(await file.arrayBuffer())
+  const body = new TextEncoder().encode(`Copyright\0${NOTICE}`)
+  const chunk = new Uint8Array(12 + body.length)
+  const view = new DataView(chunk.buffer)
+  view.setUint32(0, body.length)
+  chunk.set(new TextEncoder().encode('tEXt'), 4)
+  chunk.set(body, 8)
+  let crc = ~0
+  for (const b of chunk.subarray(4, 8 + body.length)) {
+    crc ^= b
+    for (let k = 0; k < 8; k++) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1))
+  }
+  view.setUint32(8 + body.length, ~crc >>> 0)
+  return new File([png.subarray(0, 33), chunk, png.subarray(33)], file.name, { type: file.type })
+}
+
 export async function buildPngs(container: HTMLElement, format: Format, baseName: string) {
   const urls = await capture(container, format, 'png')
-  return Promise.all(urls.map((u, i) => toFile(u, urls.length > 1 ? `${baseName}-${i + 1}.png` : `${baseName}.png`, 'image/png')))
+  return Promise.all(urls.map(async (u, i) => markPng(await toFile(u, urls.length > 1 ? `${baseName}-${i + 1}.png` : `${baseName}.png`, 'image/png'))))
 }
 
 export async function buildPdf(container: HTMLElement, format: Format, baseName: string) {
   const urls = await capture(container, format, 'jpeg')
   const [w, h] = PAGE_MM[format]
   const pdf = new jsPDF({ unit: 'mm', format: [w, h], compress: true })
+  pdf.setProperties({ title: baseName, subject: NOTICE, author: 'ShaadiTemplate', creator: 'shaaditemplate.com', keywords: 'ShaadiTemplate, shaaditemplate.com' })
   urls.forEach((u, i) => {
     if (i) pdf.addPage([w, h])
     pdf.addImage(u, 'JPEG', 0, 0, w, h)
