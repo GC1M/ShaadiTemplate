@@ -372,7 +372,8 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           </div>
         </div>
 
-        <aside ref={asideRef} className="velvet relative min-w-0 scroll-mt-16 text-rose">
+        {/* Phones open on the card the family picked, with the form below it (it used to sit four screens down). */}
+        <aside ref={asideRef} className="velvet relative min-w-0 scroll-mt-16 text-rose max-lg:order-first">
           {split.handle}
           <div className="flex flex-col lg:sticky lg:top-[66px] lg:h-[calc(100svh-66px)]">
             <div className="flex items-center justify-between px-5 pb-3 pt-5 sm:px-8">
@@ -449,10 +450,10 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
         </button>
       )}
 
-      {/* The preview sits thousands of pixels below the form on phones: a way back up to the words. */}
+      {/* On phones the form sits below every page of the card: a way down to the words. */}
       {previewSeen && !toast && !saved && !undo && (
         <button type="button" onClick={backToEditing} className="zari-button fixed bottom-5 right-4 z-30 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-wine-deep lg:hidden">
-          <Pencil className="size-4" aria-hidden /> Back to editing
+          <Pencil className="size-4" aria-hidden /> Edit words
         </button>
       )}
 
