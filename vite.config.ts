@@ -98,7 +98,7 @@ function sitePages(): Plugin {
           image: og(d),
           alt: `${d.name}, a free ${designKind(d)} website design`,
           graph: [
-            { '@type': 'CreativeWork', name: `${d.name} wedding website`, url, description: desc, image: og(d), inLanguage: 'en', isAccessibleForFree: true, publisher: org, isPartOf: { '@type': 'CollectionPage', url: hub.url } },
+            { '@type': 'CreativeWork', name: `${d.name} wedding website`, url, description: desc, image: og(d), inLanguage: 'en', isAccessibleForFree: true, publisher: org, copyrightHolder: { '@id': org['@id'] }, copyrightYear: 2026, license: `${SITE}/terms.html#copying`, isPartOf: { '@type': 'CollectionPage', url: hub.url } },
             crumbs(hub, { name: d.name, url }),
           ],
           body: text(designIntro(d).heading, designIntro(d).body),

@@ -47,3 +47,11 @@ The gallery order lives in `ORDER` in `src/App.tsx`. Featured designs come first
 ## Website music (strict)
 
 A wedding website's music starts on its own as soon as the site opens: the couple's track, their YouTube song or a themed page's own `theme.mp3`. Browsers block sound until the guest taps, so where it is blocked it starts on the guest's first tap, key or scroll anywhere on the page (a scroll plays only where the browser already allows sound) (taps inside a themed page's frame count, via `microsite-tap`). Never make a guest press a play button first. Keep the button to pause it, pause while the tab is hidden, and don't autoplay in the editor's live preview (there it starts on a tap or scroll in the preview, and it and the editor's song samples pause each other). Every new design or music source must hold to this (see `Music` in `src/site/music.tsx`).
+
+## Copy protection
+
+Designs, artwork, website themes and code are copyrighted (`LICENSE`, `public/terms.html#copying`). Keep every layer in place when adding pages, art or themes:
+
+- **Notices:** every static page's footer carries the `class="copy"` line; `python3 scripts/seo.py` adds the copyright, `noai` and TDM meta tags and the `copyrightHolder`/`license` structured data. `public/robots.txt` blocks AI training crawlers but not search or AI answer crawlers; `public/llms.txt` tells AI assistants not to recreate designs and to send people to the design's page.
+- **Themed websites:** each `public/microsites/<id>/index.html` starts with the `<!-- © 2026 ShaadiTemplate ...` comment and loads `fill.js`, which shows a "copied from ShaadiTemplate" bar off our domain (`src/main.tsx` does the same for the app). `npm run build` minifies them (`scripts/minify-microsites.mjs`). If the site moves host (Cloudflare Pages), add its preview domain to both host checks.
+- **Images:** the deploy runs `python3 scripts/protect.py` on `dist/`: invisible watermark on artwork, small visible mark on card previews. Repo images stay unmarked. `python3 scripts/protect.py check <file>` tells whether a found copy is ours (90% or more).

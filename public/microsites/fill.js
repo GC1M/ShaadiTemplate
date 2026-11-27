@@ -177,3 +177,18 @@
     d.querySelector('input').focus()
   }
 })()
+
+/* © 2026 ShaadiTemplate. Themed websites are only for couples' sites on shaaditemplate.com (terms.html#copying).
+   A copy opened anywhere else (another host, a saved file) carries a bar that sends visitors to the original. */
+;(function () {
+  var h = location.hostname
+  if (/(^|\.)shaaditemplate\.com$|^localhost$|\.localhost$|^127\.0\.0\.1$|^\[::1\]$|^shaaditemplate-com\.translate\.goog$/.test(h)) return
+  function bar() {
+    var a = document.createElement('a')
+    a.href = 'https://shaaditemplate.com/websites/'
+    a.textContent = 'This website design is copied from ShaadiTemplate. Make your own free at shaaditemplate.com'
+    a.style.cssText = 'position:fixed;inset:auto 0 0 0;z-index:2147483647;display:block;padding:14px 16px;background:#4a0e1c;color:#fff;font:600 15px/1.4 system-ui,sans-serif;text-align:center;text-decoration:underline'
+    document.body.appendChild(a)
+  }
+  document.body ? bar() : addEventListener('DOMContentLoaded', bar)
+})()

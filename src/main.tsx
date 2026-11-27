@@ -51,6 +51,16 @@ import { land, sitePath } from './siteRoutes'
 land()
 initAnalytics()
 
+// © ShaadiTemplate. A copy of the site served from another host (or a saved file) carries a bar that sends visitors
+// to the original (terms.html#copying). Google Translate's proxy and local development are left alone.
+if (!/(^|\.)shaaditemplate\.com$|^localhost$|\.localhost$|^127\.0\.0\.1$|^\[::1\]$|^shaaditemplate-com\.translate\.goog$/.test(location.hostname)) {
+  const a = document.createElement('a')
+  a.href = 'https://shaaditemplate.com/'
+  a.textContent = 'This site is copied from ShaadiTemplate. Make your invitation free at shaaditemplate.com'
+  a.style.cssText = 'position:fixed;inset:auto 0 0 0;z-index:2147483647;display:block;padding:14px 16px;background:#4a0e1c;color:#fff;font:600 15px/1.4 system-ui,sans-serif;text-align:center;text-decoration:underline'
+  document.body.appendChild(a)
+}
+
 // After a deploy, a page opened earlier asks for code files that no longer exist. Reload once to get the new ones
 // (the flag stops a loop if the file is really missing); vite:preloadError covers files Vite fetches ahead.
 const reloadOnce = () => {
