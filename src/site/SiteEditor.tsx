@@ -1332,7 +1332,7 @@ function Live({ draft, fresh, unsaved }: { draft: Draft; fresh: boolean; unsaved
                       <button type="button" onClick={() => copy(f.url, (s) => setNote(`${f.name}: ${s}`))} aria-label={`Copy the ${f.name} link`} className={small}>
                         <Copy className="size-4" aria-hidden /> Copy
                       </button>
-                      <a href={`https://wa.me/?text=${encodeURIComponent(`${names}: our ${f.name} ${f.url}`)}`} target="_blank" rel="noreferrer" aria-label={`Send the ${f.name} link on WhatsApp`} className={small}>
+                      <a href={`https://wa.me/?text=${encodeURIComponent(`${names}: our ${f.name} ${f.url}`)}`} target="_blank" rel="noreferrer" aria-label={`Send on WhatsApp: the ${f.name} link`} className={small}>
                         Send on WhatsApp
                       </a>
                     </div>
