@@ -100,6 +100,9 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
 
   const set = (patch: Partial<Invite>) => setInvite((i) => i && { ...i, ...patch })
   const credit = invite.credit !== false
+  // Where the credit leads, tagged so analytics shows visits that came from a card (GA4: source "card", medium "pdf" or
+  // "share", content the design). A PNG can't carry a link; the PDF's credit is clickable and Send adds it as text.
+  const creditLink = (medium: 'pdf' | 'share') => `https://shaaditemplate.com/?utm_source=card&utm_medium=${medium}&utm_campaign=credit&utm_content=${invite.templateId}`
   // The first change to a page's words, once per visit to the editor: tells an opened-and-left card from a started one.
   const edited = useRef(false)
   const editPage = (fn: (p: Page) => Page) => {
@@ -172,12 +175,12 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       const m = await import('./pdf')
       const el = exportRef.current!
       if (kind === 'pdf') {
-        save(await m.buildPdf(el, format, `${slug}-invitation`))
+        save(await m.buildPdf(el, format, `${slug}-invitation`, credit ? creditLink('pdf') : undefined))
         setSaved('pdf')
       } else {
         const files = await m.buildPngs(el, format, `${slug}-invitation`)
         if (kind === 'share' && navigator.canShare?.({ files })) {
-          await navigator.share({ files, title: 'Wedding invitation', text: 'Made free at shaaditemplate.com' }).catch((e) => {
+          await navigator.share({ files, title: 'Wedding invitation', ...(credit && { text: `Made free at ${creditLink('share')}` }) }).catch((e) => {
             if (e.name !== 'AbortError') throw e
           })
         } else {
@@ -369,6 +372,12 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                   />
                 </Control>
               </div>
+              {/* The credit is on unless the family unticks it; the card shows it exactly as the download will. Kept with
+                  the card settings, last in the form, rather than beside the card. */}
+              <label className="flex cursor-pointer items-center gap-2.5 text-[13px] text-ink/65 pointer-coarse:min-h-11">
+                <input type="checkbox" checked={credit} onChange={(e) => set({ credit: e.target.checked })} className="size-4 accent-wine" />
+                Show “shaaditemplate.com” at the foot of the card
+              </label>
             </section>
           </div>
         </div>
@@ -393,11 +402,6 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                 ]}
               />
             </div>
-            {/* The credit is on unless the family unticks it; the card shows it exactly as the download will. */}
-            <label className="flex cursor-pointer items-center gap-2.5 px-5 pb-2 text-sm text-rose/80 pointer-coarse:min-h-11 sm:px-8">
-              <input type="checkbox" checked={credit} onChange={(e) => set({ credit: e.target.checked })} className="size-4 accent-zari" />
-              Show a small “Made free at shaaditemplate.com” on the card
-            </label>
             {/* Every page in one column, like a PDF viewer. Click a page to edit it. On phones the pages run in the page's
                 own scroll (a second scroll box inside it confused people); only desktop's sticky panel scrolls by itself. */}
             <div ref={previewRef} className="relative min-h-0 flex-1 space-y-8 overflow-x-auto px-5 pb-10 pt-4 sm:px-8 lg:overflow-auto">

@@ -57,7 +57,7 @@ export interface Invite {
   // Photo windows, by the index of the design page they belong to: the couple's own photo (src, a JPEG data URL;
   // none means the sample) and the part of it shown in the frame.
   photos?: Record<number, Photo>
-  // A small "Made free at shaaditemplate.com" line at the foot of each page, in the editor and every download. On
+  // A small "shaaditemplate.com" line at the foot of each page, in the editor and every download. On
   // unless the family unticks it (false).
   credit?: boolean
 }

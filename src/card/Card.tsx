@@ -347,7 +347,7 @@ function Sections({ x, p, head, cols }: { x: Look; p: SectionsPage; head: boolea
 }
 
 // animate: the editor's live preview, where a page copied from a video invitation plays (never in downloads).
-// credit: the editor's preview and downloads show the "Made free at shaaditemplate.com" line (Invite.credit); the
+// credit: the editor's preview and downloads show the "shaaditemplate.com" line (Invite.credit); the
 // gallery does not.
 export function CardPage({ invite, page, animate, credit }: { invite: Invite; page: Page; animate?: boolean; credit?: boolean }) {
   const t = templateById(invite.templateId)
@@ -484,7 +484,7 @@ export function CardPage({ invite, page, animate, credit }: { invite: Invite; pa
         <div data-credit aria-hidden className="pointer-events-none absolute inset-x-0 flex justify-center" style={{ bottom: h * 0.012 }}>
           {/* A soft dark pill reads on light and painted art alike, like the gallery previews' mark. */}
           <span style={{ fontFamily: '"Jost", system-ui, sans-serif', fontSize: w * 0.022, lineHeight: 1.4, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.92)', background: 'rgba(0,0,0,0.3)', padding: '0.1em 0.9em', borderRadius: 999, textShadow: 'none' }}>
-            Made free at shaaditemplate.com
+            shaaditemplate.com
           </span>
         </div>
       )}
