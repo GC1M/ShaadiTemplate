@@ -88,7 +88,7 @@ function sitePages(): Plugin {
               itemListElement: DESIGNS.map((d, i) => ({ '@type': 'ListItem', position: i + 1, item: { '@type': 'CreativeWork', name: `${d.name} wedding website`, url: `${SITE}${designPath(d)}`, image: og(d) } })) } },
           crumbs(hub),
         ],
-        body: text('Free wedding website designs', `${hubDesc} Pick a design, add your names, functions and photos, and send one link to every guest.`),
+        body: text('Free wedding website designs', `${hubDesc} Pick a design, add your names, functions and photos, and send one link to every guest. Guests invited to only some functions get a separate link for each function, showing just those.`),
       })
       write('/websites/preview/', edit)
       for (const d of DESIGNS) {

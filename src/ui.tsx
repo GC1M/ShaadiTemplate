@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { X } from 'lucide-react'
+import { IN_APP } from './analytics'
 
 // AdSense-ready slot. Renders nothing visible until a real ad is wired in, but keeps its height
 // so the ad never shifts layout.
@@ -125,5 +127,37 @@ export function ZariBorder() {
       </defs>
       <rect width="100%" height="40" fill={`url(#${id}p)`} />
     </svg>
+  )
+}
+
+// Inside Instagram, Facebook or another app's browser, downloads and sharing often fail. A small note says how to get
+// out, closable and never in the way; once closed it stays closed for this visit. Not on a couple's site (/w/...),
+// where guests only read, nor in the card editor, which has its own note about downloads.
+export function InAppHint() {
+  const [open, setOpen] = useState(() => {
+    try {
+      return IN_APP && !location.pathname.startsWith('/w/') && !sessionStorage.getItem('inapphint')
+    } catch {
+      return IN_APP && !location.pathname.startsWith('/w/')
+    }
+  })
+  if (!open) return null
+  const close = () => {
+    setOpen(false)
+    try {
+      sessionStorage.setItem('inapphint', '1')
+    } catch {
+      /* closed for this page only */
+    }
+  }
+  return (
+    <div role="note" className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-md items-start gap-2 rounded-lg bg-paper py-3 pl-4 pr-1 text-[14px] text-ink/85 shadow-xl ring-1 ring-zari/50 [html[data-view=editor]_&]:hidden">
+      <p>
+        For the best results, open this page in Chrome or Safari: tap <strong className="font-medium">⋯</strong> or <strong className="font-medium">⋮</strong> at the top and choose <strong className="font-medium">Open in browser</strong>.
+      </p>
+      <button type="button" onClick={close} aria-label="Close" className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-ink/60 hover:bg-wine/5 hover:text-wine">
+        <X className="size-4" />
+      </button>
+    </div>
   )
 }

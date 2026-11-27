@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 import { keepKey } from './site/api'
+import { catchDraft } from './draftLink'
 
 // Routes for the wedding website pages: the designs (/websites), each design's sample site (/websites/<id>,
 // site/designs.ts), the website editor (/websites/<id>/edit, /w/<slug>/edit) and couples' published sites (/w/<slug>).
@@ -17,6 +18,7 @@ export const sitePath = (path: string) => {
 }
 
 export function land() {
+  catchDraft()
   // These pages were hash routes once, so links already shared (/#/websites/<id>, /#/w/<slug>,
   // /#/w/<slug>/edit?k=<key>) land on the path. GitHub Pages has no file at /w/<slug>, so public/404.html sends
   // it here the same way on every load.

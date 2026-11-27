@@ -47,6 +47,7 @@ import '@fontsource/gloock/400.css'
 import './index.css'
 import { initAnalytics } from './analytics'
 import { land, sitePath } from './siteRoutes'
+import { InAppHint } from './ui'
 
 land()
 initAnalytics()
@@ -112,6 +113,7 @@ createRoot(document.getElementById('root')!).render(
     <Boundary>
       <App />
     </Boundary>
+    <InAppHint />
   </StrictMode>,
 )
 // A page that loaded fine may reload again after a later deploy.

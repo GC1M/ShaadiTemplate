@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowLeft, ArrowUp, Check, Eye, Pencil, X, FileDown, ImagePlus, ImageDown, Loader2, Plus, RotateCcw, Share2, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, Check, Eye, Pencil, X, FileDown, ImagePlus, ImageDown, Link2, Loader2, Plus, RotateCcw, Share2, Trash2 } from 'lucide-react'
 import { flushSync } from 'react-dom'
 import { useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react'
 import { Wordmark } from './Hero'
@@ -11,16 +11,32 @@ import { TransliterateInput } from './transliterate'
 import { fromPlain, toPlain } from './card/plain'
 import { LANG_IDS, type CoverPage, type FontScale, type Format, type Invite, type Lang, type Page, type Photo, type SectionsPage } from './types'
 import { ScaledCard, Segmented, useSplit } from './ui'
-import { track } from './analytics'
+import { IN_APP as inApp, track } from './analytics'
+import { draftLink } from './draftLink'
+import { liveLink } from './site/api'
 
-type Props = { invite: Invite; setInvite: Dispatch<SetStateAction<Invite | null>>; onBack: () => void }
+// replaced: this browser's own card of the design, set aside when a draft link opened over it (App.tsx); offered
+// back until onReplaced closes the note.
+type Props = { invite: Invite; setInvite: Dispatch<SetStateAction<Invite | null>>; onBack: () => void; replaced?: Invite | null; onReplaced?: () => void }
 
-// Instagram, Facebook and Android app browsers often drop downloads and have no share menu; the family is told how out.
-const inApp = typeof navigator !== 'undefined' && /\b(Instagram|FBAN|FBAV|Line)\b|; wv\)/.test(navigator.userAgent)
+// Instagram, Facebook and Android app browsers (inApp) often drop downloads and have no share menu; the family is told
+// how out. iPhones save a download to the Files app, where families never look, and Safari drops all but the first of
+// several downloads from one tap: there the images go through the share menu, whose "Save Images" puts them in Photos.
+const ios = typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1))
+
+// The couple's published wedding website, if this browser made one (site/SiteEditor.tsx keeps it), for the card's QR code.
+function ownSite() {
+  try {
+    const d = JSON.parse(localStorage.getItem('sitedraft') ?? 'null')
+    return d?.key && d.slug ? liveLink(d.slug) : ''
+  } catch {
+    return ''
+  }
+}
 
 const inputCls = 'mt-1.5 w-full rounded-md border border-wine/20 bg-paper px-3.5 py-2.5 text-base outline-none transition-colors hover:border-wine/40 focus:border-wine focus:ring-2 focus:ring-zari/40'
 
-export default function Editor({ invite, setInvite, onBack }: Props) {
+export default function Editor({ invite, setInvite, onBack, replaced, onReplaced }: Props) {
   const t = templateById(invite.templateId)
   const [current, setCurrent] = useState(invite.pages[0]?.id)
   const [zoom, setZoom] = useState<'fit' | '100'>('fit')
@@ -28,7 +44,26 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
   const [busy, setBusy] = useState<'' | 'png' | 'pdf' | 'share'>('')
   const [toast, setToast] = useState('')
   // After a download, a small panel says where the file went and what to do next.
-  const [saved, setSaved] = useState<'' | 'png' | 'pdf'>('')
+  // photos: the images went through the share menu (iPhone). ready: made, waiting for a tap to open the share menu.
+  const [saved, setSaved] = useState<'' | 'png' | 'pdf' | 'photos' | 'ready'>('')
+  // The images last made, kept until the card changes, so "Send" in the panel shares them at once (a tap's permission
+  // to share runs out while a long card is being made).
+  const made = useRef<File[] | null>(null)
+  useEffect(() => {
+    made.current = null
+  }, [invite])
+  const shareFiles = (files: File[], text: boolean) =>
+    navigator.share({ files, title: 'Wedding invitation', ...(credit && text && { text: `Made free at ${creditLink('share')}` }) }).then(
+      () => 'done' as const,
+      (e) => {
+        if (e.name === 'AbortError') return 'cancel' as const
+        if (e.name === 'NotAllowedError') return 'blocked' as const
+        throw e
+      },
+    )
+  // While the files are made, which page is being drawn: a long kankotri takes a while on a phone.
+  const [progress, setProgress] = useState('')
+  const step = (i: number, n: number) => n > 1 && setProgress(`Making page ${i} of ${n}`)
   const fromCard = !!saved && !!typedCover(invite)
   // Deleting a page or section, or resetting the words, happens at once and can be undone for a few seconds
   // (no confirm(): some in-app browsers never show it).
@@ -175,14 +210,18 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       const m = await import('./pdf')
       const el = exportRef.current!
       if (kind === 'pdf') {
-        save(await m.buildPdf(el, format, `${slug}-invitation`, credit ? creditLink('pdf') : undefined))
+        save(await m.buildPdf(el, format, `${slug}-invitation`, credit ? creditLink('pdf') : undefined, step))
         setSaved('pdf')
       } else {
-        const files = await m.buildPngs(el, format, `${slug}-invitation`)
-        if (kind === 'share' && navigator.canShare?.({ files })) {
-          await navigator.share({ files, title: 'Wedding invitation', ...(credit && { text: `Made free at ${creditLink('share')}` }) }).catch((e) => {
-            if (e.name !== 'AbortError') throw e
-          })
+        const files = await m.buildPngs(el, format, `${slug}-invitation`, step)
+        made.current = files
+        if ((kind === 'share' || ios) && navigator.canShare?.({ files })) {
+          const r = await shareFiles(files, kind === 'share')
+          // Safari opens the share menu only soon after a tap, and a long card can take longer than that to make: the
+          // panel then offers a button that shares the finished files at once.
+          // Closing the menu without saving leaves the same button, so the made files are one tap away.
+          if (r === 'blocked' || (r === 'cancel' && kind === 'png')) setSaved('ready')
+          else if (r === 'done' && kind === 'png') setSaved('photos')
         } else {
           files.forEach(save)
           setSaved('png')
@@ -195,8 +234,24 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       setToast('Could not create the file. Please try again.')
     } finally {
       setBusy('')
+      setProgress('')
       setExportFormat(null)
     }
+  }
+
+  // On phones the share menu goes straight to WhatsApp; elsewhere the link is copied and shown, to paste into the
+  // family's own chat. Never sent through wa.me: its address would carry the family's names to WhatsApp's server.
+  const [draftUrl, setDraftUrl] = useState<{ url: string; copied: boolean } | null>(null)
+  const sendDraft = async () => {
+    const url = await draftLink(invite)
+    const text = `My ${t.name} card on ShaadiTemplate. Open this link to keep editing it:`
+    track('draft_link', { template: invite.templateId, length: url.length })
+    if (navigator.share && matchMedia('(pointer: coarse)').matches) {
+      const r = await navigator.share({ title: 'My card draft', text, url }).then(() => 'done', (e) => e.name)
+      if (r === 'done' || r === 'AbortError') return
+    }
+    const copied = await navigator.clipboard?.writeText(`${text} ${url}`).then(() => true, () => false)
+    setDraftUrl({ url, copied: !!copied })
   }
 
   const btn = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2.5 text-sm font-medium disabled:opacity-60 pointer-coarse:min-h-11'
@@ -238,6 +293,19 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           </div>
         </div>
       </header>
+      {replaced && (
+        <div role="status" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-b border-zari/40 bg-paper px-4 py-2.5 text-center text-sm text-ink/80 sm:px-6">
+          <span>This is the card from your link. The one you were making in this browser is kept until you close this note or leave the page.</span>
+          <span className="flex gap-2">
+            <button type="button" onClick={() => (setInvite(replaced), onReplaced?.())} className="rounded-full px-4 py-2 font-medium text-wine ring-1 ring-wine/25 hover:bg-wine/5 pointer-coarse:min-h-11">
+              Use my earlier card
+            </button>
+            <button type="button" onClick={onReplaced} aria-label="Keep the card from the link" className="inline-flex size-10 items-center justify-center rounded-full text-ink/60 hover:bg-wine/5 hover:text-wine pointer-coarse:size-11">
+              <X className="size-4" />
+            </button>
+          </span>
+        </div>
+      )}
       {inApp && (
         <p role="note" className="border-b border-zari/40 bg-paper px-4 py-2.5 text-center text-sm text-ink/80 sm:px-6">
           Inside an app like Instagram or Facebook, downloads can fail. Tap <strong className="font-medium">⋯</strong> and choose <strong className="font-medium">Open in browser</strong> to save your card.
@@ -378,6 +446,41 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
                 <input type="checkbox" checked={credit} onChange={(e) => set({ credit: e.target.checked })} className="size-4 accent-wine" />
                 Show “shaaditemplate.com” at the foot of the card
               </label>
+              {/* Off unless the family ticks it. A small code in the last page's lower corner; guests scan it to open the link. */}
+              <div className="space-y-2">
+                <label className="flex cursor-pointer items-center gap-2.5 text-[15px] text-ink/85 pointer-coarse:min-h-11">
+                  <input type="checkbox" checked={invite.qr !== undefined} onChange={(e) => set({ qr: e.target.checked ? ownSite() : undefined })} className="size-4 accent-wine" />
+                  Add a QR code for your wedding website
+                </label>
+                {invite.qr !== undefined && (
+                  <label className="block pl-6">
+                    <span className="text-[13px] text-ink/65">Website or function link</span>
+                    <input type="url" inputMode="url" value={invite.qr} onChange={(e) => set({ qr: e.target.value.trim() })} placeholder="https://shaaditemplate.com/w/your-names" className={inputCls} />
+                    <span className="mt-1 block text-[13px] text-ink/55">
+                      It goes in the corner of the last page. No website yet?{' '}
+                      <a href="/websites/" className="text-wine underline underline-offset-2">
+                        Make one free
+                      </a>
+                      .
+                    </span>
+                  </label>
+                )}
+              </div>
+            </section>
+
+            {/* Drafts live in this browser only. A link carries one to another phone or computer (draftLink.ts). */}
+            <section className="space-y-3">
+              <Step n={4} title="Finish on another device" />
+              <p className="text-[15px] text-ink/75">Send yourself a link to this card. Open it on any phone or computer to keep editing. Photos are not included: add them again there.</p>
+              <button type="button" onClick={sendDraft} className="inline-flex items-center gap-2 rounded-full bg-wine px-4 py-2.5 text-sm text-rose pointer-coarse:min-h-11 hover:bg-wine-deep">
+                <Link2 className="size-4" aria-hidden /> Send this draft to my WhatsApp
+              </button>
+              {draftUrl && (
+                <label className="block">
+                  <span className="text-[13px] text-ink/65">{draftUrl.copied ? 'Copied. Paste it in your own WhatsApp chat, or copy it from here:' : 'Copy this link and paste it in your own WhatsApp chat:'}</span>
+                  <input readOnly value={draftUrl.url} onFocus={(e) => e.target.select()} className={`${inputCls} text-sm`} />
+                </label>
+              )}
             </section>
           </div>
         </div>
@@ -446,7 +549,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
         </div>
       )}
 
-      {!previewSeen && !toast && !saved && !undo && (
+      {!previewSeen && !toast && !saved && !undo && !progress && (
         <button
           type="button"
           // Straight to the page being edited: on phones the preview is part of the page, so its top shows page 1.
@@ -461,7 +564,7 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
       )}
 
       {/* On phones the form sits below every page of the card: a way down to the words. */}
-      {previewSeen && !toast && !saved && !undo && (
+      {previewSeen && !toast && !saved && !undo && !progress && (
         <button type="button" onClick={backToEditing} className="zari-button fixed bottom-5 right-4 z-30 inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-medium text-wine-deep lg:hidden">
           <Pencil className="size-4" aria-hidden /> Edit words
         </button>
@@ -473,17 +576,36 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
             <X className="size-4" />
           </button>
           <p className="flex items-center gap-2 font-medium text-ink">
-            <Check className="size-4 text-wine" aria-hidden /> {saved === 'pdf' ? 'Your PDF is saved' : invite.pages.length > 1 ? 'Your images are saved' : 'Your image is saved'}
+            <Check className="size-4 text-wine" aria-hidden /> {saved === 'pdf' ? 'Your PDF is saved' : saved === 'ready' ? 'Your card is ready' : saved === 'photos' ? 'Done' : invite.pages.length > 1 ? 'Your images are saved' : 'Your image is saved'}
           </p>
-          <p className="mt-1 text-ink/70">Look in your Downloads folder. On iPhone, open the Files app.</p>
+          {saved === 'ready' ? (
+            <>
+              <p className="mt-1 text-ink/70">Tap below, then choose Save Images to keep it in Photos, or WhatsApp to send it.</p>
+              <button
+                type="button"
+                onClick={() => made.current && shareFiles(made.current, false).then((r) => r === 'done' && setSaved('photos'), () => setToast('Could not open the share menu. Please try again.'))}
+                className="mt-3 inline-flex items-center gap-2 rounded-full bg-wine px-4 py-2 text-sm text-rose pointer-coarse:min-h-11 hover:bg-wine-deep"
+              >
+                <Share2 className="size-4" aria-hidden /> Save or send
+              </button>
+            </>
+          ) : saved === 'photos' ? (
+            <p className="mt-1 text-ink/70">If you chose Save Images, your card is in the Photos app.</p>
+          ) : (
+            <p className="mt-1 text-ink/70">Look in your Downloads folder. On iPhone, open the Files app.</p>
+          )}
           {saved === 'pdf' ? (
             <p className="mt-2 text-ink/70">To print, ask for 5x7 in card stock and print at actual size.</p>
-          ) : canShare ? (
-            <button type="button" onClick={() => run('share')} disabled={!!busy} className="mt-3 inline-flex items-center gap-2 rounded-full bg-wine px-4 py-2 text-sm text-rose pointer-coarse:min-h-11 hover:bg-wine-deep disabled:opacity-60">
+          ) : saved !== 'png' ? null : canShare ? (
+            <button type="button" onClick={() => (made.current ? shareFiles(made.current, true).catch(() => setToast('Could not open the share menu. Please try again.')) : run('share'))} disabled={!!busy} className="mt-3 inline-flex items-center gap-2 rounded-full bg-wine px-4 py-2 text-sm text-rose pointer-coarse:min-h-11 hover:bg-wine-deep disabled:opacity-60">
               {busy === 'share' ? <Loader2 className="size-4 animate-spin" /> : <Share2 className="size-4" aria-hidden />} Send on WhatsApp
             </button>
-          ) : (
-            <p className="mt-2 text-ink/70">To send it on WhatsApp, open a chat, tap the attach button and pick your card.</p>
+          ) : null}
+          {/* WhatsApp shrinks and blurs an image sent as a photo; sent as a document it arrives exactly as made. */}
+          {saved !== 'pdf' && (
+            <p className="mt-2 text-ink/70">
+              To send it on WhatsApp, open a chat, tap attach, choose <strong className="font-medium text-ink">Document</strong> and pick your card: it stays sharp. Sent as a photo, WhatsApp makes it blurry.
+            </p>
           )}
           <a
             href="/websites/"
@@ -517,6 +639,12 @@ export default function Editor({ invite, setInvite, onBack }: Props) {
           >
             Undo
           </button>
+        </div>
+      )}
+
+      {progress && (
+        <div role="status" className="fixed bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-wine-deep px-5 py-3 text-sm text-rose shadow-xl ring-1 ring-zari/40">
+          <Loader2 className="size-4 animate-spin text-zari" aria-hidden /> {progress}
         </div>
       )}
 

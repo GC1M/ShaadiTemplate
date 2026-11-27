@@ -60,13 +60,13 @@ function Petals({ n }: { n: number }) {
   )
 }
 
-function Countdown({ to }: { to: string }) {
+function Countdown({ to, zone }: { to: string; zone?: string }) {
   const [now, setNow] = useState(Date.now)
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
   }, [])
-  const left = Math.max(0, istDate(to).getTime() - now)
+  const left = Math.max(0, istDate(to, zone).getTime() - now)
   if (!left) return <p className="mh-begun">The celebrations have begun</p>
   const parts: [number, string][] = [
     [Math.floor(left / 864e5), 'Days'],
@@ -162,7 +162,7 @@ function Hero({ d }: { d: Design }) {
               {[main.date.split(', ').pop(), d.city].filter(Boolean).join(' · ')}
             </p>
           )}
-          {main && <Countdown key={main.start} to={main.start} />}
+          {main && <Countdown key={main.start} to={main.start} zone={d.zone} />}
         </div>
         <div ref={nudge} className="mh-nudge" aria-hidden>
           <span>Scroll</span>
@@ -283,6 +283,11 @@ function Events({ d }: { d: Design }) {
               {e.map && (
                 <a href={e.map} target="_blank" rel="noreferrer">
                   Directions
+                </a>
+              )}
+              {e.live && (
+                <a href={e.live} target="_blank" rel="noreferrer">
+                  Watch live
                 </a>
               )}
             </p>

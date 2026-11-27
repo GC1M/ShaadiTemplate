@@ -1,6 +1,7 @@
 import type { SymbolId } from '../types'
 import { COUPLE, PEOPLE, SHOTS, type Photo } from './photos'
 import { clipLink, song } from './music'
+import { guestTime } from '../dates'
 
 // The sample wedding website designs, in the order the gallery shows them. Every couple, family and story here is
 // fictional demo content; the venues are real places so the map links work.
@@ -45,7 +46,8 @@ export type Look = {
 // id: a short stable name, so replies still point at the right event after others are added or removed.
 // map: optional directions for this event, a maps link or an address; blank shows none. Events saved before the
 // field existed (no map at all) keep pointing at the main venue.
-export type SiteEvent = { id?: string; name: string; date: string; time: string; where: string; note: string; map?: string; photo?: Photo }
+// live: a link where guests who can't come watch the function as it happens (YouTube, Zoom...).
+export type SiteEvent = { id?: string; name: string; date: string; time: string; where: string; note: string; map?: string; live?: string; photo?: Photo }
 // Any photo left out falls back to the look's demo photo in the same place.
 export type Content = {
   couple: [string, string]
@@ -78,6 +80,8 @@ export type Content = {
   venue: string
   invite: string
   rsvpBy: string
+  // The time zone function times are typed in (IANA, dates.ts ZONES); none means India time.
+  zone?: string
   story: { year: string; title: string; body: string; photo?: Photo }[]
   events: SiteEvent[]
   // Which event is the wedding itself, for the hero date, save-the-date and countdown (default: the second).
@@ -86,7 +90,7 @@ export type Content = {
 }
 
 // place: the event's own address, for its calendar entry (blank: the main venue).
-export type WeddingEvent = { id: string; name: string; date: string; start: string; end: string; time: string; note: string; map?: string; place?: string; photo: Photo }
+export type WeddingEvent = { id: string; name: string; date: string; start: string; end: string; time: string; note: string; map?: string; place?: string; live?: string; photo: Photo }
 export type Design = Omit<Look, 'demo'> &
   Omit<Content, 'events' | 'meet' | 'story' | 'photos' | 'mainEvent'> & {
     mainEvent?: string
@@ -701,6 +705,7 @@ export const LOOKS: Look[] = [
 
 const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+// The start as the venue's wall time, YYYYMMDDTHHMMSS, in the site's zone (Content.zone); dates.ts zoned() reads it.
 const ist = (date: string, time: string) => `${date.replace(/-/g, '')}T${time.replace(':', '')}00`
 // "Friday, 10 December 2027" from 2027-12-10.
 const longDate = (date: string) => {
@@ -757,7 +762,10 @@ export function toDesign(look: Look, c: Content = look.demo): Design {
       const map = own && e.map !== undefined ? (link ? given : mapsUrl(given) || undefined) : venueMap || undefined
       // "In the haveli courtyard" alone would hide the start time; words with a time in them replace it.
       const when = !e.where ? clock(time) : /\p{Nd}/u.test(e.where) ? e.where : `${clock(time)}, ${e.where}`
-      return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: when, note: e.note, map, place: link ? undefined : given || undefined, photo: e.photo ?? fill(at(demo.events, i).photo!, i) }
+      // A guest in another time zone also sees the time on their own clock, in every design, as every design shows `time`.
+      const theirs = typeof window === 'object' ? guestTime(ist(date, time), c.zone) : ''
+      const live = /^https:\/\/\S+$/i.test(e.live?.trim() ?? '') ? e.live!.trim() : undefined
+      return { id: e.id ?? `e${i}`, name: e.name, date: longDate(date), start: ist(date, time), end: plus3h(date, time), time: theirs ? `${when} (${theirs} your time)` : when, note: e.note, map, place: link ? undefined : given || undefined, live, photo: e.photo ?? fill(at(demo.events, i).photo!, i) }
     }),
     mainEvent: c.mainEvent === undefined ? undefined : (c.events[c.mainEvent]?.id ?? `e${c.mainEvent}`),
     hero: c.photos.hero ?? fill(demo.photos.hero!),
@@ -814,7 +822,7 @@ export function designIntro(d: Pick<Design, 'name' | 'tradition' | 'blurb' | 'co
   const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]
   return {
     heading: `${d.name}: a free ${designKind(d)} website`,
-    body: `${d.blurb} The live sample is ${d.couple[0]} and ${d.couple[1]}'s site: their story, ${list} with times and add to calendar, the venue in ${d.city} on a map, RSVP and guest blessings. Make it yours with your own names, functions and photos, then send one link to every guest on WhatsApp. It is free, and stays online until 30 days after your last function.`,
+    body: `${d.blurb} The live sample is ${d.couple[0]} and ${d.couple[1]}'s site: their story, ${list} with times and add to calendar, the venue in ${d.city} on a map, RSVP and guest blessings. Make it yours with your own names, functions and photos, then send one link to every guest on WhatsApp, or a link per function for guests invited to only some. It is free, and stays online until 30 days after your last function.`,
   }
 }
 export const designTitle = (d: { name: string; tradition: string }) => `${d.name}: Free ${designKind(d).replace(/\b[a-z]/g, (c) => c.toUpperCase())} Website`

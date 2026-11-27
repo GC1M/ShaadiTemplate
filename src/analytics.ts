@@ -19,14 +19,18 @@ const CONSENT_REGIONS = 'AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU M
 
 // The address as analytics may see it: never with a wedding website's edit key (App.tsx takes it off on arrival;
 // this covers both shapes a link can carry it in, should one slip through).
-// Nor with a guest pass's name and functions (?guest=…&events=…, site/bespoke/Themed.tsx).
+// Nor with a guest pass's name and functions (?guest=…&events=…, site/bespoke/Themed.tsx), nor a card draft sent as a
+// link (#draft=…, draftLink.ts).
 const href = () => {
-  const u = new URL(location.href.replace(/\?k=[a-f0-9]+|(\/w\/[a-z0-9-]+\/edit\/?)#.*/, '$1'))
+  const u = new URL(location.href.replace(/\?k=[a-f0-9]+|(\/w\/[a-z0-9-]+\/edit\/?)#.*|#draft=.*/, '$1'))
   if (!u.searchParams.has('guest') && !u.searchParams.has('events')) return u.href
   u.searchParams.delete('guest')
   u.searchParams.delete('events')
   return u.href
 }
+
+// An app's own browser (Instagram, Facebook, Line, Android WebView), where downloads and some APIs fail.
+export const IN_APP = typeof navigator !== 'undefined' && /\b(Instagram|FBAN|FBAV|Line)\b|; wv\)/.test(navigator.userAgent)
 
 const load = (src: string) => document.head.appendChild(Object.assign(document.createElement('script'), { async: true, src }))
 
@@ -97,13 +101,19 @@ export function initAnalytics() {
     load(`https://www.clarity.ms/tag/${CLARITY}`)
   }
   if (GA || CLARITY) {
-    // GA keeps 100 characters of a parameter: the message, then the file's name and line. Errors from the editor's
-    // preview frame start with "preview:". Other sites' scripts (GA, Clarity, in-app browsers) reach us only as
-    // "Script error." with no file: nothing to act on, so they are not counted. Nor are scripts an app's in-app
-    // browser runs inside the page from a file of its own (Android's "Java object is gone" from
-    // navigation_performance_logger_android): only errors thrown from this site's own files count.
+    // GA keeps 100 characters of a parameter: the error's name and message, then the file's name and line (from the
+    // stack for a failed promise), then where it happened. Errors from the editor's preview frame start with "preview:".
+    // Other sites' scripts (GA, Clarity, in-app browsers) reach us only as "Script error." with no file: nothing to act
+    // on, so they are not counted. Nor are scripts an app's in-app browser runs inside the page from a file of its own
+    // (Android's "Java object is gone" from navigation_performance_logger_android), errors or failed promises alike:
+    // only those thrown from this site's own files count. `inapp` (in Clarity too) says whether an app's browser ran it.
     const where = top === self ? '' : 'preview: '
-    const report = (msg: string, file = '', line = 0) => track('exception', { description: `${where}${msg} @ ${file.split('/').pop()}:${line}`.slice(0, 100), fatal: false })
+    const frame = (stack = '') => stack.match(/(https?:\/\/[^\s)]+):(\d+):\d+/)
+    const report = (msg: string, file = '', line = 0) => {
+      const description = `${where}${msg} @ ${file.split('/').pop()?.split('?')[0]}:${line} ${location.pathname}`.slice(0, 100)
+      track('exception', { description, fatal: false, inapp: IN_APP })
+      window.clarity?.('set', 'exception', description)
+    }
     const ours = (file: string) => {
       try {
         return new URL(file).origin === location.origin
@@ -111,7 +121,11 @@ export function initAnalytics() {
         return false
       }
     }
-    addEventListener('error', (e) => ours(e.filename) && report(e.message, e.filename, e.lineno))
-    addEventListener('unhandledrejection', (e) => report(String(e.reason)))
+    addEventListener('error', (e) => ours(e.filename) && report(e.error instanceof Error ? `${e.error.name}: ${e.error.message}` : e.message, e.filename, e.lineno))
+    addEventListener('unhandledrejection', (e) => {
+      const r = e.reason
+      const at = frame(r instanceof Error ? r.stack : '')
+      if (at && ours(at[1])) report(`${r.name}: ${r.message}`, at[1], Number(at[2]))
+    })
   }
 }

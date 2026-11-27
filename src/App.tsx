@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState, type SetStateActi
 import { CardPage, SIZES } from './card/Card'
 import Editor from './Editor'
 import { EVENTS, LANGS, SYMBOLS } from './i18n'
-import { carryDetails, isEdited, liveId, loadDrafts, newInvite, saveDrafts, templateById, TEMPLATES, type Template } from './templates'
+import { carryDetails, isEdited, liveId, loadDrafts, newInvite, saveDrafts, stripIds, templateById, TEMPLATES, type Template } from './templates'
 import { EVENT_IDS, LANG_IDS, SYMBOL_IDS, type EventType, type Invite, type Lang, type SymbolId } from './types'
 import { Hero, HERO_CARD, HERO_LANGS, HeroDemo, preview, QUICK_H, Wordmark } from './Hero'
 import { ScaledCard, ZariBorder } from './ui'
@@ -10,6 +10,7 @@ import { track } from './analytics'
 import { land, sitePath, siteView } from './siteRoutes'
 import Reviews, { reviewsOnce } from './Reviews'
 import { API } from './site/api'
+import { takeDraft } from './draftLink'
 
 // The wedding websites row is drawn by the website pages' own code, fetched once the page is up.
 const Showcase = lazy(() => import('./site/Websites').then((m) => ({ default: m.Showcase })))
@@ -38,9 +39,27 @@ export default function App() {
   useEffect(() => {
     saveDrafts(drafts)
   }, [drafts])
+  const draftsNow = useRef(drafts)
+  draftsNow.current = drafts
+  // A draft sent as a link from another device (draftLink.ts) opens in the editor, keeping this browser's photos of
+  // that design (the link carries none). When this browser had a different card of the same design, the editor offers
+  // it back (`replaced`) until the family closes the note: no confirm(), which WhatsApp's own browser may never show.
+  const [replaced, setReplaced] = useState<Invite | null>(null)
+  const openLinkedDraft = () =>
+    takeDraft().then((d) => {
+      const t = d && TEMPLATES.find((x) => x.id === liveId(d.templateId))
+      if (!d || !t) return
+      const mine = draftsNow.current.find((x) => x.templateId === t.id)
+      setReplaced(mine && isEdited(mine) && stripIds(mine.pages) !== stripIds(d.pages) ? mine : null)
+      setDrafts((all) => [{ ...d, templateId: t.id, photos: mine?.photos }, ...all.filter((x) => x.templateId !== t.id)])
+      track('draft_link_open', { template: t.id })
+      location.hash = 'edit'
+    })
   useEffect(() => {
+    openLinkedDraft()
     const sync = () => {
       land()
+      openLinkedDraft()
       setInEditor(isEditor())
       setInSite(isSite())
     }
@@ -111,7 +130,16 @@ export default function App() {
       </Suspense>
     )
   }
-  if (inEditor && invite) return <Editor invite={invite} setInvite={setInvite} onBack={() => (history.state?.fromGallery ? history.back() : (location.hash = ''))} />
+  if (inEditor && invite)
+    return (
+      <Editor
+        invite={invite}
+        setInvite={setInvite}
+        onBack={() => (history.state?.fromGallery ? history.back() : (location.hash = ''))}
+        replaced={replaced?.templateId === invite.templateId ? replaced : null}
+        onReplaced={() => setReplaced(null)}
+      />
+    )
   return <Gallery onOpen={open} draft={invite} drafts={drafts} />
 }
 

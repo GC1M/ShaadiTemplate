@@ -10,7 +10,7 @@ import './site.css'
 // The wedding website designs, each shown as a phone closed on its opening screen (the carved doors and seal, or
 // the tri-fold card); pointing at one opens it onto the cover photo and names, as a guest's tap does on the site.
 
-const FEATURES = ['Countdown to the day', 'Your story', 'Every function, with add to calendar', 'Venue and map', 'Photo gallery', 'RSVP', 'Guest blessings']
+const FEATURES = ['Countdown to the day', 'Your story', 'Every function, with add to calendar', 'Venue and map', 'Photo gallery', 'RSVP', 'A link per function', 'Livestream links', 'Times in each guest’s time zone', 'Guest blessings']
 
 // The site's own opening screen, drawn at a phone's size and scaled to the frame (a transformed box also holds
 // the gate's fixed position). Not for clicking here: the whole card is a link.
@@ -123,7 +123,7 @@ export default function Websites() {
       <SiteHeader />
       <main className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         <h1 className="mt-10 max-w-[18ch] font-display text-[clamp(2.4rem,6vw,4rem)] leading-[1.05]">Wedding website designs</h1>
-        <p className="mt-5 max-w-[58ch] text-lg text-rose/80">One link for every guest: your story, every function, the venue, RSVPs and blessings, on any phone. Open a design to try the live sample{API && ', then make it yours for free'}.</p>
+        <p className="mt-5 max-w-[58ch] text-lg text-rose/80">One link for every guest: your story, every function, the venue, RSVPs and blessings, on any phone. Guests invited to only some functions get a link that shows just theirs. Open a design to try the live sample{API && ', then make it yours for free'}.</p>
         <ul className="mt-6 flex flex-wrap gap-2" aria-label="Every design includes">
           {FEATURES.map((f) => (
             <li key={f} className="rounded-full border border-zari/40 px-3 py-1 text-sm text-rose/85">

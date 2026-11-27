@@ -28,7 +28,7 @@ function content(d: Design, preview: boolean) {
     notes: d.notes,
     compliments: d.compliments ?? [],
     story: d.story.map(({ year, title, body }) => ({ year, title, body })),
-    events: d.events.map((e, i) => ({ id: links[i], name: e.name, date: e.date, time: e.time, note: e.note, map: e.map ?? '', start: e.start, main: e.id === main?.id })),
+    events: d.events.map((e, i) => ({ id: links[i], name: e.name, date: e.date, time: e.time, note: e.note, map: e.map ?? '', live: e.live ?? '', start: e.start, main: e.id === main?.id })),
     main: { name: main?.name ?? '', date: main?.date ?? '', time: main?.time ?? '', start: main?.start ?? '' },
     venue: d.venue,
     venueName: d.venue.split(',')[0].trim(),

@@ -40,6 +40,16 @@ assert.equal((await withEvents({}, { name: 'Sangeet', date: '' })).data.error, '
 const pornima = await call('POST', '/api/sites', { slug: `pornima-rahul-${slug.slice(-6)}`, look: 'rajwada', content: { ...content, story: [], photos: { gallery: [] }, events: [{ ...content.events[0], time: '25:61', photo: undefined }] } })
 assert.equal(pornima.status, 201, JSON.stringify(pornima.data))
 assert.equal(pornima.data.content.events[0].time, '')
+// A livestream link is kept only as https.
+const streams = await call('POST', '/api/sites', { slug: `stream-${slug.slice(-6)}`, look: 'rajwada', content: { ...content, story: [], photos: { gallery: [] }, events: [{ ...content.events[0], live: 'https://youtube.com/live/abc', photo: undefined }, { ...content.events[0], name: 'Haldi', live: 'javascript:alert(1)', photo: undefined }] } })
+assert.equal(streams.status, 201, JSON.stringify(streams.data))
+assert.deepEqual(streams.data.content.events.map((e) => e.live), ['https://youtube.com/live/abc', undefined])
+// The wedding's time zone is kept when it is a real zone, and dropped (India time) when not.
+assert.equal(streams.data.content.zone, undefined)
+const zoned = await call('PUT', `/api/sites/stream-${slug.slice(-6)}`, { look: 'rajwada', content: { ...streams.data.content, zone: 'America/Chicago' } }, streams.data.key)
+assert.equal(zoned.data.content.zone, 'America/Chicago', JSON.stringify(zoned.data))
+assert.equal((await call('PUT', `/api/sites/stream-${slug.slice(-6)}`, { look: 'rajwada', content: { ...streams.data.content, zone: 'Mars/Olympus' } }, streams.data.key)).data.content.zone, undefined)
+assert.equal((await call('DELETE', `/api/sites/stream-${slug.slice(-6)}`, undefined, streams.data.key)).status, 200)
 
 const made = await call('POST', '/api/sites', { slug, look: 'rajwada', content })
 assert.equal(made.status, 201, JSON.stringify(made.data))
@@ -111,6 +121,12 @@ assert.equal((await call('POST', `/api/sites/${slug}/rsvps`, { name: 'Ravi K', s
 assert.equal((await call('GET', `/api/sites/${slug}/rsvps`)).status, 403)
 const rsvps = await call('GET', `/api/sites/${slug}/rsvps`, undefined, key)
 assert.equal(rsvps.data.find((r) => r.name === 'Ravi').party, 3)
+// A reply the couple got by phone: only with the edit key, marked as theirs, and a family bigger than a guest may claim.
+assert.equal((await call('POST', `/api/sites/${slug}/rsvps`, { name: 'Masi', side: 'b', events: ['e0'], party: 12 }, 'wrong-key')).status, 403)
+const byPhone = await call('POST', `/api/sites/${slug}/rsvps`, { name: 'Masi', side: 'b', events: ['e0'], party: 12, note: 'called', guest: 'g-faked123' }, key)
+assert.equal(byPhone.status, 201, JSON.stringify(byPhone.data))
+assert.deepEqual([byPhone.data.by, byPhone.data.party, byPhone.data.guest], ['couple', 12, ''])
+assert.equal((await call('POST', `/api/sites/${slug}/rsvps`, { name: 'Big', side: 'a', events: ['e0'], party: 12 })).data.party, 8) // a guest still gets 8 at most
 assert.equal((await call('DELETE', `/api/sites/${slug}/blessings/${list.data[0].id}`, undefined, key)).status, 200)
 assert.equal((await call('GET', `/api/sites/${slug}/blessings`)).data.length, 0)
 assert.equal((await call('POST', `/api/sites/${slug}/blessings`, { name: 'Asha', text: 'Two people who really deserve each other. May Maa Durga and Ganesh ji bless you.' })).status, 201)

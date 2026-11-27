@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react'
+import qrcode from 'qrcode-generator'
 import { LANGS } from '../i18n'
 import { templateById } from '../templates'
 import type { CoverPage, Format, Invite, Lang, Page, Photo, SectionsPage, SymbolId } from '../types'
@@ -364,7 +365,10 @@ export function CardPage({ invite, page, animate, credit }: { invite: Invite; pa
   const head = art?.head === 'lang' ? invite.lang === t.lang || !!t.tr?.[invite.lang] : !!art?.head
   const k = w / 540
   const crop = art?.print && invite.format === 'print' ? 0 : (960 * k - h) / 2
-  const safe = art ? { top: art.top * k - crop, bottom: art.bottom * k - crop, x: d.safe.story.x * k } : d.safe[invite.format]
+  const safe0 = art ? { top: art.top * k - crop, bottom: art.bottom * k - crop, x: d.safe.story.x * k } : d.safe[invite.format]
+  // The QR code (last page only) gets the foot of the page to itself: the words end above it, so it never covers them.
+  const qr = invite.qr && page === invite.pages.at(-1) ? invite.qr : ''
+  const safe = qr ? { ...safe0, bottom: Math.max(safe0.bottom, QR_BOTTOM * h + QR_SIZE * w + h * 0.01) } : safe0
   const side = art?.x ? { left: (art.x[0] * w) / 100, right: (art.x[1] * w) / 100 } : { left: safe.x, right: safe.x }
   const fit = art?.photo && { ...PHOTO_FIT, ...invite.photos?.[base0.pages!.indexOf(own!)] }
   const photo = art?.photo && { src: fit!.src ?? art.photo.src, b: art.photo.box.map((v) => v * k), fade: art.photo.fade }
@@ -425,7 +429,7 @@ export function CardPage({ invite, page, animate, credit }: { invite: Invite; pa
       el?.removeEventListener('load', fit, true)
     }
     // Only pages whose content or look changed re-fit; untouched pages keep their object identity.
-  }, [page, base, invite.scale, invite.lang, invite.templateId, invite.format, own])
+  }, [page, base, invite.scale, invite.lang, invite.templateId, invite.format, own, !!qr])
 
   return (
     <div ref={root} className="relative overflow-hidden" style={{ width: w, height: h, background: d.sky, color: d.colors.text, fontFamily: x.f.body, letterSpacing: d.tracking, textShadow: d.press, '--names': x.f.names } as CSSProperties}>
@@ -480,6 +484,7 @@ export function CardPage({ invite, page, animate, credit }: { invite: Invite; pa
           <Art.Provider value={{ orn: d.ornaments ?? {}, lang: invite.lang, chip: d.chip, painted }}>{page.kind === 'cover' ? <Cover x={x} p={page} symbol={t.symbol} head={head} /> : <Sections x={x} p={body as SectionsPage} head={head} cols={art?.cols} />}</Art.Provider>
         </div>
       </div>
+      {qr && <Qr url={qr} w={w} h={h} />}
       {credit && (
         <div data-credit aria-hidden className="pointer-events-none absolute inset-x-0 flex justify-center" style={{ bottom: h * 0.012 }}>
           {/* A soft dark pill reads on light and painted art alike, like the gallery previews' mark. */}
@@ -489,5 +494,28 @@ export function CardPage({ invite, page, animate, credit }: { invite: Invite; pa
         </div>
       )}
     </div>
+  )
+}
+
+// The couple's website or function link as a QR code (Invite.qr): a small white tile in the last page's lower right
+// corner, over the border art; the words end above it (CardPage) and the credit sits beside it. It has no words, so every language has it in the
+// same place. Drawn as one SVG path, which downloads capture like the rest of the page.
+const QR_SIZE = 0.15 // of the page's width
+const QR_BOTTOM = 0.025 // of its height
+function Qr({ url, w, h }: { url: string; w: number; h: number }) {
+  const code = useMemo(() => {
+    const q = qrcode(0, 'M')
+    q.addData(/^https?:\/\//i.test(url) ? url : `https://${url}`)
+    q.make()
+    const n = q.getModuleCount()
+    let d = ''
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`
+    return { n, d }
+  }, [url])
+  const size = w * QR_SIZE
+  return (
+    <svg aria-hidden viewBox={`-2 -2 ${code.n + 4} ${code.n + 4}`} width={size} height={size} shapeRendering="crispEdges" className="absolute" style={{ right: w * 0.035, bottom: h * QR_BOTTOM, background: '#fff', borderRadius: size * 0.06, boxShadow: '0 1px 4px rgba(0,0,0,0.25)' }}>
+      <path d={code.d} fill="#000" />
+    </svg>
   )
 }

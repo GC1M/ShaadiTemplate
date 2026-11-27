@@ -5,6 +5,7 @@ import './organza.css'
 import { DESIGNS, designIntro, designPath, go, type Design, type WeddingEvent } from './designs'
 import type { Photo } from './photos'
 import { api, API } from './api'
+import { zoned } from '../dates'
 
 // Shared pieces of the wedding websites. On a couple's published site (slug set) RSVPs and blessings go to the
 // sites API (worker/), so every guest sees the blessings. The demo designs and the editor preview keep them in
@@ -34,8 +35,9 @@ function save(key: string, value: unknown) {
 }
 
 const icsTime = (d: Date) => `${d.toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`
-// Event times are written in IST; UTC needs no VTIMEZONE block (a bare TZID breaks Outlook).
-const fromIst = (t: string) => icsTime(new Date(t.replace(/(\d{4})(\d\d)(\d\d)T(\d\d)(\d\d)(\d\d)/, '$1-$2-$3T$4:$5:$6+05:30')))
+// Event times are the venue's wall time in the site's zone (IST unless set); UTC needs no VTIMEZONE block (a bare TZID
+// breaks Outlook).
+const fromIst = (t: string, zone?: string) => icsTime(zoned(t, zone) ?? new Date())
 
 // Commas, semicolons, backslashes and line breaks are escaped in calendar text (RFC 5545).
 const icsText = (s: string) => s.replace(/[\\,;]/g, '\\$&').replace(/\r?\n/g, '\\n')
@@ -49,8 +51,8 @@ export function downloadIcs(e: WeddingEvent, d: Design) {
     'BEGIN:VEVENT',
     `UID:${e.id}-${slug}@shaaditemplate.com`,
     `DTSTAMP:${icsTime(new Date())}`,
-    `DTSTART:${fromIst(e.start)}`,
-    `DTEND:${fromIst(e.end)}`,
+    `DTSTART:${fromIst(e.start, d.zone)}`,
+    `DTEND:${fromIst(e.end, d.zone)}`,
     `SUMMARY:${icsText(`${e.name}: ${d.couple.join(' and ')}`)}`,
     `LOCATION:${icsText(e.place || d.venue)}`,
     `DESCRIPTION:${icsText([e.time, e.note].filter(Boolean).join('. '))}`,
@@ -60,7 +62,7 @@ export function downloadIcs(e: WeddingEvent, d: Design) {
   // In-app browsers (Instagram, Facebook, Android WebView) ignore downloads, so the button would do nothing there:
   // they get Google Calendar's add-event page instead.
   if (/\bwv\b|FBAN|FBAV|Instagram|Line\//.test(navigator.userAgent)) {
-    const q = new URLSearchParams({ action: 'TEMPLATE', text: `${e.name}: ${d.couple.join(' and ')}`, dates: `${fromIst(e.start)}/${fromIst(e.end)}`, location: e.place || d.venue, details: [e.time, e.note].filter(Boolean).join('. ') })
+    const q = new URLSearchParams({ action: 'TEMPLATE', text: `${e.name}: ${d.couple.join(' and ')}`, dates: `${fromIst(e.start, d.zone)}/${fromIst(e.end, d.zone)}`, location: e.place || d.venue, details: [e.time, e.note].filter(Boolean).join('. ') })
     return void window.open(`https://calendar.google.com/calendar/render?${q}`, '_blank')
   }
   const a = document.createElement('a')
