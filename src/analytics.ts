@@ -99,10 +99,19 @@ export function initAnalytics() {
   if (GA || CLARITY) {
     // GA keeps 100 characters of a parameter: the message, then the file's name and line. Errors from the editor's
     // preview frame start with "preview:". Other sites' scripts (GA, Clarity, in-app browsers) reach us only as
-    // "Script error." with no file: nothing to act on, so they are not counted.
+    // "Script error." with no file: nothing to act on, so they are not counted. Nor are scripts an app's in-app
+    // browser runs inside the page from a file of its own (Android's "Java object is gone" from
+    // navigation_performance_logger_android): only errors thrown from this site's own files count.
     const where = top === self ? '' : 'preview: '
     const report = (msg: string, file = '', line = 0) => track('exception', { description: `${where}${msg} @ ${file.split('/').pop()}:${line}`.slice(0, 100), fatal: false })
-    addEventListener('error', (e) => e.filename && report(e.message, e.filename, e.lineno))
+    const ours = (file: string) => {
+      try {
+        return new URL(file).origin === location.origin
+      } catch {
+        return false
+      }
+    }
+    addEventListener('error', (e) => ours(e.filename) && report(e.message, e.filename, e.lineno))
     addEventListener('unhandledrejection', (e) => report(String(e.reason)))
   }
 }
