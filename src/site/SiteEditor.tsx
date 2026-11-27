@@ -512,7 +512,7 @@ function Workbench({ draft, setDraft }: { draft: Draft; setDraft: (f: (d: Draft)
             <section className="space-y-4">
               <h1 className="font-display text-[34px] leading-tight tracking-[-0.015em] sm:text-[42px]">Your wedding website</h1>
               <p className="text-ink/70">Free, on shaaditemplate.com. Fill in your details and publish; you can keep editing after.</p>
-              {draft.key && <Live draft={draft} fresh={justPublished} />}
+              {draft.key && <Live draft={draft} fresh={justPublished} unsaved={unsaved} />}
             </section>
 
             {draft.key && <Replies slug={draft.slug} edit={draft.key} events={c.events} />}
@@ -1288,12 +1288,15 @@ function GuestPasses({ live, events }: { live: string; events: { id: string; nam
 }
 
 // The live link and the secret edit link, shown big right after publishing and small after that.
-function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
+function Live({ draft, fresh, unsaved }: { draft: Draft; fresh: boolean; unsaved: boolean }) {
   const live = liveLink(draft.slug)
   const edit = editLink(draft.slug, draft.key!)
   const [note, setNote] = useState('')
   const names = draft.content.couple.join(' & ')
   const left = leftovers(draft.content)
+  // A link per function (?events=haldi, read in HostedSite.tsx), for guests invited to only some of them. Hidden
+  // while there are unsaved changes: a renamed function's link would not match the published site yet.
+  const fns = draft.content.events.flatMap((e, i) => (e.name ? [{ name: e.name, url: `${live}?events=${passId(e.name, e.id ?? `e${i}`)}` }] : []))
   const mail = `mailto:?subject=${encodeURIComponent('Our wedding website: edit link')}&body=${encodeURIComponent(`Our wedding website: ${live}\n\nSecret edit link (keep it private, anyone with it can change the site):\n${edit}`)}`
   return (
     <div className={`space-y-4 rounded-md p-5 ring-1 ${fresh ? 'bg-paper ring-zari' : 'bg-paper/70 ring-wine/10'}`}>
@@ -1313,6 +1316,33 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
           </a>
         </div>
       </div>
+      {fns.length > 1 && (
+        <div>
+          {unsaved ? (
+            <p className="text-[13px] text-ink/65">Press Save changes to get a link for each function, for guests invited to only some of them.</p>
+          ) : (
+            <>
+              <span className="text-[13px] text-ink/65">Inviting someone to only some functions? Send them that function's own link. It opens this same site with only that function.</span>
+              <ul className="mt-2 space-y-3">
+                {fns.map((f, i) => (
+                  <li key={i}>
+                    <p className="text-[15px] font-medium">{f.name}</p>
+                    <p className="break-all text-[14px] text-ink/70">{f.url}</p>
+                    <div className="mt-1.5 flex flex-wrap gap-2">
+                      <button type="button" onClick={() => copy(f.url, (s) => setNote(`${f.name}: ${s}`))} aria-label={`Copy the ${f.name} link`} className={small}>
+                        <Copy className="size-4" aria-hidden /> Copy
+                      </button>
+                      <a href={`https://wa.me/?text=${encodeURIComponent(`${names}: our ${f.name} ${f.url}`)}`} target="_blank" rel="noreferrer" aria-label={`Send on WhatsApp: the ${f.name} link`} className={small}>
+                        Send on WhatsApp
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
       <div className={fresh ? 'rounded-md bg-zari/15 p-4' : ''}>
         <span className="text-[13px] text-ink/65">Your secret edit link</span>
         <p className="mt-1 break-all text-[15px]">{edit}</p>
@@ -1331,7 +1361,7 @@ function Live({ draft, fresh }: { draft: Draft; fresh: boolean }) {
         </div>
       </div>
       <Contact slug={draft.slug} edit={draft.key!} />
-      {lookById(draft.look)?.bespoke === 'vicenights' && <GuestPasses live={live} events={draft.content.events.map((e, i) => ({ id: passId(e.name, i), name: e.name })).filter((e) => e.name)} />}
+      {lookById(draft.look)?.bespoke === 'vicenights' && <GuestPasses live={live} events={draft.content.events.map((e, i) => ({ id: passId(e.name, e.id ?? `e${i}`), name: e.name })).filter((e) => e.name)} />}
       {left.length > 0 && (
         <p className="rounded-md bg-wine/5 p-3 text-[14px] text-wine">
           Still the design's sample words: {left.join(', ')}. Change them below and press Save changes.

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from './api'
-import { LOOKS, lookById, toDesign, type Content } from './designs'
+import { LOOKS, lookById, passId, toDesign, type Content } from './designs'
 import { useTitle } from './shared'
 import { Site } from './WeddingSite'
 
@@ -9,6 +9,15 @@ import { Site } from './WeddingSite'
 
 export type SiteData = { look: string; content: Content }
 const draw = (s: SiteData) => toDesign(lookById(s.look) ?? LOOKS[0], s.content)
+
+// A link for some functions only (?events=haldi,sangeet, made in SiteEditor.tsx) shows just those, in every design.
+// Ids that match none of the site's functions are ignored, so a stale link still opens the whole site.
+function only(c: Content): Content {
+  const ids = (new URLSearchParams(location.search).get('events') ?? '').toLowerCase().split(',').map((s) => s.trim())
+  const events = c.events.filter((e, i) => ids.includes(passId(e.name, e.id ?? `e${i}`)))
+  const main = c.mainEvent === undefined ? -1 : events.indexOf(c.events[c.mainEvent])
+  return events.length ? { ...c, events, mainEvent: main < 0 ? undefined : main } : c
+}
 
 function Message({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -71,7 +80,7 @@ function Hosted({ slug }: { slug: string }) {
         <p className="animate-pulse tracking-wide">Opening the invitation…</p>
       </div>
     )
-  return <Site d={draw(data)} mode="hosted" slug={slug} />
+  return <Site d={draw({ ...data, content: only(data.content) })} mode="hosted" slug={slug} />
 }
 
 export default function HostedSite() {
