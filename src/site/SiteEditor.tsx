@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type Rea
 import { track } from '../analytics'
 import { Wordmark } from '../Hero'
 import { api, editKey, editLink, lean, liveLink } from './api'
-import { go, LOOKS, lookById, passId, THEME, type Content, type Look } from './designs'
+import { go, linkIds, LOOKS, lookById, THEME, type Content, type Look } from './designs'
 import type { SiteData } from './HostedSite'
 import type { Photo } from './photos'
 import { useTitle } from './shared'
@@ -1296,7 +1296,8 @@ function Live({ draft, fresh, unsaved }: { draft: Draft; fresh: boolean; unsaved
   const left = leftovers(draft.content)
   // A link per function (?events=haldi, read in HostedSite.tsx), for guests invited to only some of them. Hidden
   // while there are unsaved changes: a renamed function's link would not match the published site yet.
-  const fns = draft.content.events.flatMap((e, i) => (e.name ? [{ name: e.name, url: `${live}?events=${passId(e.name, e.id ?? `e${i}`)}` }] : []))
+  const links = linkIds(draft.content.events)
+  const fns = draft.content.events.flatMap((e, i) => (e.name ? [{ name: e.name, url: `${live}?events=${links[i]}` }] : []))
   const mail = `mailto:?subject=${encodeURIComponent('Our wedding website: edit link')}&body=${encodeURIComponent(`Our wedding website: ${live}\n\nSecret edit link (keep it private, anyone with it can change the site):\n${edit}`)}`
   return (
     <div className={`space-y-4 rounded-md p-5 ring-1 ${fresh ? 'bg-paper ring-zari' : 'bg-paper/70 ring-wine/10'}`}>
@@ -1361,7 +1362,7 @@ function Live({ draft, fresh, unsaved }: { draft: Draft; fresh: boolean; unsaved
         </div>
       </div>
       <Contact slug={draft.slug} edit={draft.key!} />
-      {lookById(draft.look)?.bespoke === 'vicenights' && <GuestPasses live={live} events={draft.content.events.map((e, i) => ({ id: passId(e.name, e.id ?? `e${i}`), name: e.name })).filter((e) => e.name)} />}
+      {lookById(draft.look)?.bespoke === 'vicenights' && <GuestPasses live={live} events={draft.content.events.map((e, i) => ({ id: links[i], name: e.name })).filter((e) => e.name)} />}
       {left.length > 0 && (
         <p className="rounded-md bg-wine/5 p-3 text-[14px] text-wine">
           Still the design's sample words: {left.join(', ')}. Change them below and press Save changes.
